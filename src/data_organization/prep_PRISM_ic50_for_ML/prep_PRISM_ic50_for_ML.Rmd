@@ -1,0 +1,35 @@
+---
+title: "Prep PRISM ic50 for ML"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+
+knitr::opts_knit$set(root.dir = here())
+```
+
+```{r}
+compound_match_list = read_csv(here('results/PRISM_LINCS_klaeger_drug_matches.csv'))
+
+response_curve_parameters = read_csv(here('data/PRISM/secondary/secondary-screen-dose-response-curve-parameters.csv')) %>% 
+	#Filter only to compounds that match the Klaeger list and to cell lines that
+	#passed STR profiling
+	filter(broad_id %in% compound_match_list$broad_id, passed_str_profiling, !is.na(ic50))
+```
+
+
+```{r}
+
+PRISM_ic50_for_ml = response_curve_parameters %>% 
+	select(depmap_id, ccle_name, ic50, name, broad_id) 
+	
+write_csv(PRISM_ic50_for_ml, here('results/PRISM_ic50_for_ml.csv'))
+
+```
+
+
+

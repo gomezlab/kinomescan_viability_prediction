@@ -1,0 +1,56 @@
+---
+title: "PRISM ic50 - klaeger - LINCS model without CV "
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(tictoc)
+library(doParallel)
+library(patchwork)
+library(ROCR)
+
+knitr::opts_knit$set(root.dir = here())
+```
+
+```{r}
+#read in data 
+LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+
+CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
+	rename('depmap_id' = DepMap_ID)
+
+PRISM_ic50 = read_csv(here('results/PRISM_ic50_for_ml.csv'))
+```
+
+```{r}
+
+LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>% 
+	mutate(act_gene_name = paste0('act_', kinase)) %>% 
+	select(-kinase, -binary_hit) %>% 
+	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
+	mutate_all(~replace(., is.na(.), 1))
+
+LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long %>% 
+	mutate(act_gene_name = paste0('act_', kinase)) %>% 
+	select(-kinase, -relative_intensity) %>% 
+	pivot_wider(names_from = act_gene_name, values_from = binary_hit) %>% 
+	mutate_all(~replace(., is.na(.), 0))
+
+all_binary_model_data = PRISM_ic50 %>% 
+	left_join(CCLE, by = 'depmap_id') %>% 
+	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('name' = 'drug'))
+
+temp_binary = LINCS_klaeger_data_for_model_binary_hit %>% 
+	select(1:10)
+temp_CCLE = CCLE %>% 
+	select(1:10)
+temp_ic50 = PRISM_ic50
+
+temp_model_data = PRISM_ic50 %>% 
+	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('name' = 'drug'))
+
+temp_model_data %>% view() %>% head()
+```

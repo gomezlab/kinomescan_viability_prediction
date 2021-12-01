@@ -13,10 +13,6 @@ library(readxl)
 knitr::opts_knit$set(root.dir = here())
 ```
 
-```{r}
-
-```
-
 
 ```{r}
 klaeger = read_rds(here('results/klaeger_full_tidy.rds'))

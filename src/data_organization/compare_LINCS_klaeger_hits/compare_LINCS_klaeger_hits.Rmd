@@ -1,0 +1,98 @@
+---
+title: "(try) to Combine LINCS and klaeger"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(webchem)
+```
+
+```{r}
+#read in data
+
+LINCS_percent_matrix = read_csv(here('results/full_LINCS_UNC_1uM_data_imputed.csv'))
+
+klaeger_tidy = read_rds(here('data/klaeger_full_tidy.rds'))
+
+```
+
+```{r}
+LINCS_long = LINCS_percent_matrix %>% 
+	pivot_longer(c(-Small.Molecule.Name, -Dose), names_to = 'kinase', values_to = 'percent_control')
+
+LINCS_binarized = LINCS_long %>% 
+	mutate(LINCS_hit = if_else(
+		percent_control < 80,
+		1,
+		0
+	))
+
+klaeger_binarized = klaeger_tidy %>% 
+	filter(concentration_M == 0.000001) %>% 
+	mutate(klaeger_hit = if_else(
+		relative_intensity < 0.8,
+		1,
+		0
+	))
+	
+```
+
+```{r}
+#kinase matching
+klaeger_kinases = klaeger_binarized %>% 
+	select(gene_name) %>%
+	unique()
+	
+LINCS_kinases = LINCS_binarized %>% 
+	select(kinase) %>% 
+	unique()
+
+matched_kinases = LINCS_kinases %>% 
+	filter(kinase %in% klaeger_kinases$gene_name)
+```
+
+```{r}
+#compound matching
+klaeger_cid = read_csv(here('data/klaeger_cids.csv')) %>% 
+	mutate(cid = as.character(cid))
+
+LINCS_cid = get_cid(unique(LINCS_binarized$Small.Molecule.Name), from = "name", domain = "compound", match = "all", verbose = T) %>% 
+	rename("LINCS_name" = query)
+	
+matches = klaeger_cid %>% 
+	left_join(LINCS_cid, by = 'cid') %>% 
+	filter(!is.na(LINCS_name))
+
+klaeger_no_matches = klaeger_cid %>%
+	filter(!cid %in% matches$cid)
+
+LINCS_no_matches = LINCS_cid %>%
+	filter(!cid %in% matches$cid)
+```
+
+```{r}
+LINCS_klaeger_data = LINCS_binarized %>% 
+	filter(kinase %in% matched_kinases$kinase) %>% 
+	filter(Small.Molecule.Name %in% matches$LINCS_name) %>% 
+	left_join(select(matches, -cid), by = c('Small.Molecule.Name' = 'LINCS_name')) %>% 
+	left_join(klaeger_binarized, by = c('klaeger_name' = 'drug', 'kinase' = 'gene_name')) %>% 
+	select(klaeger_name, kinase, percent_control, LINCS_hit, relative_intensity, klaeger_hit) %>% 
+	rename('LINCS_relative_intensity' = percent_control, 
+				 'klaeger_relative_intensity' = relative_intensity) %>%
+	mutate(LINCS_relative_intensity = LINCS_relative_intensity/100) %>% 
+	mutate(hit_agreement = if_else(
+		LINCS_hit == klaeger_hit,
+		TRUE,
+		FALSE
+	))
+
+kinase_summary = LINCS_klaeger_data %>% 
+	group_by(kinase) %>% 
+	summarise(mean_agree = mean(hit_agreement))
+
+disagreeable_kinases = kinase_summary %>% 
+	filter(mean_agree < 0.5)
+```
+
