@@ -17,40 +17,380 @@ knitr::opts_knit$set(root.dir = here())
 
 ```{r}
 #read in data 
+compound_match_list = read_csv(here('results/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+
 LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 
-CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
-	rename('depmap_id' = DepMap_ID)
-
 PRISM_ic50 = read_csv(here('results/PRISM_ic50_for_ml.csv'))
+
+CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
+	rename('depmap_id' = DepMap_ID) %>% 
+	filter(depmap_id %in% PRISM_ic50$depmap_id)
+
+
 ```
 
 ```{r}
 
+CCLE_binary = CCLE %>% 
+	pivot_longer(-depmap_id, names_to = 'gene', values_to = 'TPM') %>% 
+	mutate(TPM_binary = if_else(
+		TPM > 0,
+		1,
+		0
+	)) %>% 
+	select(-TPM) %>% 
+	pivot_wider(names_from = gene, values_from = TPM_binary)
+
+PRISM_ic50_binarized = PRISM_ic50 %>% 
+	mutate(ic50_binary = if_else(
+		ic50 <= median(PRISM_ic50$ic50),
+		1,
+		0
+	))
+
 LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>% 
 	mutate(act_gene_name = paste0('act_', kinase)) %>% 
 	select(-kinase, -binary_hit) %>% 
+	left_join(compound_match_list,
+		by = c('drug' = 'klaeger_name')
+	) %>% 
+	select(-LINCS_name) %>% 
+	rename('PRISM_name_klaeger' = PRISM_name, 'broad_id_klaeger' = broad_id) %>%
+	left_join(compound_match_list,
+		by = c('drug' = 'LINCS_name')
+	) %>% 
+	select(-klaeger_name) %>% 
+	rename('PRISM_name_LINCS' = PRISM_name, 'broad_id_LINCS' = broad_id) %>% 
+	mutate(
+		PRISM_name = if_else(
+		is.na(PRISM_name_klaeger),
+		PRISM_name_LINCS,
+		PRISM_name_klaeger
+		),
+		broad_id = if_else(
+			is.na(broad_id_klaeger),
+			broad_id_LINCS,
+			broad_id_klaeger
+		)
+	) %>% 
+	select(-PRISM_name_klaeger, -broad_id_klaeger, -PRISM_name_LINCS, -broad_id_LINCS) %>% 
+	filter(!is.na(broad_id)) %>% 
+	unique() %>% 
 	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
 	mutate_all(~replace(., is.na(.), 1))
+
+all_model_data = PRISM_ic50 %>% 
+	left_join(CCLE, by = 'depmap_id') %>% 
+	left_join(LINCS_klaeger_data_for_model, by = c('broad_id')) %>% 
+	select(-name, -PRISM_name) %>% 
+	drop_na()
 
 LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long %>% 
 	mutate(act_gene_name = paste0('act_', kinase)) %>% 
 	select(-kinase, -relative_intensity) %>% 
+		left_join(compound_match_list,
+		by = c('drug' = 'klaeger_name')
+	) %>% 
+	select(-LINCS_name) %>% 
+	rename('PRISM_name_klaeger' = PRISM_name, 'broad_id_klaeger' = broad_id) %>%
+	left_join(compound_match_list,
+		by = c('drug' = 'LINCS_name')
+	) %>% 
+	select(-klaeger_name) %>% 
+	rename('PRISM_name_LINCS' = PRISM_name, 'broad_id_LINCS' = broad_id) %>% 
+	mutate(
+		PRISM_name = if_else(
+		is.na(PRISM_name_klaeger),
+		PRISM_name_LINCS,
+		PRISM_name_klaeger
+		),
+		broad_id = if_else(
+			is.na(broad_id_klaeger),
+			broad_id_LINCS,
+			broad_id_klaeger
+		)
+	) %>% 
+	select(-PRISM_name_klaeger, -broad_id_klaeger, -PRISM_name_LINCS, -broad_id_LINCS) %>% 
+	filter(!is.na(broad_id)) %>% 
+	unique() %>%
 	pivot_wider(names_from = act_gene_name, values_from = binary_hit) %>% 
 	mutate_all(~replace(., is.na(.), 0))
 
-all_binary_model_data = PRISM_ic50 %>% 
+all_binary_model_data = PRISM_ic50_binarized %>% 
+	left_join(CCLE_binary, by = 'depmap_id') %>% 
+	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('broad_id')) %>% 
+	select(-name, -PRISM_name, -ic50) %>% 
+	drop_na()
+	
+
+all_relative_intensity_model_data = PRISM_ic50 %>% 
 	left_join(CCLE, by = 'depmap_id') %>% 
-	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('name' = 'drug'))
+	left_join(LINCS_klaeger_data_for_model, by = c('broad_id'))
 
-temp_binary = LINCS_klaeger_data_for_model_binary_hit %>% 
-	select(1:10)
-temp_CCLE = CCLE %>% 
-	select(1:10)
-temp_ic50 = PRISM_ic50
+```
 
-temp_model_data = PRISM_ic50 %>% 
-	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('name' = 'drug'))
+```{r}
+# binary feature selection
 
-temp_model_data %>% view() %>% head()
+binary_data = all_binary_model_data %>% 
+	mutate(across(starts_with(c('exp','act','ic50')), ~ as.factor(.)))
+
+write_rds(binary_data, here('results/all_model_binary_data.rds'))
+
+all_binary_model_data_long = all_binary_model_data %>% 
+	pivot_longer(c(-drug, -broad_id, -depmap_id, -ccle_name, -ic50_binary), names_to = 'feature', values_to = 'value')
+
+feature_variances = all_binary_model_data_long %>% 
+	select(feature, value) %>% 
+	group_by(feature) %>% 
+	summarise(var = var(value))
+
+features_to_select = feature_variances %>% 
+	filter(var > 0)
+write_csv(features_to_select, here('results/binary_data_variable_features.csv'))
+
+# data_for_feature_selection = all_binary_model_data %>% 
+# 	select(ic50_binary, any_of(features_to_select$feature))
+# 
+# feature_set = all_binary_model_data %>% 
+# 	select(any_of(features_to_select$feature))
+# 
+# roc_vals = data.frame()
+# i = 2
+# for(i in 1:dim(feature_set)[2]) {
+# 	this_feature = names(feature_set)[i]
+# 	this_feature_data = all_binary_model_data %>% 
+# 		select(any_of(this_feature))
+# 	this_feature_pred = prediction(all_binary_model_data$ic50_binary, this_feature_data[1])
+# 	this_feature_perf_auc = performance(this_feature_pred, measure = 'auc')
+# 	this_feature_perf_aucpr = performance(this_feature_pred, measure = 'aucpr')
+# 	roc_vals = bind_rows(
+# 			roc_vals,
+# 			data.frame(feature = this_feature,roc = this_feature_perf_auc@y.values[[1]],prc = this_feature_perf_aucpr@y.values[[1]])
+# 		)
+# }
+
+```
+
+```{r}
+#act_PTPN1 true false table
+
+# act_CHD4_data = all_binary_model_data %>% 
+# 	select(ic50_binary, act_CHD4) %>% 
+# 	count(ic50_binary, act_CHD4)
+# 
+# temp = all_binary_model_data %>% 
+# 	count(ic50_binary, exp_PROSER2)
+# 
+# summary = variable_genes %>% 
+# 	group_by(feature) %>% 
+# 	summarise(mean = mean(value))
+# 
+# summary %>%
+# 	ggplot(aes(x = mean)) +
+# 	geom_histogram()
+```
+
+```{r}
+#excluding wild ic50 values
+all_model_data_filtered = all_model_data %>% 
+	filter(ic50 < 30) %>%
+	filter(ic50 > 0.0001) %>% 
+	mutate(ic50 = log10(ic50))
+	
+all_model_data_filtered_long = all_model_data_filtered %>% 
+	pivot_longer(starts_with(c('act', 'exp')), names_to = 'feature', values_to = 'value')
+
+variable_genes = all_model_data_filtered_long %>% 
+	select(feature, value) %>% 
+	group_by(feature) %>% 
+	summarise(var = var(value)) %>% 
+	filter(var > 0.01)
+
+final_model_data = all_model_data_filtered %>% 
+	select(drug, depmap_id, ccle_name, ic50, any_of(variable_genes$feature))
+
+data_split <- initial_split(final_model_data, prop = 9/10)
+
+train_data <- training(data_split)
+test_data  <- testing(data_split)
+
+
+#continuous data feature selection 
+
+find_feature_correlations <- function(row_indexes = NA, all_data) {
+	if (is.na(row_indexes)) {
+		row_indexes = 1:dim(all_data)[1]
+	}
+	
+	##############################################################################
+	# PRISM - Klaeger Activation Correlations
+	##############################################################################
+	
+	all_cor = cor(
+		all_data %>% 
+									pull(ic50),
+								
+		all_data %>% 
+									select(starts_with(c('act', 'exp')))
+		) %>%
+		as.data.frame() %>%
+		pivot_longer(everything(), names_to = "feature",values_to = "cor")
+	
+	
+	all_correlations = all_cor %>% 
+		mutate(abs_cor = abs(cor)) %>% 
+		arrange(desc(abs_cor)) %>% 
+		mutate(rank = 1:n()) %>%
+		mutate(feature_type = case_when(
+			str_detect(feature, "^act_") ~ "Activation",
+			str_detect(feature, "^exp_") ~ "Expression",
+			T ~ feature
+		))
+
+	return(all_correlations)	
+}
+
+feature_correlations = find_feature_correlations(all_data = train_data)
+```
+
+```{r}
+#build classification model
+
+train_data_500 = train_data %>% 
+	select(any_of(feature_correlations$feature[1:500]),
+					 "drug",
+					 "depmap_id", 
+					 "ccle_name", 
+					 "ic50"
+					 ) %>% 
+	mutate(ic50_binary = as.factor(if_else(
+		ic50 > median(ic50),
+		0,
+		1
+	))) %>% 
+	select(-ic50)
+
+
+feat500_recipe = recipe(ic50_binary ~ ., train_data_500) %>%
+	update_role(-starts_with(c("act_", "exp_", "ic" )),
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("classification")
+
+feat500_wflow <- 
+  workflow() %>% 
+  add_model(rand_forest_spec) %>% 
+  add_recipe(feat500_recipe)
+
+fit <- 
+  feat500_wflow %>% 
+  fit(data = train_data_500)
+
+test_data_500 = test_data %>% 
+	select(any_of(feature_correlations$feature[1:500]),
+					 "drug",
+					 "depmap_id", 
+					 "ccle_name", 
+					 "ic50"
+					 ) %>% 
+	mutate(ic50_binary = as.factor(if_else(
+		ic50 > median(ic50),
+		0,
+		1
+	))) %>% 
+	select(-ic50)
+
+predictions = augment(fit, test_data_500)
+
+predictions %>% 
+	roc_curve(truth = ic50_binary, .pred_0) %>% 
+	autoplot()
+
+metrics = predictions %>% 
+	roc_auc(truth = ic50_binary, .pred_0)
+
+metrics = predictions %>% 
+	metrics(truth = ic50, estimate = predicted_ic50)
+
+predictions %>%
+	ggplot(aes(x = predicted_ic50, y = ic50)) +
+	geom_jitter() +
+	geom_smooth() +
+	labs(title = paste0('Correlation = ', cor(predictions$predicted_ic50, predictions$ic50))) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'red')
+```
+
+```{r}
+#build classification model
+
+train_data_500 = train_data %>% 
+	select(any_of(feature_correlations$feature[1:500]),
+					 "drug",
+					 "depmap_id", 
+					 "ccle_name", 
+					 "ic50"
+					 ) %>% 
+	mutate(ic50_binary = as.factor(if_else(
+		ic50 > median(ic50),
+		0,
+		1
+	))) %>% 
+	select(-ic50)
+
+
+feat500_recipe = recipe(ic50_binary ~ ., train_data_500) %>%
+	update_role(-starts_with(c("act_", "exp_", "ic" )),
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("classification")
+
+feat500_wflow <- 
+  workflow() %>% 
+  add_model(rand_forest_spec) %>% 
+  add_recipe(feat500_recipe)
+
+fit <- 
+  feat500_wflow %>% 
+  fit(data = train_data_500)
+
+test_data_500 = test_data %>% 
+	select(any_of(feature_correlations$feature[1:500]),
+					 "drug",
+					 "depmap_id", 
+					 "ccle_name", 
+					 "ic50"
+					 ) %>% 
+	mutate(ic50_binary = as.factor(if_else(
+		ic50 > median(ic50),
+		0,
+		1
+	))) %>% 
+	select(-ic50)
+
+predictions = augment(fit, test_data_500)
+
+predictions %>% 
+	roc_curve(truth = ic50_binary, .pred_0) %>% 
+	autoplot()
+
+predictions %>% 
+	roc_auc(truth = ic50_binary, .pred_0)
+
+metrics = predictions %>% 
+	metrics(truth = ic50, estimate = predicted_ic50)
+
+predictions %>%
+	ggplot(aes(x = predicted_ic50, y = ic50)) +
+	geom_jitter() +
+	geom_smooth() +
+	labs(title = paste0('Correlation = ', cor(predictions$predicted_ic50, predictions$ic50))) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'red')
 ```
