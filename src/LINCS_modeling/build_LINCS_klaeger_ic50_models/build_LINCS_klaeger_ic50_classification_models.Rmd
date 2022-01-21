@@ -27,7 +27,6 @@ CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>%
 	rename('depmap_id' = DepMap_ID) %>% 
 	filter(depmap_id %in% PRISM_ic50$depmap_id)
 
-temp = names(LINCS_klaeger_data_for_model) %>% as.data.frame()
 ```
 
 ```{r}
@@ -391,6 +390,81 @@ for (i in 1:length(feature_list)) {
 }
 
 write_csv(all_data_classification_metrics, here('results/klaeger_LINCS_classification_results.csv'))
+```
+
+```{r}
+#final 500 feat model
+
+all_data_filtered = read_csv(here('results/all_model_data_filtered.csv')) %>% 
+		mutate(ic50_binary = as.factor(if_else(
+		ic50 <= median(all_data_filtered$ic50),
+		1,
+		0
+	)))
+all_data_feat_cors =  read_csv(here('results/all_filtered_data_feature_correlations.csv'))
+
+build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
+	this_data_filtered = all_data %>%
+		select(any_of(feature_correlations$feature[1:num_features]),
+					 depmap_id,
+					 ccle_name,
+					 ic50,
+					 broad_id,
+					 ic50_binary)
+}
+
+features = 500
+data = all_data_filtered
+
+this_dataset = build_all_data_classification_viability_set(feature_cor =  all_data_feat_cors,
+	                                                 num_features = features,
+	                                                 all_data = data)
+
+folds = vfold_cv(this_dataset, v = 10)
+
+this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("ic50_binary"),
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("classification")
+
+this_wflow <-
+  workflow() %>%
+  add_model(rand_forest_spec) %>%
+  add_recipe(this_recipe)
+
+ctrl <- control_resamples(save_pred = TRUE)
+
+fit <-
+  this_wflow %>%
+  fit_resamples(folds, control = ctrl)
+
+feat500_cv_metrics_classification = collect_metrics(fit)
+
+feat500_classification_predictions = collect_predictions(fit)
+
+roc_curve = feat500_classification_predictions %>%
+	roc_curve(truth = ic50_binary, .pred_0) %>%
+	autoplot() + 
+	ggtitle(round(feat500_cv_metrics_classification$mean[2], 4))
+
+pr_curve = feat500_classification_predictions %>%
+	pr_curve(truth = ic50_binary, .pred_0) %>%
+	autoplot() +
+	ggtitle(round(feat500_cv_metrics_classification$mean[1], 4))
+
+c = roc_curve + pr_curve + plot_annotation(title = '10-fold CV 500 feature Classification Model Results',
+																					 subtitle = 'Classify Responsive ic50s')
+
+ggsave(here('figures/500_feat_all_data_classification_model_results.png'))
+
+write_rds(fit, here('results/500feat_all_data_classification_model.rds'))
+
 ```
 
 
