@@ -354,8 +354,8 @@ write_csv(all_data_regression_metrics, here('results/klaeger_LINCS_regression_re
 
 ```{r}
 #final 500 feature model
-all_data_filtered = read_csv(here('results/all_model_data.csv'))
-all_data_feat_cors =  read_csv(here('results/all_data_feature_correlations.csv'))
+all_data_filtered = read_csv(here('results/all_model_data_filtered.csv'))
+all_data_feat_cors =  read_csv(here('results/all_filtered_data_feature_correlations.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
@@ -368,9 +368,9 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 }
 
 features = 500
-data = all_data_more_filtered
+data = all_data_filtered
 
-this_dataset = build_all_data_regression_viability_set(feature_cor =  all_filtered_data_feat_cors,
+this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
 	                                                 num_features = features,
 	                                                 all_data = data)
 
