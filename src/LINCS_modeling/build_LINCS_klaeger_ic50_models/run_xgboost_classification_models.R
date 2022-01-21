@@ -50,7 +50,7 @@ get_all_data_classification_cv_metrics = function(features, data) {
 		min_n(),
 		loss_reduction(),
 		sample_size = sample_prop(),
-		finalize(mtry(), vb_train),
+		finalize(mtry(), this_dataset),
 		learn_rate(),
 		size = 15
 	)
