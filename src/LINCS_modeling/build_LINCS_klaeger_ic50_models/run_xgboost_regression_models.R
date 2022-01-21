@@ -13,7 +13,6 @@ all_data_feat_cors =  read_csv(here('results/all_filtered_data_feature_correlati
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
-		mutate(ic50 = as.factor(ic50)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
