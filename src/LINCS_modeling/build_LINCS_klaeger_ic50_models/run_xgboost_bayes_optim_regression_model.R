@@ -60,7 +60,7 @@ features = 1500
 		this_wflow,
 		resamples = folds,
 		param_info = xgb_set,
-		initial = 5,
+		initial = 7,
 		iter = 50,
 		metrics = metric_set(rsq),
 		control = control_bayes(no_improve = 30, verbose = TRUE)
