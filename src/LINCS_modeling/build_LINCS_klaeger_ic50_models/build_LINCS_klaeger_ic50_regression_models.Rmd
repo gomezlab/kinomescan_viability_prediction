@@ -429,3 +429,61 @@ ggsave(here('figures/500_feat_all_filtered_data_regression_model_results.png'))
 write_rds(fit, here('results/500_feat_lincs_klaeger_regression_model.rds'))
 ```
 
+```{r}
+#analyze xgboost regression model results 
+
+xgboost_regression_metrics = read_csv(here('results/klaeger_LINCS_xgboost_regression_results.csv'))
+
+xgboost_regression_metrics_processed = xgboost_regression_metrics %>% 
+	# mutate(across(c('mtry', 'min_n', 'tree_depth', 'learn_rate', 'loss_reduction', 'sample_size'), ~as.factor(.))) %>% 
+	drop_na()
+
+parameter_list = c(mtry, min_n, tree_depth, learn_rate, loss_reduction, sample_size)
+parameter_name_list = c('mtry', 'min_n', 'tree_depth', 'learn_rate', 'loss_reduction', 'sample_size')
+
+	
+xgboost_regression_metrics_processed %>% 
+	ggplot() +
+	geom_point(aes(x = mtry, y = mean, colour = .metric)) +
+	facet_wrap(vars(feature_number))
+	
+ggsave(here('figures/mtry_xgboost_tuning_results.png'), width = 10, height = 7)
+
+
+xgboost_regression_metrics_processed %>% 
+	ggplot() +
+	geom_point(aes(x = min_n, y = mean, colour = .metric)) +
+	facet_wrap(vars(feature_number))
+	
+ggsave(here('figures/min_n_xgboost_tuning_results.png'), width = 10, height = 7)
+
+xgboost_regression_metrics_processed %>% 
+	ggplot() +
+	geom_point(aes(x = tree_depth, y = mean, colour = .metric)) +
+	facet_wrap(vars(feature_number))
+	
+ggsave(here('figures/tree_depth_xgboost_tuning_results.png'), width = 10, height = 7)
+
+xgboost_regression_metrics_processed %>% 
+	ggplot() +
+	geom_point(aes(x = learn_rate, y = mean, colour = .metric)) +
+	facet_wrap(vars(feature_number))
+	
+ggsave(here('figures/learn_rate_xgboost_tuning_results.png'), width = 10, height = 7)
+
+xgboost_regression_metrics_processed %>% 
+	ggplot() +
+	geom_point(aes(x = loss_reduction, y = mean, colour = .metric)) +
+	facet_wrap(vars(feature_number))
+	
+ggsave(here('figures/loss_reduction_xgboost_tuning_results.png'), width = 10, height = 7)
+
+xgboost_regression_metrics_processed %>% 
+	ggplot() +
+	geom_point(aes(x = sample_size, y = mean, colour = .metric)) +
+	facet_wrap(vars(feature_number))
+	
+ggsave(here('figures/sample_size_xgboost_tuning_results.png'), width = 10, height = 7)
+
+```
+
