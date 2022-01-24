@@ -51,8 +51,9 @@ features = 1500
 		add_model(xgb_spec) %>%
 		add_recipe(this_recipe)
 	
-	xgb_set <- parameters(this_wflow, finalize(mtry(), this_dataset)) %>%
-		update(trees = trees(c(100, 1000)))
+	xgb_set <- parameters(this_wflow) %>%
+		update(trees = trees(c(100, 1000))) %>% 
+		update(mtry = finalize(mtry(), this_dataset))
 		
 	
 	fit <- tune_bayes(
