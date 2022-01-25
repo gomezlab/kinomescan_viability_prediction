@@ -21,10 +21,9 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 ic50)
 }
 
-features = 100
+features = 19994
 data = all_data_filtered
 
-get_all_data_regression_cv_metrics = function(features, data) {
 	this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
 																												 num_features = features,
 																												 all_data = data)
@@ -39,35 +38,37 @@ get_all_data_regression_cv_metrics = function(features, data) {
 		step_zv(all_predictors()) %>% 
 		step_normalize(all_predictors())
 	
-	tabnet_spec <- tabnet(epochs = 100, batch_size = 16384, decision_width = 24, attention_width = 26,
-												num_steps = 5, penalty = 0.000001, virtual_batch_size = 512, momentum = 0.6,
-												feature_reusage = 1.5, learn_rate = 0.02) %>%
-		set_engine("torch", verbose = TRUE) %>% 
-		set_mode("regression") 
+	tabnet_spec <- tabnet(epochs = 100, batch_size = tune(), decision_width = tune(), attention_width = tune(),
+												num_steps = tune(), penalty = 0.000001, virtual_batch_size = tune(), momentum = 0.6,
+												feature_reusage = tune(), learn_rate = tune()) %>%
+		set_engine("torch", verbose = TRUE) %>%
+		set_mode("regression")
 	
-	this_wflow <-
+this_wflow <-
 		workflow() %>%
 		add_model(tabnet_spec) %>%
 		add_recipe(this_recipe)
 	
-	ctrl <- control_resamples(save_pred = TRUE)
+	grid <-
+		this_wflow %>%
+		parameters() %>%
+		update(
+			decision_width = decision_width(range = c(8, 64)),
+			attention_width = attention_width(range = c(8, 64)),
+			num_steps = num_steps(range = c(3, 10)),
+			learn_rate = learn_rate(range = c(-2.5, -1))
+		) %>%
+		grid_max_entropy(size = 20)
+	ctrl <- control_race(verbose_elim = TRUE)
 	
-	fit <-
-		this_wflow %>% 
-		fit_resamples(folds, control = ctrl)
+	res <- this_wflow %>% 
+		tune_race_anova(
+			resamples = folds, 
+			grid = grid,
+			control = ctrl
+		)
 	
 	cv_metrics_regression = collect_metrics(fit)
-	
-	return(cv_metrics_regression)
-}
 
-feature_list = seq(1000, 10000, by = 1000)
 
-all_data_regression_metrics = data.frame()
-for (i in 1:length(feature_list)) {
-	this_metrics = get_all_data_regression_cv_metrics(features = feature_list[i], data = all_data_filtered) %>%
-		mutate(feature_number = feature_list[i])
-	all_data_regression_metrics = bind_rows(all_data_regression_metrics, this_metrics)
-}
-
-write_csv(all_data_regression_metrics, here('results/klaeger_LINCS_NN_tabnet_regression_results.csv'))
+write_csv(cv_metrics_regression, here('results/klaeger_LINCS_NN_tabnet_regression_results.csv'))
