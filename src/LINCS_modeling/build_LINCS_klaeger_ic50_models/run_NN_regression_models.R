@@ -21,6 +21,9 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 ic50)
 }
 
+features = 100
+data = all_data_filtered
+
 get_all_data_regression_cv_metrics = function(features, data) {
 	this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
 																												 num_features = features,
@@ -39,19 +42,20 @@ get_all_data_regression_cv_metrics = function(features, data) {
 	keras_spec <- mlp(
 		hidden_units = tune(), 
 		penalty = tune(), 
-		activation = "linear"                  
+		activation = "relu"                  
 	) %>% 
 		set_engine("keras") %>% 
-		set_mode("regression")
-	
-	keras_grid <- keras_spec %>%
-		parameters %>% 
-		grid_max_entropy(size = 10)
+		set_mode("regression") 
 	
 	this_wflow <-
 		workflow() %>%
 		add_model(keras_spec) %>%
 		add_recipe(this_recipe)
+	
+keras_grid <- this_wflow %>%
+		parameters() %>% 
+	 update(hidden_units = hidden_units(c(1, 500))) %>%
+		grid_max_entropy(size = 10)	
 	
 	ctrl <- control_resamples(save_pred = TRUE)
 	
@@ -67,7 +71,7 @@ get_all_data_regression_cv_metrics = function(features, data) {
 	return(cv_metrics_regression)
 }
 
-feature_list = c(250, 500, 1000 , 1500, 2000, 2500, 3000, 3500)
+feature_list = seq(1000, 10000, by = 1000)
 
 all_data_regression_metrics = data.frame()
 for (i in 1:length(feature_list)) {
