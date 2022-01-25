@@ -52,7 +52,8 @@ features = 1500
 		add_recipe(this_recipe)
 	
 	xgb_set <- parameters(this_wflow) %>%
-		update(trees = trees(c(100, 1000))) %>% 
+		update(trees = trees(c(100, 1000)),
+					 tree_depth = tree_depth(c(4, 50))) %>% 
 		update(mtry = finalize(mtry(), this_dataset))
 		
 	
@@ -60,10 +61,9 @@ features = 1500
 		this_wflow,
 		resamples = folds,
 		param_info = xgb_set,
-		initial = 7,
-		iter = 50,
+		iter = 30,
 		metrics = metric_set(rsq),
-		control = control_bayes(no_improve = 30, verbose = TRUE)
+		control = control_bayes(no_improve = 10, save_pred = TRUE, verbose = TRUE)
 	)
 	
 	cv_metrics_regression = collect_metrics(fit)
