@@ -59,23 +59,23 @@ data = all_data_filtered
 	
 cv_metrics_regression = collect_metrics(fit)
  
-predictions_regression_500_filtered = collect_predictions(fit) %>% 
+predictions_regression_500 = collect_predictions(fit) %>% 
 	rename('predicted_ic50' = .pred)
 
-predictions_regression_500_filtered %>% 
+predictions_regression_500 %>% 
 	ggplot(aes(x = ic50, y = predicted_ic50)) +
 	geom_hex() +
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
 	geom_smooth() +
 	labs(title = paste0('Correlation = ', 
 											round(
-												cor(predictions_regression_500_filtered$ic50, 
-														predictions_regression_500_filtered$predicted_ic50),
+												cor(predictions_regression_500$ic50, 
+														predictions_regression_500$predicted_ic50),
 												4),
 											', R-Squared = ', round(
-												cv_metrics_regression_500_filtered$mean[2],
+												cv_metrics_regression$mean[2],
 												4),
-											', RMSE = ', round(cv_metrics_regression_500_filtered$mean[1],
+											', RMSE = ', round(cv_metrics_regression$mean[1],
 																				 4)),
 			 x = "log10_ic50",
 			 y = "predicted log10ic50") +
