@@ -57,7 +57,9 @@ this_wflow <-
 			decision_width = decision_width(range = c(8, 64)),
 			attention_width = attention_width(range = c(8, 64)),
 			num_steps = num_steps(range = c(3, 10)),
-			learn_rate = learn_rate(range = c(-2.5, -1))
+			learn_rate = learn_rate(range = c(-2.5, -1)),
+			batch_size = finalize(batch_size(), this_dataset),
+			virtual_batch_size = finalize(virtual_batch_size(), this_dataset)
 		) %>%
 		grid_max_entropy(size = 20)
 	ctrl <- control_race(verbose_elim = TRUE)
