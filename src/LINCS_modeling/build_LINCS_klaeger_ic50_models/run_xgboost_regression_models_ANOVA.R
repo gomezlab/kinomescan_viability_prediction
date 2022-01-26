@@ -78,4 +78,4 @@ for (i in 1:length(feature_list)) {
 	all_data_regression_metrics = bind_rows(all_data_regression_metrics, this_metrics)
 }
 
-write_csv(all_data_regression_metrics, here('results/klaeger_LINCS_xgboost_regression_results.csv'))
+write_csv(all_data_regression_metrics, here('results/klaeger_LINCS_xgboost_regression_results_ANOVA.csv'))
