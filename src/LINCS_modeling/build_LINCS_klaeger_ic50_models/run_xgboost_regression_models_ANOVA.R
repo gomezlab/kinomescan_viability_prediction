@@ -21,13 +21,10 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 ic50)
 }
 
-features = 500
-data = all_data_filtered
-
 get_all_data_regression_cv_metrics = function(features, data) {
 	this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
-																														 num_features = features,
-																														 all_data = data)
+																												 num_features = features,
+																												 all_data = data)
 	
 	folds = vfold_cv(this_dataset, v = 10)
 	
@@ -53,17 +50,17 @@ get_all_data_regression_cv_metrics = function(features, data) {
 		add_recipe(this_recipe)
 	
 	xgb_grid = parameters(this_wflow) %>% 
-	update(trees = trees(c(100, 1000)),
-				 tree_depth = tree_depth(c(4, 30))) %>% 
+		update(trees = trees(c(100, 1000)),
+					 tree_depth = tree_depth(c(4, 30))) %>% 
 		update(mtry = finalize(mtry(), this_dataset)) %>% 
 		grid_latin_hypercube(size = 30)
-
 	
-	fit <- tune_grid(
+	fit <- tune_race_ANOVA(
 		this_wflow,
 		resamples = folds,
 		grid = xgb_grid,
-		control = control_grid(save_pred = TRUE)
+		metrics = metric_set(rsq, rmse),
+		control = control_race(verbose_elim = TRUE)
 	)
 	
 	cv_metrics_regression = collect_metrics(fit)
