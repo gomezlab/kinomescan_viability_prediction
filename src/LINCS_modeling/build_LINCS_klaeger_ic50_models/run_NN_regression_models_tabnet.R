@@ -65,13 +65,15 @@ this_wflow <-
 	ctrl <- control_race(verbose_elim = TRUE)
 	
 	fit <- this_wflow %>% 
-		tune_grid(
+		tune_race_ANOVA(
 			resamples = folds, 
 			grid = grid,
-			control = ctrl
+			control = ctrl,
+			metrics = metric_set(rsq, rmse)
 		)
 	
 	cv_metrics_regression = collect_metrics(fit)
 
 
 write_csv(cv_metrics_regression, here('results/klaeger_LINCS_NN_tabnet_regression_results.csv'))
+write_rds(cv_metrics_regression, here('results/klaeger_LINCS_NN_tabnet_regression_race_result.rds'))
