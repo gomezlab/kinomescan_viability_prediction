@@ -53,7 +53,7 @@ features = 1500
 	
 	xgb_set <- parameters(this_wflow) %>%
 		update(trees = trees(c(100, 1000)),
-					 tree_depth = tree_depth(c(4, 50))) %>% 
+					 tree_depth = tree_depth(c(4, 30))) %>% 
 		update(mtry = finalize(mtry(), this_dataset))
 		
 	
@@ -61,6 +61,7 @@ features = 1500
 		this_wflow,
 		resamples = folds,
 		param_info = xgb_set,
+		initial = 14,
 		iter = 30,
 		metrics = metric_set(rsq),
 		control = control_bayes(no_improve = 10, save_pred = TRUE, verbose = TRUE)
