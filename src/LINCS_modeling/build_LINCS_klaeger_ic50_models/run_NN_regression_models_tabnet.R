@@ -40,7 +40,7 @@ data = all_data_filtered
 		step_normalize(all_predictors())
 	
 	tabnet_spec <- tabnet(epochs = 100, batch_size = tune(), decision_width = tune(), attention_width = tune(),
-												num_steps = tune(), penalty = 0.000001, virtual_batch_size = tune(), momentum = 0.6,
+												num_steps = tune(), penalty = 0.000001, virtual_batch_size = 512, momentum = 0.6,
 												feature_reusage = tune(), learn_rate = tune()) %>%
 		set_engine("torch", verbose = TRUE) %>%
 		set_mode("regression")
@@ -58,8 +58,7 @@ this_wflow <-
 			attention_width = attention_width(range = c(8, 64)),
 			num_steps = num_steps(range = c(3, 10)),
 			learn_rate = learn_rate(range = c(-2.5, -1)),
-			batch_size = finalize(batch_size(), this_dataset),
-			virtual_batch_size = finalize(virtual_batch_size(), this_dataset)
+			batch_size = finalize(batch_size(), this_dataset)
 		) %>%
 		grid_max_entropy(size = 20)
 	ctrl <- control_race(verbose_elim = TRUE)
