@@ -1,5 +1,6 @@
 library(tidyverse)
 library(here)
+library(tabnet)
 library(tidymodels)
 library(tictoc)
 library(doParallel)
