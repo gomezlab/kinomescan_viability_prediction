@@ -64,8 +64,8 @@ this_wflow <-
 		grid_max_entropy(size = 20)
 	ctrl <- control_race(verbose_elim = TRUE)
 	
-	res <- this_wflow %>% 
-		tune_race_anova(
+	fit <- this_wflow %>% 
+		tune_grid(
 			resamples = folds, 
 			grid = grid,
 			control = ctrl
