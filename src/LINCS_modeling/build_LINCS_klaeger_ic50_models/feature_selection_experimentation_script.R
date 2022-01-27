@@ -11,9 +11,7 @@ doParallel::registerDoParallel()
 
 all_data_filtered = read_csv(here('results/all_model_data_filtered.csv'))
 
-this_dataset = full_data %>% 
-	slice(1:100) %>% 
-	select(1:100)
+this_dataset = full_data
 
 folds = vfold_cv(this_dataset, v = 10)
 
