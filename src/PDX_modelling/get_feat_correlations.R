@@ -2,7 +2,7 @@ library(tidyverse)
 library(here)
 library(vroom)
 
-data = read_csv(here('results/PDX_klaeger_LINCS_data_for_ml.csv'))
+data = vroom(here('results/PDX_klaeger_LINCS_data_for_ml.csv'))
 
 find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
 	if (is.na(row_indexes)) {
