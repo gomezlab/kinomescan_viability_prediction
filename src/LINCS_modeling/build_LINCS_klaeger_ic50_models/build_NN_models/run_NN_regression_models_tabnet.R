@@ -76,4 +76,4 @@ this_wflow <-
 
 
 write_csv(cv_metrics_regression, here('results/klaeger_LINCS_NN_tabnet_regression_results.csv'))
-write_rds(cv_metrics_regression, here('results/klaeger_LINCS_NN_tabnet_regression_race_result.rds'))
+write_rds(fit, here('results/klaeger_LINCS_NN_tabnet_regression_race_result.rds'))
