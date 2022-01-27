@@ -65,7 +65,7 @@ this_wflow <-
 	ctrl <- control_race(verbose_elim = TRUE)
 	
 	fit <- this_wflow %>% 
-		tune_race_ANOVA(
+		tune_race_anova(
 			resamples = folds, 
 			grid = grid,
 			control = ctrl,

@@ -56,7 +56,7 @@ get_all_data_regression_cv_metrics = function(features, data) {
 		update(mtry = finalize(mtry(), this_dataset)) %>% 
 		grid_latin_hypercube(size = 30)
 	
-	fit <- tune_race_ANOVA(
+	fit <- tune_race_anova(
 		this_wflow,
 		resamples = folds,
 		grid = xgb_grid,
