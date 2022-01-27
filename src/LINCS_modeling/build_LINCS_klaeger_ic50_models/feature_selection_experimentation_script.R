@@ -56,8 +56,6 @@ carscore_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							new_role = "id variable") %>% 
 	step_select_carscore(all_predictors(), outcome = "ic50", top_p = 10, threshold = 0.9)
 
-
-get_cv_metrics_feature_selection = function(query_recipe, query_folds) {
 xgb_spec <- boost_tree(
 	trees = 500, 
 	tree_depth = 13, min_n = 29, 
@@ -68,30 +66,29 @@ xgb_spec <- boost_tree(
 	set_engine("xgboost") %>% 
 	set_mode("regression")
 
-this_wflow <-
-	workflow() %>%
-	add_model(xgb_spec) %>%
-	add_recipe(query_recipe)
+this_workflow_set <-
+	workflow_set(
+		preproc = list(simple = normal_recipe, 
+									 boruta = boruta_recipe, 
+									 infgain = infgain_recipe, 
+									 mrmr = mrmr_recipe, 
+									 carscore = carscore_recipe),
+		models = list(xgboost = xgb_spec), 
+		cross = TRUE
+	) 
 
 ctrl <- control_resamples(save_pred = TRUE)
 
 fit <-
-	this_wflow %>%
+	this_workflow_set %>%
+	workflow_map("fit_resamples", 
+							 resamples = folds, 
+							 control = ctrl)
 	fit_resamples(folds, control = ctrl)
 
 cv_metrics_regression = collect_metrics(fit)
 
+write_rds(fit, here('results/tuned_xgboost_feature_selection_comparison.rds'))
+write_csv(cv_metrics_regression, here('results/tuned_xgboost_feature_selection_results.csv')
 
 
-
-}
-
-selection_list_name = c('normal_recipe', 'boruta_recipe', 'infgain_recipe', 'mrmr_recipe', 'carscore_recipe')
-selection_list = c(normal_recipe, boruta_recipe, infgain_recipe, mrmr_recipe, carscore_recipe)
-
-all_data_regression_metrics = data.frame()
-for (i in 1:length(selection_list)) {
-	this_metrics = get_cv_metrics_feature_selection(query_recipe = selection_list[i], query_folds = folds) %>%
-		mutate(selection_type = selection_list_name[i])
-	all_data_regression_metrics = bind_rows(all_data_regression_metrics, this_metrics)
-}
