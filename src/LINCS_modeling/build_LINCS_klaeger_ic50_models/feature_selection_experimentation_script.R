@@ -11,7 +11,7 @@ doParallel::registerDoParallel()
 
 all_data_filtered = read_csv(here('results/all_model_data_filtered.csv'))
 
-this_dataset = full_data
+this_dataset = all_data_filtered
 
 folds = vfold_cv(this_dataset, v = 10)
 
@@ -87,6 +87,6 @@ fit <-
 cv_metrics_regression = collect_metrics(fit)
 
 write_rds(fit, here('results/tuned_xgboost_feature_selection_comparison.rds'))
-write_csv(cv_metrics_regression, here('results/tuned_xgboost_feature_selection_results.csv')
+write_csv(cv_metrics_regression, here('results/tuned_xgboost_feature_selection_results.csv'))
 
 
