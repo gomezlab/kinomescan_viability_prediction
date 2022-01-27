@@ -10,8 +10,21 @@ library(ROCR)
 doParallel::registerDoParallel()
 
 all_data_filtered = read_csv(here('results/all_model_data_filtered.csv'))
+all_data_feat_cors =  read_csv(here('results/all_filtered_data_feature_correlations.csv'))
 
-this_dataset = all_data_filtered
+build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
+	this_data_filtered = all_data %>%
+		select(any_of(feature_correlations$feature[1:num_features]),
+					 depmap_id,
+					 ccle_name,
+					 ic50,
+					 broad_id)
+}
+
+
+this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
+																											 num_features = 5000,
+																											 all_data = all_data_filtered)
 
 folds = vfold_cv(this_dataset, v = 10)
 

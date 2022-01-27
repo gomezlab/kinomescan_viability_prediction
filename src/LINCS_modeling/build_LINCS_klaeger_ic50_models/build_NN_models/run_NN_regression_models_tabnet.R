@@ -23,7 +23,7 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 ic50)
 }
 
-features = 5000
+features = 3000
 data = all_data_filtered
 
 	this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
@@ -69,7 +69,7 @@ this_wflow <-
 			resamples = folds, 
 			grid = grid,
 			control = ctrl,
-			metrics = metric_set(rsq, rmse)
+			metrics = metric_set(rsq)
 		)
 	
 	cv_metrics_regression = collect_metrics(fit)

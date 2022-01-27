@@ -21,9 +21,6 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 ic50)
 }
 
-features = 500
-data = all_data_filtered
-
 get_all_data_regression_cv_metrics = function(features, data) {
 	this_dataset = build_all_data_regression_viability_set(feature_cor =  all_data_feat_cors,
 																														 num_features = features,
