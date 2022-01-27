@@ -32,14 +32,14 @@ normal_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),
-							ic50_binary,
+							
 							new_role = "id variable")
 
 boruta_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),
-							ic50_binary,
+							
 							new_role = "id variable") %>% 
 	step_select_boruta(all_predictors(), outcome = "ic50")
 
@@ -47,7 +47,7 @@ infgain_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),
-							ic50_binary,
+							
 							new_role = "id variable") %>% 
 	step_select_infgain(all_predictors(), outcome = "ic50", top_p = 10, threshold = 0.9)
 
@@ -55,7 +55,7 @@ mrmr_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),
-							ic50_binary,
+							
 							new_role = "id variable") %>% 
 	step_select_mrmr(all_predictors(), outcome = "ic50", top_p = 10, threshold = 0.9)
 
@@ -63,7 +63,7 @@ carscore_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),
-							ic50_binary,
+							
 							new_role = "id variable") %>% 
 	step_select_carscore(all_predictors(), outcome = "ic50", top_p = 10, threshold = 0.9)
 

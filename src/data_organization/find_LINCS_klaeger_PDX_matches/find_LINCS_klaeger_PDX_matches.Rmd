@@ -1,0 +1,386 @@
+---
+title: "Novartis PDX Modelling"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(tictoc)
+library(doParallel)
+library(patchwork)
+library(ROCR)
+
+knitr::opts_knit$set(root.dir = here())
+```
+
+
+```{r}
+# Load Data 
+all_novartis_data = read_csv(here('results/all_novartis_data_for_ml.csv'))
+```
+
+```{r}
+#EDA
+
+all_novartis_data %>% 
+  ggplot(aes(x = (BestAvgResponse))) +
+  geom_histogram()
+```
+
+```{r}
+#Fetaure Selection Functions
+find_feature_correlations <- function(row_indexes = NA, all_data) {
+	if (is.na(row_indexes)) {
+		row_indexes = 1:dim(all_data)[1]
+	}
+	
+	all_cor = cor(
+		all_data %>% 
+									pull(BestAvgResponse),
+								
+		all_data %>% 
+									select(c(-BestAvgResponse, 
+													 -Model, 
+													 -ResponseCategory, 
+													 -binary_response, 
+													 -drug, 
+													 -concentration_M, 
+													 -cid))
+		) %>%
+		as.data.frame() %>%
+		pivot_longer(everything(), names_to = "feature",values_to = "cor")
+	
+	
+	all_correlations = all_cor %>% 
+		mutate(abs_cor = abs(cor)) %>% 
+		arrange(desc(abs_cor)) %>% 
+		mutate(rank = 1:n()) %>%
+		mutate(feature_type = case_when(
+			str_detect(feature, "^act_") ~ "Activation",
+			str_detect(feature, "^exp_") ~ "Expression",
+			T ~ feature
+		))
+
+	return(all_correlations)	
+}
+
+build_regression_viability_set <- function(feature_cor, num_features, all_data) {
+	
+	feature_data_set = all_data %>% 
+		select(any_of(feature_cor$feature[1:num_features]),
+					 "drug",
+					 "concentration_M", 
+					 "BestAvgResponse", 
+					 "Model", 
+					 "ResponseCategory", 
+					 "binary_response",
+					 "cid"
+					 )
+	
+	return(feature_data_set)
+}
+```
+
+```{r}
+#Data Processing
+
+#picking best dose for klaeger vectors based on correlation with tumor response
+doses = all_novartis_data %>% 
+	select(concentration_M) %>% 
+	unique()
+
+all_cor_means = data.frame()
+all_cors = data.frame()
+
+for(i in 1:dim(doses)[1]) {
+	this_data = all_novartis_data %>% 
+		filter(concentration_M == doses$concentration_M[i])
+	this_cor = find_feature_correlations(all_data = this_data) %>% 
+		mutate(dose = doses$concentration_M[i])
+	mean_cor = this_cor %>% 
+		filter(feature_type == 'Activation' & !is.na(cor)) %>% 
+		group_by(feature_type) %>% 
+		summarise(mean_cor = mean(abs(cor))) %>% 
+		mutate(dose = doses$concentration_M[i])
+	
+	all_cors = bind_rows(all_cors, this_cor)
+	all_cor_means = bind_rows(all_cor_means, mean_cor)
+}
+
+all_cors_activation = all_cors %>% 
+	filter(feature_type == 'Activation' & !is.na(cor))
+
+
+#best dose is 3e-6
+
+all_novartis_best_dose_data = all_novartis_data %>% 
+	filter(concentration_M == 0.000003)
+```
+
+
+
+```{r}
+#Find Feature Correlations
+	best_dose_data_feature_correlations = find_feature_correlations(all_data = all_novartis_best_dose_data)
+
+
+```
+
+
+```{r}
+#Regression Model Building
+
+set.seed(222)
+#function for collecting metrics
+
+get_cv_metrics = function(features, data) {
+this_dataset = build_regression_viability_set(feature_cor =  best_dose_data_feature_correlations, 
+	                                                 num_features = features, 
+	                                                 all_data = data)
+	
+folds = vfold_cv(this_dataset, v = 10)
+
+this_recipe = recipe(BestAvgResponse ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("Best"), 
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("regression")
+
+this_wflow <- 
+  workflow() %>% 
+  add_model(rand_forest_spec) %>% 
+  add_recipe(this_recipe)
+
+ctrl <- control_resamples(save_pred = TRUE)
+
+reg_fit <- 
+  this_wflow %>% 
+  fit_resamples(folds, control = ctrl)
+
+cv_metrics_regression = collect_metrics(reg_fit)
+
+predictions_regression = collect_predictions(reg_fit) %>% 
+	rename('predicted_response' = .pred)
+
+return(cv_metrics_regression)
+
+}
+
+
+all_metrics = data.frame()
+
+feature_list = c(500, 1000 , 1500, 2000, 2500, 3000, 3500, 4000)
+
+
+for (i in 1:length(feature_list)) {
+  this_metrics = get_cv_metrics(features = feature_list[i], data = all_novartis_best_dose_data) %>% 
+    mutate(feature_number = feature_list[i])
+  all_metrics = bind_rows(all_metrics, this_metrics)
+}
+
+
+get_predictions = function(features, data) {
+this_dataset = build_regression_viability_set(feature_cor =  best_dose_data_feature_correlations, 
+	                                                 num_features = features, 
+	                                                 all_data = data)
+	
+folds = vfold_cv(this_dataset, v = 10)
+
+this_recipe = recipe(BestAvgResponse ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("Best"), 
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("regression")
+
+this_wflow <- 
+  workflow() %>% 
+  add_model(rand_forest_spec) %>% 
+  add_recipe(this_recipe)
+
+ctrl <- control_resamples(save_pred = TRUE)
+
+reg_fit <- 
+  this_wflow %>% 
+  fit_resamples(folds, control = ctrl)
+
+cv_metrics_regression = collect_metrics(reg_fit)
+
+predictions_regression = collect_predictions(reg_fit) %>% 
+	rename('predicted_response' = .pred)
+
+return(predictions_regression)
+
+}
+
+#best model is 1500 features
+
+feat1500_predictions = get_predictions(features = 1500, data = all_novartis_best_dose_data)
+
+cv_metrics_1500 = all_metrics %>% 
+  filter(feature_number == 1500)
+
+feat1500_predictions %>% 
+	ggplot(aes(x = BestAvgResponse, y = predicted_response)) +
+	geom_hex() +
+	scale_fill_gradient(low="lightblue1",high="darkblue") +
+	geom_smooth() +
+	labs(title = paste0('Correlation = ', 
+											round(
+												cor(feat1500_predictions$BestAvgResponse, 
+														feat1500_predictions$predicted_response),
+												4),
+											', R-Squared = ', round(
+												cv_metrics_1500$mean[2],
+												4),
+											', RMSE = ', round(cv_metrics_1500$mean[1],
+																				 4))) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'red') 
+	xlim(0,1) +
+	ylim(0,1)
+
+ggsave(here('figures/3000_feat_regression_model_results.png'))
+	
+```
+
+```{r}
+#Classification Model Building
+
+set.seed(222)
+
+binary_novartis_best_dose_data =  all_novartis_best_dose_data %>% 
+	mutate(binary_response = as.factor(binary_response))
+
+flipped_data = binary_novartis_best_dose_data %>% 
+	mutate( binary_response = as.factor(if_else(
+		binary_response == 0,
+		1,
+		0
+	)))
+
+#EDA
+
+flipped_data %>% 
+	ggplot(aes(x = binary_response)) +
+	geom_histogram(stat = "count")
+
+#function for collecting metrics
+
+get_classification_cv_metrics = function(features, data) {
+this_dataset = build_regression_viability_set(feature_cor =  best_dose_data_feature_correlations, 
+	                                                 num_features = features, 
+	                                                 all_data = data)
+	
+folds = vfold_cv(this_dataset, strata = binary_response, v = 10)
+
+this_recipe = recipe(binary_response ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("binary"),
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("classification")
+
+this_wflow <- 
+  workflow() %>% 
+  add_model(rand_forest_spec) %>% 
+  add_recipe(this_recipe)
+
+ctrl <- control_resamples(save_pred = TRUE)
+
+fit <- 
+  this_wflow %>% 
+  fit_resamples(folds, control = ctrl)
+
+cv_metrics_classification = collect_metrics(fit)
+
+return(cv_metrics_classification)
+
+}
+
+
+all_flipped_classification_metrics = data.frame()
+
+feature_list = c(500, 1000 , 1500, 2000, 2500, 3000, 3500, 4000)
+
+
+for (i in 1:length(feature_list)) {
+  this_metrics = get_classification_cv_metrics(features = feature_list[i], data = flipped_data) %>% 
+    mutate(feature_number = feature_list[i])
+  all_flipped_classification_metrics = bind_rows(all_flipped_classification_metrics, this_metrics)
+}
+
+
+get_classification_predictions = function(features, data) {
+this_dataset = build_regression_viability_set(feature_cor =  best_dose_data_feature_correlations, 
+	                                                 num_features = features, 
+	                                                 all_data = data)
+	
+folds = vfold_cv(this_dataset, strata = binary_response, v = 10)
+
+this_recipe = recipe(binary_response ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("binary"), 
+							new_role = "id variable")
+
+rand_forest_spec <- rand_forest(
+	trees = 500
+) %>% set_engine("ranger") %>%
+	set_mode("classification")
+
+this_wflow <- 
+  workflow() %>% 
+  add_model(rand_forest_spec) %>% 
+  add_recipe(this_recipe)
+
+ctrl <- control_resamples(save_pred = TRUE)
+
+fit <- 
+  this_wflow %>% 
+  fit_resamples(folds, control = ctrl)
+
+predictions_classification = collect_predictions(fit)
+
+return(predictions_classification)
+
+}
+
+metrics_500 = all_classification_metrics %>% 
+	filter(feature_number == 500)
+
+feat500_classification_predictions = get_classification_predictions(features = 500, data = binary_novartis_best_dose_data)
+
+roc_curve = feat500_classification_predictions %>%
+	roc_curve(truth = binary_response, .pred_0) %>%
+	autoplot() + 
+	ggtitle(round(metrics_500$mean[2], 4))
+
+pr_curve = feat500_classification_predictions %>%
+	pr_curve(truth = binary_response, .pred_0) %>%
+	autoplot() +
+	ggtitle(round(metrics_500$mean[1], 4))
+
+c = roc_curve + pr_curve + plot_annotation(title = '10-fold CV 500 feature Classification Model Results',
+																					 subtitle = 'Classify Responsive PDX Therapy')
+
+ggsave(here('figures/500_feat_classification_model_results.png'))
+```
+
+
