@@ -131,7 +131,7 @@ infgain_recipe = recipe(binary_response ~ ., this_dataset) %>%
 	
 	all_results = complete_workflowset %>% 
 		workflow_map(
-		"tune_race_ANOVA",
+		"tune_race_anova",
 		seed = 2222,
 		resamples = folds,
 		grid = grid_max_entropy(size = 30),
