@@ -23,7 +23,9 @@ build_regression_viability_set = function(num_features, all_data, feature_correl
 					 binary_response,
 					 below_median_response,
 					 any_of(feature_correlations$feature[1:num_features]),
-		)
+		) %>% 
+		mutate(binary_response = as.factor(binary_response)) %>% 
+		mutate(below_median_response = as.factor(below_median_response))
 }
 
 
@@ -87,8 +89,7 @@ infgain_recipe = recipe(binary_response ~ ., this_dataset) %>%
 	keras_spec <- mlp(
 		hidden_units = tune(), 
 		penalty = tune(),
-		epochs = tune(),
-		activation = "linear"                  
+		epochs = tune()                  
 	) %>% 
 		set_engine("keras") %>% 
 		set_mode("classification")
@@ -134,7 +135,7 @@ infgain_recipe = recipe(binary_response ~ ., this_dataset) %>%
 		"tune_race_anova",
 		seed = 2222,
 		resamples = folds,
-		grid = grid_max_entropy(size = 30),
+		grid = 25,
 		control = race_ctrl
 	)
 	
