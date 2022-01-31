@@ -2,6 +2,7 @@ library(tidyverse)
 library(here)
 library(vroom)
 
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2)
 data = vroom(here('results/PRISM_klaeger_LINCS_data_all_datasets.csv'))
 
 find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
@@ -11,13 +12,16 @@ find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
 	
 	all_cor = cor(
 		all_data %>% 
+			
+			
 			pull(ic50),
 		
 		all_data %>% 
 			select(starts_with(c('act','exp', 'cnv', 'dep', 'prot')))
 	) %>%
 		as.data.frame() %>%
-		pivot_longer(everything(), names_to = "feature",values_to = "cor")
+		pivot_longer(everything(), names_to = "feature",values_to = "cor") %>% 
+		mutate(cor = as.numeric(cor))
 	
 	
 	all_correlations = all_cor %>% 

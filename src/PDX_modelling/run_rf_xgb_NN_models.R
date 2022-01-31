@@ -98,11 +98,14 @@ infgain_recipe = recipe(binary_response ~ ., this_dataset) %>%
 		parameters() %>% 
 		update(hidden_units = hidden_units(c(1, 500)))
 	
+	# , 
+	# 
+	# boruta = boruta_recipe, 
+	# infgain = infgain_recipe
+	
 	complete_workflowset = workflow_set(
-		preproc = list(simple = simple_recipe, 
-									 normal = normal_recipe, 
-									 boruta = boruta_recipe, 
-									 infgain = infgain_recipe),
+		preproc = list(simple = simple_recipe,
+									 normal = normal_recipe),
 		models = list(rf = rf_spec,
 									xgb = xgb_spec,
 									keras = keras_spec),
@@ -112,16 +115,16 @@ infgain_recipe = recipe(binary_response ~ ., this_dataset) %>%
 	complete_workflowset = complete_workflowset %>% 
 		option_add(param_info = rf_param, id = "simple_rf") %>% 
 		option_add(param_info = rf_param, id = "normal_rf") %>% 
-		option_add(param_info = rf_param, id = "boruta_rf") %>% 
-		option_add(param_info = rf_param, id = "infgain_rf") %>% 
+		# option_add(param_info = rf_param, id = "boruta_rf") %>% 
+		# option_add(param_info = rf_param, id = "infgain_rf") %>% 
 		option_add(param_info = xgb_param, id = "simple_xgb") %>% 
 		option_add(param_info = xgb_param, id = "normal_xgb") %>% 
-		option_add(param_info = xgb_param, id = "boruta_xgb") %>% 
-		option_add(param_info = xgb_param, id = "infgain_xgb") %>% 
+		# option_add(param_info = xgb_param, id = "boruta_xgb") %>% 
+		# option_add(param_info = xgb_param, id = "infgain_xgb") %>% 
 		option_add(param_info = keras_param, id = "simple_keras") %>% 
-		option_add(param_info = keras_param, id = "normal_keras") %>% 
-		option_add(param_info = keras_param, id = "boruta_keras") %>% 
-		option_add(param_info = keras_param, id = "infgain_keras")
+		option_add(param_info = keras_param, id = "normal_keras") 
+		# option_add(param_info = keras_param, id = "boruta_keras") %>% 
+		# option_add(param_info = keras_param, id = "infgain_keras")
 		
 	race_ctrl = control_race(
 		save_pred = TRUE, 
