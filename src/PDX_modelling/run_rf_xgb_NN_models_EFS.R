@@ -32,7 +32,12 @@ build_regression_viability_set = function(num_features, all_data, feature_correl
 
 this_dataset = build_regression_viability_set(feature_cor =  cors,
 																							num_features = 10000,
-																							all_data = data)
+																							all_data = data) %>% 
+	select(-Model,
+				 -Treatment,
+				 -ResponseCategory,
+				 -BestAvgResponse,
+				 -below_median_response)
 
 EFS_data = ensemble_fs(data = this_dataset, 
 											 classnumber = 2, 
