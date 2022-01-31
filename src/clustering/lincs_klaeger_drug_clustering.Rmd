@@ -1,0 +1,23 @@
+---
+title: "LINCS Klaeger Data Clustering"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidymodels)
+library(here)
+library(vroom)
+```
+
+```{r}
+#read in data 
+
+lincs_klaeger =  vroom(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+
+```
+
+```{r}
+
+```
+

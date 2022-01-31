@@ -38,6 +38,7 @@ folds = vfold_cv(this_dataset, v = 10, strata = binary_response)
 boruta_recipe = recipe(binary_response ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
+							-starts_with("cnv_"),
 							-starts_with("binary_response"),
 							new_role = "id variable") %>%
 	step_normalize(all_predictors()) %>% 
@@ -65,17 +66,17 @@ rf_param = rf_spec %>%
 	parameters() %>% 
 	update(trees = trees(c(100, 1000)))
 
-keras_spec <- mlp(
-	hidden_units = tune(), 
-	penalty = tune(),
-	epochs = tune()                  
-) %>% 
-	set_engine("keras") %>% 
-	set_mode("classification")
-
-keras_param = keras_spec %>% 
-	parameters() %>% 
-	update(hidden_units = hidden_units(c(1, 500)))
+# keras_spec <- mlp(
+# 	hidden_units = tune(), 
+# 	penalty = tune(),
+# 	epochs = tune()                  
+# ) %>% 
+# 	set_engine("keras") %>% 
+# 	set_mode("classification")
+# 
+# keras_param = keras_spec %>% 
+# 	parameters() %>% 
+# 	update(hidden_units = hidden_units(c(1, 500)))
 
 
 
@@ -97,11 +98,11 @@ complete_workflowset = complete_workflowset %>%
 	# option_add(param_info = rf_param, id = "infgain_rf") %>% 
 	# option_add(param_info = xgb_param, id = "simple_xgb") %>% 
 	# option_add(param_info = xgb_param, id = "normal_xgb") %>% 
-	option_add(param_info = xgb_param, id = "boruta_xgb") %>% 
+	option_add(param_info = xgb_param, id = "boruta_xgb") 
 	# option_add(param_info = xgb_param, id = "infgain_xgb") %>% 
 	# option_add(param_info = keras_param, id = "simple_keras") %>% 
 	# option_add(param_info = keras_param, id = "normal_keras") 
-	option_add(param_info = keras_param, id = "boruta_keras") 
+	#option_add(param_info = keras_param, id = "boruta_keras") 
 # option_add(param_info = keras_param, id = "infgain_keras")
 
 race_ctrl = control_race(
@@ -120,8 +121,9 @@ all_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
+write_rds(all_results, here('results/PDX_boruta_models_classification_results_ANOVA.rds'))
+
 cv_metrics_regression = collect_metrics(all_results)
 
 
 vroom_write(cv_metrics_regression, here('results/PDX_boruta_models_classification_metrics_ANOVA.csv'))
-write_rds(here('results/PDX_boruta_models_classification_results_ANOVA.rds'))
