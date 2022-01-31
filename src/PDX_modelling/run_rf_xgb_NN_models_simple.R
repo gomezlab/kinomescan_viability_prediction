@@ -97,7 +97,7 @@ complete_workflowset = complete_workflowset %>%
 	#option_add(param_info = xgb_param, id = "normal_xgb") %>% 
 	# option_add(param_info = xgb_param, id = "boruta_xgb") %>% 
 	# option_add(param_info = xgb_param, id = "infgain_xgb") %>% 
-	option_add(param_info = keras_param, id = "simple_keras") %>% 
+	option_add(param_info = keras_param, id = "simple_keras") 
 	#option_add(param_info = keras_param, id = "normal_keras") 
 # option_add(param_info = keras_param, id = "boruta_keras") %>% 
 # option_add(param_info = keras_param, id = "infgain_keras")
