@@ -2,7 +2,7 @@ library(tidyverse)
 library(here)
 library(vroom)
 
-Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 2)
+Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
 data = vroom(here('results/PRISM_klaeger_LINCS_data_all_datasets.csv'))
 
 find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
