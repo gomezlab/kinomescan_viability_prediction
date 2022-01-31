@@ -82,12 +82,13 @@ rf_param = rf_spec %>%
 
 # boruta = boruta_recipe,
 # infgain = infgain_recipe
+# ,
+# keras = keras_spec
 
 complete_workflowset = workflow_set(
 	preproc = list(boruta = boruta_recipe),
 	models = list(rf = rf_spec,
-								xgb = xgb_spec,
-								keras = keras_spec),
+								xgb = xgb_spec),
 	cross = TRUE
 )
 
