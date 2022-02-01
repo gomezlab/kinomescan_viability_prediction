@@ -18,6 +18,14 @@ lincs_klaeger =  vroom(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 ```
 
 ```{r}
+#data processing
+lincs_klaeger_wide = lincs_klaeger %>% 
+	select(-binary_hit) %>% 
+	pivot_wider(names_from = kinase, values_from = relative_intensity) %>% 
+	mutate_all(~replace(., is.na(.), 1)) %>% 
+	column_to_rownames(var = 'drug')
 
+
+	
 ```
 

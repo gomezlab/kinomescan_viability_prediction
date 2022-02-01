@@ -37,9 +37,7 @@ get_all_data_regression_cv_metrics = function(features, data) {
 	
 	xgb_spec <- boost_tree(
 		trees = tune(), 
-		tree_depth = tune(), min_n = tune(), 
-		loss_reduction = tune(),                     ## first three: model complexity
-		sample_size = tune(), mtry = tune(),         ## randomness
+		tree_depth = tune(),         ## randomness
 		learn_rate = tune(),                         ## step size
 	) %>% 
 		set_engine("xgboost") %>% 
@@ -56,12 +54,19 @@ get_all_data_regression_cv_metrics = function(features, data) {
 		update(mtry = finalize(mtry(), this_dataset)) %>% 
 		grid_latin_hypercube(size = 30)
 	
+	race_ctrl = control_race(
+		save_pred = TRUE, 
+		parallel_over = "everything",
+		save_workflow = TRUE, 
+		verbose = TRUE
+	)
+	
 	fit <- tune_race_anova(
 		this_wflow,
 		resamples = folds,
 		grid = xgb_grid,
 		metrics = metric_set(rsq, rmse),
-		control = control_race(verbose_elim = TRUE)
+		control = race_ctrl
 	)
 	
 	cv_metrics_regression = collect_metrics(fit)
