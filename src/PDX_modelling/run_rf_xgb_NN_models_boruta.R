@@ -28,8 +28,22 @@ build_regression_viability_set = function(num_features, all_data, feature_correl
 		mutate(below_median_response = as.factor(below_median_response))
 }
 
+build_boruta_viability_set = function(all_data, boruta_decisions) {
+	this_data_filtered = all_data %>%
+		select(Model,
+					 Treatment,
+					 ResponseCategory,
+					 BestAvgResponse,
+					 binary_response,
+					 below_median_response,
+					 any_of(this_dataset_boruta_decision),
+		) %>% 
+		mutate(binary_response = as.factor(binary_response)) %>% 
+		mutate(below_median_response = as.factor(below_median_response))
+}
 
-this_dataset = build_regression_viability_set(feature_cor =  cors,
+
+this_dataset_preprocessed = build_regression_viability_set(feature_cor =  cors,
 																							num_features = 5000,
 																							all_data = data) %>% 
 	select(starts_with("binary_response"),
@@ -37,7 +51,11 @@ this_dataset = build_regression_viability_set(feature_cor =  cors,
 							starts_with("exp_"),
 							starts_with("cnv_"))
 
-this_dataset_boruta = Boruta(binary_response~., data = this_dataset, maxRuns = 100, doTrace = 2)
+this_dataset_boruta = Boruta(binary_response~., data = this_dataset, maxRuns = 200, doTrace = 2)
+
+this_dataset_boruta_decision = getSelectedAttributes(this_dataset_boruta, withTentative = F)
+
+this_dataset = build_boruta_viability_set(all_data = data, boruta_decisions = this_dataset_boruta_decision)
 
 folds = vfold_cv(this_dataset, v = 10, strata = binary_response)
 
