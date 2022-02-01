@@ -7,7 +7,7 @@ library(tictoc)
 library(doParallel)
 library(patchwork)
 library(ROCR)
-library(recipeselectors)
+library(Boruta)
 
 doParallel::registerDoParallel()
 
@@ -30,8 +30,14 @@ build_regression_viability_set = function(num_features, all_data, feature_correl
 
 
 this_dataset = build_regression_viability_set(feature_cor =  cors,
-																							num_features = 10000,
-																							all_data = data)
+																							num_features = 5000,
+																							all_data = data) %>% 
+	select(starts_with("binary_response"),
+				 starts_with("act_"),
+							starts_with("exp_"),
+							starts_with("cnv_"))
+
+this_dataset_boruta = Boruta(binary_response~., data = this_dataset, maxRuns = 100, doTrace = 2)
 
 folds = vfold_cv(this_dataset, v = 10, strata = binary_response)
 
@@ -41,8 +47,7 @@ boruta_recipe = recipe(binary_response ~ ., this_dataset) %>%
 							-starts_with("cnv_"),
 							-starts_with("binary_response"),
 							new_role = "id variable") %>%
-	step_normalize(all_predictors()) %>% 
-	step_select_boruta(all_predictors(), outcome = "binary_response") 
+	step_normalize(all_predictors()) 
 
 xgb_spec <- boost_tree(
 	trees = tune(), 
