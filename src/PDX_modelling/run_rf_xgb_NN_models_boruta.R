@@ -44,7 +44,7 @@ build_boruta_viability_set = function(all_data, boruta_decisions) {
 
 
 this_dataset_preprocessed = build_regression_viability_set(feature_cor =  cors,
-																							num_features = 40000,
+																							num_features = 20000,
 																							all_data = data) %>% 
 	select(starts_with("binary_response"),
 				 starts_with("act_"),
