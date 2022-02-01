@@ -51,7 +51,6 @@ get_all_data_regression_cv_metrics = function(features, data) {
 	xgb_grid = parameters(this_wflow) %>% 
 		update(trees = trees(c(100, 1000)),
 					 tree_depth = tree_depth(c(4, 30))) %>% 
-		update(mtry = finalize(mtry(), this_dataset)) %>% 
 		grid_latin_hypercube(size = 30)
 	
 	race_ctrl = control_race(
