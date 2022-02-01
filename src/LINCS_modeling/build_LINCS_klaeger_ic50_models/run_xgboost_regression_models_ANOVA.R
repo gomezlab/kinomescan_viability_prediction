@@ -6,11 +6,12 @@ library(tictoc)
 library(doParallel)
 library(patchwork)
 library(ROCR)
+library(vroom)
 
 doParallel::registerDoParallel()
 
-all_data_filtered = read_csv(here('results/all_model_data_filtered.csv'))
-all_data_feat_cors =  read_csv(here('results/all_filtered_data_feature_correlations.csv'))
+all_data_filtered = vroom(here('results/all_model_data_filtered.csv'))
+all_data_feat_cors =  vroom(here('results/all_filtered_data_feature_correlations.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
@@ -83,4 +84,4 @@ for (i in 1:length(feature_list)) {
 	all_data_regression_metrics = bind_rows(all_data_regression_metrics, this_metrics)
 }
 
-write_csv(all_data_regression_metrics, here('results/klaeger_LINCS_xgboost_regression_results_ANOVA.csv'))
+vroom_write(all_data_regression_metrics, here('results/klaeger_LINCS_xgboost_regression_results_ANOVA.csv'))
