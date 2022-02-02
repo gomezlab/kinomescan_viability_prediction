@@ -41,21 +41,23 @@ build_boruta_viability_set = function(all_data, boruta_decisions) {
 		mutate(binary_response = as.factor(binary_response)) %>% 
 		mutate(below_median_response = as.factor(below_median_response))
 }
-
-
+query_data = data
+feature_list = seq(500, 5000, by = 500)
+all_data_regression_metrics = data.frame()
+for (i in 1:length(feature_list)) {
 this_dataset_preprocessed = build_regression_viability_set(feature_cor =  cors,
-																							num_features = 10000,
-																							all_data = data) %>% 
+																													 num_features = feature_list[i],
+																													 all_data = query_data) %>% 
 	select(starts_with("binary_response"),
 				 starts_with("act_"),
-							starts_with("exp_"),
-							starts_with("cnv_"))
+				 starts_with("exp_"),
+				 starts_with("cnv_"))
 
 this_dataset_boruta = Boruta(binary_response~., data = this_dataset_preprocessed, maxRuns = 200, doTrace = 2)
 
 this_dataset_boruta_decision = getSelectedAttributes(this_dataset_boruta, withTentative = F)
 
-this_dataset = build_boruta_viability_set(all_data = data, boruta_decisions = this_dataset_boruta_decision)
+this_dataset = build_boruta_viability_set(all_data = query_data, boruta_decisions = this_dataset_boruta_decision)
 
 folds = vfold_cv(this_dataset, v = 10, strata = binary_response)
 
@@ -123,10 +125,10 @@ complete_workflowset = complete_workflowset %>%
 	# option_add(param_info = xgb_param, id = "simple_xgb") %>% 
 	# option_add(param_info = xgb_param, id = "normal_xgb") %>% 
 	option_add(param_info = xgb_param, id = "boruta_xgb") 
-	# option_add(param_info = xgb_param, id = "infgain_xgb") %>% 
-	# option_add(param_info = keras_param, id = "simple_keras") %>% 
-	# option_add(param_info = keras_param, id = "normal_keras") 
-	#option_add(param_info = keras_param, id = "boruta_keras") 
+# option_add(param_info = xgb_param, id = "infgain_xgb") %>% 
+# option_add(param_info = keras_param, id = "simple_keras") %>% 
+# option_add(param_info = keras_param, id = "normal_keras") 
+#option_add(param_info = keras_param, id = "boruta_keras") 
 # option_add(param_info = keras_param, id = "infgain_keras")
 
 race_ctrl = control_race(
@@ -145,9 +147,11 @@ all_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-write_rds(all_results, here('results/PDX_boruta_models_classification_results_ANOVA.rds'))
+this_metrics = collect_metrics(all_results) %>% 
+	mutate(feature_number = feature_list[i])
 
-cv_metrics_regression = collect_metrics(all_results)
+all_data_regression_metrics = bind_rows(all_data_regression_metrics, this_metrics)
 
+}
 
-write_csv(cv_metrics_regression, here('results/PDX_boruta_models_classification_metrics_ANOVA.csv'))
+write_csv(all_data_regression_metrics, here('results/all_PDX_boruta_models_classification_metrics_ANOVA.csv'))
