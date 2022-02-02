@@ -55,7 +55,7 @@ this_dataset_preprocessed = build_regression_viability_set(feature_cor =  cors,
 
 this_dataset_boruta = Boruta(binary_response~., data = this_dataset_preprocessed, maxRuns = 200, doTrace = 2)
 
-this_dataset_boruta_decision = getSelectedAttributes(this_dataset_boruta, withTentative = F)
+this_dataset_boruta_decision = getSelectedAttributes(this_dataset_boruta, withTentative = T)
 
 this_dataset = build_boruta_viability_set(all_data = query_data, boruta_decisions = this_dataset_boruta_decision)
 
