@@ -29,10 +29,10 @@ build_classification_viability_set = function(num_features, all_data, feature_co
 		mutate(below_median_response = as.factor(below_median_response))
 }
 
-get_all_data_classification_cv_metrics = function(features, data) {
-	this_dataset = build_classification_viability_set(feature_correlations =  cors,
-																										num_features = features,
-																										all_data = dataset)
+get_all_data_classification_cv_metrics = function(features, data, feature_cors) {
+	this_dataset = build_classification_viability_set(num_features = features,
+																										all_data = data,
+																										feature_correlations =  cors)
 	
 	folds = vfold_cv(this_dataset, v = 10, strata = binary_response)
 	
@@ -88,7 +88,9 @@ feature_list = seq(500, 5000, by = 500)
 
 all_data_classification_metrics = data.frame()
 for (i in 1:length(feature_list)) {
-	this_metrics = get_all_data_classification_cv_metrics(features = feature_list[i], data = dataset) %>%
+	this_metrics = get_all_data_classification_cv_metrics(features = feature_list[i], 
+																												data = dataset, 
+																												feature_cors = cors) %>%
 		mutate(feature_number = feature_list[i])
 	all_data_classification_metrics = bind_rows(all_data_classification_metrics, this_metrics)
 }
