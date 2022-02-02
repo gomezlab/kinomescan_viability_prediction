@@ -27,6 +27,7 @@ build_classification_viability_set = function(num_features, all_data, feature_co
 		) %>% 
 		mutate(binary_response = as.factor(binary_response)) %>% 
 		mutate(below_median_response = as.factor(below_median_response))
+	return(this_data_filtered)
 }
 
 get_all_data_classification_cv_metrics = function(features, data, feature_cors) {
