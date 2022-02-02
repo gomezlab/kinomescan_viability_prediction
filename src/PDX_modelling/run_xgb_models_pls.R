@@ -30,7 +30,7 @@ build_classification_viability_set = function(num_features, all_data, feature_co
 }
 
 get_all_data_classification_cv_metrics = function(features, data) {
-	this_dataset = build_classification_viability_set(feature_cor =  cors,
+	this_dataset = build_classification_viability_set(feature_correlations =  cors,
 																										num_features = features,
 																										all_data = dataset)
 	
@@ -93,4 +93,4 @@ for (i in 1:length(feature_list)) {
 	all_data_classification_metrics = bind_rows(all_data_classification_metrics, this_metrics)
 }
 
-write_csv(all_data_classification_metrics, here('results/PCA_PDX_klaeger_LINCS_xgboost_classification_results_ANOVA.csv'))
+write_csv(all_data_classification_metrics, here('results/PLS_PDX_klaeger_LINCS_xgboost_classification_results_ANOVA.csv'))
