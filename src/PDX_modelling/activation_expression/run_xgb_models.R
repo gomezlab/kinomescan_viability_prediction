@@ -23,6 +23,8 @@ build_classification_viability_set = function(num_features, all_data, feature_co
 					 ResponseCategory,
 					 BestAvgResponse,
 					 binary_response,
+					 
+					 
 					 below_median_response,
 					 any_of(feature_correlations$feature[1:num_features]),
 		) %>% 
