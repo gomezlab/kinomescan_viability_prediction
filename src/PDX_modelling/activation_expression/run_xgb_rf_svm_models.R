@@ -46,7 +46,7 @@ normal_recipe = recipe(binary_response ~ ., this_dataset) %>%
 							-starts_with("exp_"),
 							-starts_with("binary_response"),
 							new_role = "id variable") %>%
-	step_select(all_predictors(), any_of(feature_correlations$feature[1:feature_number])) %>% 
+	step_select(binary_response, any_of(feature_correlations$feature[1:feature_number])) %>% 
 	step_normalize(all_predictors()) 
 	
 	return(normal_recipe)

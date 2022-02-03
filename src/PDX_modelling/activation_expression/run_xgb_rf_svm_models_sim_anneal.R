@@ -46,7 +46,7 @@ get_recipe = function(data, feature_number, feature_correlations) {
 								-starts_with("exp_"),
 								-starts_with("binary_response"),
 								new_role = "id variable") %>%
-		step_select(any_of(feature_correlations$feature[1:feature_number])) %>% 
+		step_select(binary_response, any_of(feature_correlations$feature[1:feature_number])) %>% 
 		step_normalize(all_predictors()) 
 	
 	return(normal_recipe)
@@ -154,8 +154,8 @@ all_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
+write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_results_sim_anneal.rds'))
+
 cv_metrics_regression = collect_metrics(all_results)
 
-
 vroom_write(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_sim_anneal.csv'))
-write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_results_sim_anneal.rds'))

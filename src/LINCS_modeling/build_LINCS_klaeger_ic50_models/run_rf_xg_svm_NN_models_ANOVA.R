@@ -42,7 +42,12 @@ get_recipe = function(data, feature_number, feature_correlations) {
 								-starts_with("exp_"),
 								-starts_with("ic50_binary"),
 								new_role = "id variable") %>%
-		step_select(all_predictors(), any_of(feature_correlations$feature[1:feature_number])) %>% 
+		step_select(ic50_binary,
+								depmap_id,
+								ccle_name,
+								ic50,
+								broad_id,
+								any_of(feature_correlations$feature[1:feature_number])) %>% 
 		step_normalize(all_predictors()) 
 	
 	return(normal_recipe)

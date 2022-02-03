@@ -31,20 +31,20 @@ PRISM_match_set = PRISM %>%
 	unique() %>%
 	filter(!is.na(name))
 
-LINCS_PRISM_manual_matchlist = read_csv(here('results/LINCS_PRISM_match_list_percent_updated.csv')) %>% 
+LINCS_PRISM_manual_matchlist = read_csv(here('results/matching/LINCS_PRISM_match_list_percent_updated.csv')) %>% 
 	select(LINCS_name, PRISM_name, broad_id)
 
-klaeger_PRISM_manual_matchlist = read_csv(here('results/klaeger_PRISM_match_list_updated_v2.csv')) %>% 
+klaeger_PRISM_manual_matchlist = read_csv(here('results/matching/klaeger_PRISM_match_list_updated_v2.csv')) %>% 
 	select(klaeger_name, PRISM_name, broad_id)
 
-LINCS_cids = read_csv(here('results/all_LINCS_cids.csv')) %>% 
+LINCS_cids = read_csv(here('results/matching/all_LINCS_cids.csv')) %>% 
 	mutate(cid = as.character(cid))
 
-PRISM_cids = read_csv(here('results/all_PRISM_cids.csv')) %>% 
+PRISM_cids = read_csv(here('results/matching/all_PRISM_cids.csv')) %>% 
 	mutate(cid = as.character(cid)) %>% 
 	rename('PRISM_name' = name)
 
-klaeger_cids = read_csv(here('results/klaeger_cids.csv')) %>% 
+klaeger_cids = read_csv(here('results/matching/klaeger_cids.csv')) %>% 
 	mutate(cid = as.character(cid))
 
 
@@ -64,7 +64,7 @@ LINCS_PRISM_combined_match_list = LINCS_PRISM_manual_matchlist %>%
 	select(-name) %>% 
 	unique() 
 
-write_csv(LINCS_PRISM_combined_match_list, here('results/PRISM_LINCS_combined_drug_matches.csv'))
+write_csv(LINCS_PRISM_combined_match_list, here('results/matching/PRISM_LINCS_combined_drug_matches.csv'))
 ```
 
 ```{r}
@@ -81,13 +81,15 @@ klaeger_PRISM_combined_match_list = klaeger_PRISM_manual_matchlist %>%
 	select(-name) %>% 
 	unique()
 
-write_csv(klaeger_PRISM_combined_match_list, here('results/PRISM_klaeger_combined_drug_matches.csv'))
+write_csv(klaeger_PRISM_combined_match_list, here('results/matching/PRISM_klaeger_combined_drug_matches.csv'))
 ```
 
 ```{r}
 LINCS_klaeger_PRISM_drug_matches = klaeger_PRISM_combined_match_list %>% 
 	bind_rows(LINCS_PRISM_combined_match_list)
 
-write_csv(LINCS_klaeger_PRISM_drug_matches, here('results/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+write_csv(LINCS_klaeger_PRISM_drug_matches, here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+
+
 ```
 
