@@ -13,7 +13,8 @@ all_cores <- parallel::detectCores(logical = FALSE)
 cl <- makeCluster(all_cores)
 registerDoParallel(cl)
 
-data = vroom(here('results/PDX_klaeger_LINCS_data_for_ml.csv'))
+data = vroom(here('results/PDX_klaeger_LINCS_data_for_ml.csv')) %>% 
+	select(-starts_with("cnv_"))
 cors =  vroom(here('results/PXD_LINCS_klaeger_data_feat_cors.csv'))
 
 build_regression_viability_set = function(num_features, all_data, feature_correlations) {
