@@ -11,7 +11,7 @@ library(here)
 
 ```{r}
 #read in data 
-compound_match_list = read_csv(here('results/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
 
 LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 
@@ -119,7 +119,7 @@ all_data_filtered = all_model_data %>%
 	mutate(ic50 = log10(ic50)) %>% 
 	mutate(across(starts_with(c('ic50_binary')), ~ as.factor(.)))
 
-write_csv(all_data_filtered, here('results/all_model_data_filtered.csv'))
-write_csv(binary_data_filtered, here('results/all_model_binary_data_filtered.csv'))
+write_csv(all_data_filtered, here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
+write_csv(binary_data_filtered, here('results/PRISM_LINCS_klaeger_binary_data_for_ml.csv'))
 
 ```

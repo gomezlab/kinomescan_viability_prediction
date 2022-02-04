@@ -8,60 +8,42 @@ library(doParallel)
 library(patchwork)
 library(ROCR)
 library(recipeselectors)
+library(argparse)
 
 doParallel::registerDoParallel()
 
 data = vroom(here('results/PRISM_klaeger_LINCS_data_all_datasets.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_all_datasets_feat_cors.csv'))
 
-build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
+build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
+		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
 					 ic50,
-					 broad_id)
+					 broad_id,
+					 ic50_binary)
 }
 
-
-this_dataset = build_regression_viability_set(feature_cor =  cors,
-																							num_features = 10000,
-																							all_data = data)
+this_dataset = build_all_data_classification_viability_set(feature_correlations =  cors,
+																													 num_features = 5000,
+																													 all_data = data)
 
 folds = vfold_cv(this_dataset, v = 10)
 
-simple_recipe = recipe(ic50 ~ ., this_dataset) %>%
+this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
-							-starts_with("ic50"),
-							ic50_binary,
-							new_role = "id variable")
-
-normal_recipe = recipe(ic50 ~ ., this_dataset) %>%
-	update_role(-starts_with("act_"),
-							-starts_with("exp_"),
-							-starts_with("ic50"),
-							ic50_binary,
-							new_role = "id variable") %>% 
-	step_normalize(all_predictors()) 
-
-boruta_recipe = recipe(ic50 ~ ., this_dataset) %>%
-	update_role(-starts_with("act_"),
-							-starts_with("exp_"),
-							-starts_with("ic50"),
-							ic50_binary,
+							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
-	step_normalize(all_predictors()) %>% 
-	step_select_boruta(all_predictors(), outcome = "ic50") 
-
-infgain_recipe = recipe(ic50 ~ ., this_dataset) %>%
-	update_role(-starts_with("act_"),
-							-starts_with("exp_"),
-							-starts_with("ic50"),
-							ic50_binary,
-							new_role = "id variable") %>% 
-	step_normalize(all_predictors()) %>% 
-	step_select_infgain(all_predictors(), outcome = "ic50", top_p = 10, threshold = 0.9)
+	step_select(ic50_binary,
+							depmap_id,
+							ccle_name,
+							ic50,
+							broad_id,
+							any_of(feature_correlations$feature[1:feature_number])) %>% 
+	step_normalize(all_predictors()) 
 
 xgb_spec <- boost_tree(
 	trees = tune(), 

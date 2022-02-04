@@ -91,5 +91,5 @@ all_data_filtered = all_model_data %>%
 	mutate(ic50 = log10(ic50)) %>% 
 	mutate(across(starts_with(c('ic50_binary')), ~ as.factor(.)))
 
-write_csv(all_data_filtered, here('results/PRISM_klaeger_LINCS_data_all_datasets.csv'))
+write_csv(all_data_filtered, here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.csv'))
 ```

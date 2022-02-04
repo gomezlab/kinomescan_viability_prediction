@@ -3,9 +3,11 @@ library(here)
 library(vroom)
 
 Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
-data = vroom(here('results/PRISM_klaeger_LINCS_data_all_datasets.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.csv'), n_max = 100)
+act_exp_cors = vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
-find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
+
+find_all_data_feature_correlations <- function(row_indexes = NA, all_data, query) {
 	if (is.na(row_indexes)) {
 		row_indexes = 1:dim(all_data)[1]
 	}
@@ -17,7 +19,7 @@ find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
 			pull(ic50),
 		
 		all_data %>% 
-			select(starts_with(c('act','exp', 'cnv', 'dep', 'prot')))
+			select(starts_with(query))
 	) %>%
 		as.data.frame() %>%
 		pivot_longer(everything(), names_to = "feature",values_to = "cor") %>% 
@@ -40,5 +42,10 @@ find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
 	return(all_correlations)
 }
 
-cors = find_all_data_feature_correlations(all_data = data)
-vroom_write(cors, here('results/PRISM_LINCS_klaeger_all_datasets_feat_cors.csv'))
+cnv_cors = find_all_data_feature_correlations(all_data = data, query = "cnv_")
+prot_cors = find_all_data_feature_correlations(all_data = data, query = "prot_")
+dep_cors = find_all_data_feature_correlations(all_data = data, query = "dep_")
+
+all_cors = bind_rows(act_exp_cors, cnv_cors, prot_cors, dep_cors)
+
+write_csv(cors, here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
