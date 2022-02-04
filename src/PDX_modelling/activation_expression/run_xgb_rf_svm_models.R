@@ -37,9 +37,6 @@ this_dataset = build_regression_viability_set(feature_cor =  cors,
 
 folds = vfold_cv(this_dataset, v = 10, strata = binary_response)
 
-feature_list = as.data.frame(seq(500, 5000, by = 500)) %>% 
-	rename("features" = `seq(500, 5000, by = 500)`)
-
 get_recipe = function(data, feature_number, feature_correlations) {
 normal_recipe = recipe(binary_response ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -153,9 +150,9 @@ all_results = complete_workflowset %>%
 		grid = 25,
 		control = race_ctrl
 	)
+write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_results_ANOVA.rds'))
 
 cv_metrics_regression = collect_metrics(all_results)
 
 
-vroom_write(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_ANOVA.csv'))
-write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_results_ANOVA.rds'))
+write_csv(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_ANOVA.csv'))
