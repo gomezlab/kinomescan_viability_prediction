@@ -34,7 +34,7 @@ registerDoParallel(cl)
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
-this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
+this_recipe = recipe(ic50_binary ~ ., data) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50_binary"),
