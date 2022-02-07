@@ -49,6 +49,8 @@ this_dataset = build_all_data_classification_viability_set(feature_correlations 
 																													 num_features = args$feature_num,
 																													 all_data = data)
 
+folds = vfold_cv(this_dataset, v = 10)
+
 this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
