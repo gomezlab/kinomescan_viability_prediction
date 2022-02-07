@@ -90,6 +90,6 @@ results <- tune_race_anova(
 ) %>% 
 	write_rds(full_output_file, compress = 'gz')
 
-write_rds(model_results$.predictions[[1]], pred_output_file, compress = 'gz')
+write_rds(results$.predictions[[1]], pred_output_file, compress = 'gz')
 
 toc()
