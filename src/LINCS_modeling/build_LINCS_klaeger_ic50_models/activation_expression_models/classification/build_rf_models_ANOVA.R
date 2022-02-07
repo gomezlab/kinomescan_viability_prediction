@@ -34,17 +34,26 @@ registerDoParallel(cl)
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
-this_recipe = recipe(ic50_binary ~ ., data) %>%
+build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
+	this_data_filtered = all_data %>%
+		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
+		select(any_of(feature_correlations$feature[1:num_features]),
+					 depmap_id,
+					 ccle_name,
+					 ic50,
+					 broad_id,
+					 ic50_binary)
+}
+
+this_dataset = build_all_data_classification_viability_set(feature_correlations =  cors,
+																													 num_features = args$feature_num,
+																													 all_data = data)
+
+this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
-	step_select(ic50_binary,
-							depmap_id,
-							ccle_name,
-							ic50,
-							broad_id,
-							any_of(feature_correlations$feature[1:feature_number])) %>% 
 	step_normalize(all_predictors())
 
 rf_spec <- rand_forest(
