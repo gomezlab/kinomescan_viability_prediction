@@ -1,0 +1,84 @@
+library(tidyverse)
+library(here)
+library(vroom)
+library(tidymodels)
+library(finetune)
+library(tictoc)
+library(doParallel)
+library(patchwork)
+library(ROCR)
+library(recipeselectors)
+library(argparse)
+
+tic()
+parser <- ArgumentParser(description='Process input paramters')
+parser$add_argument('--feature_num', default = 100, type="integer")
+
+args = parser$parse_args()
+print(sprintf('Features: %02d',args$feature_num))
+
+dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+								sprintf('rand_forest/%dfeat/',args$feature_num)), 
+					 showWarnings = F, recursive = T)
+
+full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+												sprintf('rand_forest/%dfeat_notune/',args$feature_num))
+
+pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+												sprintf('rand_forest/%dfeat_pred/',args$feature_num))
+
+all_cores <- parallel::detectCores(logical = FALSE)
+cl <- makeCluster(all_cores)
+registerDoParallel(cl)
+
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+
+this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("ic50_binary"),
+							new_role = "id variable") %>%
+	step_select(ic50_binary,
+							depmap_id,
+							ccle_name,
+							ic50,
+							broad_id,
+							any_of(feature_correlations$feature[1:feature_number])) %>% 
+	step_normalize(all_predictors())
+
+rf_spec <- rand_forest(
+	trees = tune()
+) %>% set_engine("ranger", num.threads = 16) %>%
+	set_mode("classification")
+
+rf_param = rf_spec %>% 
+	parameters() %>% 
+	update(trees = trees(c(100, 2000)))
+
+this_wflow <-
+	workflow() %>%
+	add_model(rf_spec) %>%
+	add_recipe(this_recipe) 
+
+rf_grid = rf_param %>% 
+	grid_latin_hypercube(size = 30)
+
+race_ctrl = control_race(
+	save_pred = TRUE, 
+	parallel_over = "everything",
+	verbose = TRUE
+)
+
+results <- tune_race_anova(
+	this_wflow,
+	resamples = folds,
+	grid = xgb_grid,
+	metrics = metric_set(roc_auc),
+	control = race_ctrl
+) %>% 
+	write_rds(full_output_file, compress = 'gz')
+
+write_rds(model_results$.predictions[[1]], pred_output_file, compress = 'gz')
+
+toc()

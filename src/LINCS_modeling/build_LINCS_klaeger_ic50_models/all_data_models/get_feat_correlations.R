@@ -29,7 +29,6 @@ find_all_data_feature_correlations <- function(row_indexes = NA, all_data, query
 	all_correlations = all_cor %>% 
 		mutate(abs_cor = abs(cor)) %>% 
 		arrange(desc(abs_cor)) %>% 
-		mutate(rank = 1:n()) %>%
 		mutate(feature_type = case_when(
 			str_detect(feature, "^act_") ~ "Activation",
 			str_detect(feature, "^exp_") ~ "Expression",
@@ -46,6 +45,9 @@ cnv_cors = find_all_data_feature_correlations(all_data = data, query = "cnv_")
 prot_cors = find_all_data_feature_correlations(all_data = data, query = "prot_")
 dep_cors = find_all_data_feature_correlations(all_data = data, query = "dep_")
 
-all_cors = bind_rows(act_exp_cors, cnv_cors, prot_cors, dep_cors)
+all_cors = bind_rows(act_exp_cors, cnv_cors, prot_cors, dep_cors) %>% 
+	select(-rank) %>% 
+	arrange(desc(abs_cor)) %>% 
+	mutate(rank = 1:n())
 
 write_csv(all_cors, here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
