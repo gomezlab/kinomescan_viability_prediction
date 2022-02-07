@@ -48,4 +48,4 @@ dep_cors = find_all_data_feature_correlations(all_data = data, query = "dep_")
 
 all_cors = bind_rows(act_exp_cors, cnv_cors, prot_cors, dep_cors)
 
-write_csv(cors, here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
+write_csv(all_cors, here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))

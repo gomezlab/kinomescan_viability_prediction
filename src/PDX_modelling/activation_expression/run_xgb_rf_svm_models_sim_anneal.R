@@ -158,4 +158,4 @@ write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_result
 
 cv_metrics_regression = collect_metrics(all_results)
 
-vroom_write(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_sim_anneal.csv'))
+write_csv(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_sim_anneal.csv'))
