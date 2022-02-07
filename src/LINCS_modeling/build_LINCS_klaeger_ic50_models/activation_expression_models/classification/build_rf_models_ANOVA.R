@@ -60,7 +60,7 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 
 rf_spec <- rand_forest(
 	trees = tune()
-) %>% set_engine("ranger", num.threads = 16) %>%
+) %>% set_engine("ranger", num.threads = 8) %>%
 	set_mode("classification")
 
 rf_param = rf_spec %>% 
