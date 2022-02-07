@@ -18,14 +18,14 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('rand_forest/',args$feature_num)), 
+								sprintf('xgboost/',args$feature_num)), 
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_results.rds',args$feature_num))
+												sprintf('xgboost/%dfeat_results.rds',args$feature_num))
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_pred.rds',args$feature_num))
+												sprintf('xgboost/%dfeat_pred.rds',args$feature_num))
 
 all_cores <- parallel::detectCores(logical = FALSE)
 cl <- makeCluster(all_cores)
@@ -58,22 +58,26 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
 
-rf_spec <- rand_forest(
-	trees = tune()
-) %>% set_engine("ranger", num.threads = 8) %>%
+xgb_spec <- boost_tree(
+	trees = tune(), 
+	tree_depth = tune(),       
+	learn_rate = tune()                   
+) %>% 
+	set_engine("xgboost") %>% 
 	set_mode("classification")
 
-rf_param = rf_spec %>% 
+xgb_param = xgb_spec %>% 
 	parameters() %>% 
-	update(trees = trees(c(100, 2000)))
+	update(trees = trees(c(100, 1000)),
+				 tree_depth = tree_depth(c(4, 30)))
+
+xgb_grid = xgb_param %>% 
+	grid_latin_hypercube(size = 30)
 
 this_wflow <-
 	workflow() %>%
-	add_model(rf_spec) %>%
+	add_model(xgb_spec) %>%
 	add_recipe(this_recipe) 
-
-rf_grid = rf_param %>% 
-	grid_latin_hypercube(size = 2)
 
 race_ctrl = control_race(
 	save_pred = TRUE, 
@@ -84,12 +88,12 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = rf_grid,
+	grid = xgb_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
-	write_rds(full_output_file)
+	write_rds(full_output_file, compress = 'gz')
 
-write_rds(results$.predictions[[1]], pred_output_file)
+write_rds(results$.predictions[[1]], pred_output_file, compress = 'gz')
 
 toc()

@@ -18,14 +18,14 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('rand_forest/',args$feature_num)), 
+								sprintf('svm/',args$feature_num)), 
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_results.rds',args$feature_num))
+												sprintf('svm/%dfeat_results.rds',args$feature_num))
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_pred.rds',args$feature_num))
+												sprintf('svm/%dfeat_pred.rds',args$feature_num))
 
 all_cores <- parallel::detectCores(logical = FALSE)
 cl <- makeCluster(all_cores)
@@ -58,22 +58,22 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
 
-rf_spec <- rand_forest(
-	trees = tune()
-) %>% set_engine("ranger", num.threads = 8) %>%
-	set_mode("classification")
+svm_spec <- svm_poly(
+	cost = tune(), degree = tune()
+) %>%
+	set_mode("classification") %>%
+	set_engine("kernlab")
 
-rf_param = rf_spec %>% 
-	parameters() %>% 
-	update(trees = trees(c(100, 2000)))
+svm_param = svm_spec %>% 
+	parameters()
+
+svm_grid = svm_param %>% 
+	grid_latin_hypercube(size = 30)
 
 this_wflow <-
 	workflow() %>%
-	add_model(rf_spec) %>%
+	add_model(svm_spec) %>%
 	add_recipe(this_recipe) 
-
-rf_grid = rf_param %>% 
-	grid_latin_hypercube(size = 2)
 
 race_ctrl = control_race(
 	save_pred = TRUE, 
@@ -84,7 +84,7 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = rf_grid,
+	grid = xgb_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
