@@ -1,0 +1,38 @@
+---
+	title: "Assess Classification Models"
+author: "Matthew Berginski"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+
+model_results = data.frame()
+all_pred = data.frame()
+```
+
+# Rand Forest Model Assessment
+
+```{r}
+tic()
+
+for (feature_number in c(100,200,300,400,500,600,700,800,900,1000,1500,2000)) {
+	model_results = Sys.glob(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/',
+															sprintf('%dfeat_results',feat_count),
+															"*"))
+	
+	for (this_file in model_files) {
+		these_cv_results = read_rds(this_file) %>%
+			mutate(fold_file = basename(this_file),
+						 feat_count = feat_count)
+		
+```

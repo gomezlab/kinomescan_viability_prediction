@@ -18,14 +18,14 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('rand_forest/%dfeat/',args$feature_num)), 
+								sprintf('rand_forest/',args$feature_num)), 
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_notune/',args$feature_num))
+												sprintf('rand_forest/%dfeat_results',args$feature_num))
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_pred/',args$feature_num))
+												sprintf('rand_forest/%dfeat_pred',args$feature_num))
 
 all_cores <- parallel::detectCores(logical = FALSE)
 cl <- makeCluster(all_cores)

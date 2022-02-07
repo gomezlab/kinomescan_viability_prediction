@@ -1,0 +1,18 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+```
+
+
+```{r}
+
+data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.csv'), n_max = 100)
+all_cors = read_csv(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
+
+```
+

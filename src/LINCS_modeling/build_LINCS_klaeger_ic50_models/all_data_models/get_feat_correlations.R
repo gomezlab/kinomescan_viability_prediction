@@ -3,7 +3,7 @@ library(here)
 library(vroom)
 
 Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
-data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.csv'), n_max = 100)
+data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.csv'))
 act_exp_cors = vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
 
