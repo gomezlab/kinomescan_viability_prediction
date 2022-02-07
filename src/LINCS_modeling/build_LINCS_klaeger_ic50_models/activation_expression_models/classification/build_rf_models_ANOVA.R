@@ -73,7 +73,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 rf_grid = rf_param %>% 
-	grid_latin_hypercube(size = 30)
+	grid_latin_hypercube(size = 2)
 
 race_ctrl = control_race(
 	save_pred = TRUE, 

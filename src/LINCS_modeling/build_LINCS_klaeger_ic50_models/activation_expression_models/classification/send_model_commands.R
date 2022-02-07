@@ -1,7 +1,7 @@
 library(here)
 library(tidyverse)
 
-for (feature_num in c(100)) {
+for (feature_num in c(5)) {
 
 		job_name = sprintf('RF_%d',feature_num)
 		
