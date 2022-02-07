@@ -84,7 +84,7 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = xgb_grid,
+	grid = rf_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
