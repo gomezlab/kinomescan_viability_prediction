@@ -22,10 +22,10 @@ dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classi
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_results',args$feature_num))
+												sprintf('rand_forest/%dfeat_results.rds',args$feature_num))
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_pred',args$feature_num))
+												sprintf('rand_forest/%dfeat_pred.rds',args$feature_num))
 
 all_cores <- parallel::detectCores(logical = FALSE)
 cl <- makeCluster(all_cores)
