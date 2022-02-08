@@ -18,7 +18,10 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('NN/',args$feature_num)), 
+								sprintf('NN/results')), 
+					 showWarnings = F, recursive = T)
+dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+								sprintf('NN/predictions')), 
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results', 

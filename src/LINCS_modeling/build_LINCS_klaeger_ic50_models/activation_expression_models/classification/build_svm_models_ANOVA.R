@@ -18,7 +18,10 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('svm/',args$feature_num)), 
+								sprintf('svm/results')), 
+					 showWarnings = F, recursive = T)
+dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+								sprintf('svm/predictions')), 
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/svm/results', 
@@ -80,7 +83,7 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = xgb_grid,
+	grid = svm_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
