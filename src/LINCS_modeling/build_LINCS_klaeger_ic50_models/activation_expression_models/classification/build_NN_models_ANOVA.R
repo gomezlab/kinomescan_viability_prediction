@@ -21,10 +21,10 @@ dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classi
 								sprintf('NN/',args$feature_num)), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results/', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/predictions/', 
+pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/predictions', 
 												sprintf('%dfeat.rds',args$feature_num))
 
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
