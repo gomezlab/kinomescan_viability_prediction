@@ -71,7 +71,7 @@ keras_param = keras_spec %>%
 
 this_wflow <-
 	workflow() %>%
-	add_model(rf_spec) %>%
+	add_model(keras_spec) %>%
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
