@@ -27,10 +27,6 @@ full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expressio
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
 												sprintf('xgboost/%dfeat_pred.rds',args$feature_num))
 
-all_cores <- parallel::detectCores(logical = FALSE)
-cl <- makeCluster(all_cores)
-registerDoParallel(cl)
-
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
