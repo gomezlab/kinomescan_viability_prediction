@@ -18,13 +18,13 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('xgboost/',args$feature_num)), 
+								sprintf('NN/',args$feature_num)), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/xgboost/results/', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results/', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/xgboost/predictions/', 
+pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/predictions/', 
 												sprintf('%dfeat.rds',args$feature_num))
 
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
@@ -54,26 +54,25 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
 
-xgb_spec <- boost_tree(
-	trees = tune(), 
-	tree_depth = tune(),       
-	learn_rate = tune()                   
+keras_spec <- mlp(
+	hidden_units = tune(), 
+	penalty = tune(),
+	epochs = tune()                  
 ) %>% 
-	set_engine("xgboost") %>% 
+	set_engine("keras") %>% 
 	set_mode("classification")
 
-xgb_param = xgb_spec %>% 
+keras_param = keras_spec %>% 
 	parameters() %>% 
-	update(trees = trees(c(100, 1000)),
-				 tree_depth = tree_depth(c(4, 30)))
-
-xgb_grid = xgb_param %>% 
-	grid_latin_hypercube(size = 30)
+	update(hidden_units = hidden_units(c(1, 27)))
 
 this_wflow <-
 	workflow() %>%
-	add_model(xgb_spec) %>%
+	add_model(rf_spec) %>%
 	add_recipe(this_recipe) 
+
+keras_grid = keras_param %>% 
+	grid_latin_hypercube(size = 20)
 
 race_ctrl = control_race(
 	save_pred = TRUE, 
@@ -84,12 +83,12 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = xgb_grid,
+	grid = keras_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
-	write_rds(full_output_file, compress = 'gz')
+	write_rds(full_output_file)
 
-write_rds(results$.predictions[[1]], pred_output_file, compress = 'gz')
+write_rds(results$.predictions[[1]], pred_output_file)
 
 toc()

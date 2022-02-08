@@ -21,11 +21,11 @@ dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classi
 								sprintf('rand_forest/',args$feature_num)), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_results.rds',args$feature_num))
+full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/rand_forest/results/', 
+												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-												sprintf('rand_forest/%dfeat_pred.rds',args$feature_num))
+pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/rand_forest/predictions/', 
+												sprintf('%dfeat.rds',args$feature_num))
 
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
@@ -69,7 +69,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 rf_grid = rf_param %>% 
-	grid_latin_hypercube(size = 2)
+	grid_latin_hypercube(size = 30)
 
 race_ctrl = control_race(
 	save_pred = TRUE, 
