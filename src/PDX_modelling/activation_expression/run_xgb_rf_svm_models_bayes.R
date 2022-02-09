@@ -137,7 +137,8 @@ complete_workflowset = complete_workflowset %>%
 	option_add(param_info = xgb_param, id = "feat4500_xgb") %>% 
 	option_add(param_info = xgb_param, id = "feat5000_xgb")
 
-race_ctrl = control_sim_anneal(
+race_ctrl = control_bayes(
+	no_improve = 10,
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
@@ -145,15 +146,16 @@ race_ctrl = control_sim_anneal(
 
 all_results = complete_workflowset %>% 
 	workflow_map(
-		"tune_sim_anneal",
+		"tune_bayes",
 		seed = 2222,
+		initial = 5,
 		resamples = folds,
 		iter = 25,
 		control = race_ctrl
 	)
 
-write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_results_sim_anneal.rds'))
+write_rds(all_results, here('results/PDX_xgb_rf_svm_models_classification_results_bayes.rds'))
 
 cv_metrics_regression = collect_metrics(all_results)
 
-write_csv(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_sim_anneal.csv'))
+write_csv(cv_metrics_regression, here('results/PDX_xgb_rf_svm_models_classification_metrics_bayes.csv'))
