@@ -17,21 +17,21 @@ parser$add_argument('--feature_num', default = 100, type="integer")
 args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/', 
 								sprintf('NN/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/', 
 								sprintf('NN/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/NN/results', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/predictions', 
+pred_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/NN/predictions', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
 
 build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
@@ -53,6 +53,9 @@ folds = vfold_cv(this_dataset, v = 10)
 this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
+							-starts_with("cnv_"),
+							-starts_with("prot_"),
+							-starts_with("dep_"),
 							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
