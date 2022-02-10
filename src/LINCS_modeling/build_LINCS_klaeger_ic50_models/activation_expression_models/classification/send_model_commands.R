@@ -29,7 +29,7 @@ for (feature_num in c(5)) {
 	
 	job_name = sprintf('NN_%d',feature_num)
 	
-	command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --job-name=%s --mem=80G --time=120:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu   --wrap "Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/activation_expression_models/classification/build_NN_models_ANOVA.R --feature_num %d"', job_name, feature_num)
+	command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --job-name=%s --mem=80G --time=120:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu   --wrap "Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/activation_expression_models/classification/build_NN_models.R --feature_num %d"', job_name, feature_num)
 	
 	# print(command)
 	system(command)
