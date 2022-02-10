@@ -59,8 +59,7 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 
 keras_spec <- mlp(
 	hidden_units = tune(), 
-	penalty = tune(),
-	epochs = tune()                  
+	penalty = tune()                  
 ) %>% 
 	set_engine("keras") %>% 
 	set_mode("classification")
@@ -75,19 +74,18 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_latin_hypercube(size = 20)
+	grid_max_entropy(size = 20)
 
-race_ctrl = control_race(
+race_ctrl = control_resamples(
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- tune_race_anova(
+results <- tune_grid(
 	this_wflow,
 	resamples = folds,
 	grid = keras_grid,
-	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file)
