@@ -17,17 +17,17 @@ parser$add_argument('--feature_num', default = 100, type="integer")
 args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/', 
-								sprintf('xgboost/results')), 
+dir.create(here('results/PDX_LINCS_klaeger_models/all_datasets/classification/', 
+								sprintf('rand_forest/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/', 
-								sprintf('xgboost/predictions')), 
+dir.create(here('results/PDX_LINCS_klaeger_models/all_datasets/classification/', 
+								sprintf('rand_forest/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/xgboost/results', 
+full_output_file = here('results/PDX_LINCS_klaeger_models/all_datasets/classification/rand_forest/results', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/xgboost/predictions', 
+pred_output_file = here('results/PDX_LINCS_klaeger_models/all_datasets/classification/rand_forest/predictions', 
 												sprintf('%dfeat.rds',args$feature_num))
 
 data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.csv'))
@@ -60,26 +60,22 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
 
-xgb_spec <- boost_tree(
-	trees = tune(), 
-	tree_depth = tune(),       
-	learn_rate = tune()                   
-) %>% 
-	set_engine("xgboost") %>% 
+rf_spec <- rand_forest(
+	trees = tune()
+) %>% set_engine("ranger", num.threads = 8) %>%
 	set_mode("classification")
 
-xgb_param = xgb_spec %>% 
+rf_param = rf_spec %>% 
 	parameters() %>% 
-	update(trees = trees(c(100, 1000)),
-				 tree_depth = tree_depth(c(4, 30)))
-
-xgb_grid = xgb_param %>% 
-	grid_latin_hypercube(size = 30)
+	update(trees = trees(c(100, 2000)))
 
 this_wflow <-
 	workflow() %>%
-	add_model(xgb_spec) %>%
+	add_model(rf_spec) %>%
 	add_recipe(this_recipe) 
+
+rf_grid = rf_param %>% 
+	grid_latin_hypercube(size = 30)
 
 race_ctrl = control_race(
 	save_pred = TRUE, 
@@ -90,7 +86,7 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = xgb_grid,
+	grid = rf_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
