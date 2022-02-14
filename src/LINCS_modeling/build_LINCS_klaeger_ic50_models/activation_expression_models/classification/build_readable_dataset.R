@@ -14,5 +14,5 @@ feat5000_data = data %>%
          broad_id,
          ic50_binary)
 
-write_csv(feat5000_data, here('results/PRISM_LINCS_klaeger_for_ml_5000feat.csv'))
+write_csv(feat5000_data, here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 
