@@ -30,7 +30,7 @@ full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expressio
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/rand_forest/predictions', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
 build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
