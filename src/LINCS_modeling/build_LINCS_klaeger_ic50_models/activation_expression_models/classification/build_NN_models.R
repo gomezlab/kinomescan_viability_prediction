@@ -76,7 +76,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_max_entropy(size = 20)
+	grid_max_entropy(size = 2)
 
 race_ctrl = control_resamples(
 	parallel_over = "everything",
