@@ -17,7 +17,7 @@ library(gghighlight)
 library(Metrics)
 ```
 
-# Rand Forest and XGBoost Model Assessment
+# Rand Forest, XGBoost and NN Model Assessment
 
 ```{r}
 tic()
@@ -44,6 +44,18 @@ for (feature_number in c(100)) {
 	all_xgb_metrics = bind_rows(all_xgb_metrics, this_model_metrics)
 }
 
+# 
+# all_NN_metrics = data.frame()
+# for (feature_number in c(100)) {
+# 	this_model_results = read_rds(
+# 		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results',
+# 				 sprintf('%dfeat.rds.gz',feature_number)))
+# 	
+# 	this_model_metrics = collect_metrics(this_model_results) %>% 
+# 		mutate(num_features = feature_number)
+# 	all_NN_metrics = bind_rows(all_NN_metrics, this_model_metrics)
+# }
+
 all_model_metrics = all_rf_metrics %>% 
 	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>% 
 	mutate(model_type = 'random_forest') %>% 
@@ -52,9 +64,71 @@ all_model_metrics = all_rf_metrics %>%
 			pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>% 
 			mutate(model_type = 'xgboost')
 	) %>% 
+	# bind_rows(
+	# 	all_NN_metrics %>% 
+	# 		pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>% 
+	# 		mutate(model_type = 'NN')
+	# ) %>% 
 	mutate(.config = paste0(.config, '_',model_type)) %>% 
 	rename('model_id' = .config)
 
 write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/all_model_metrics.csv'))
+```
+
+
+#All data models assessment 
+```{r}
+
+all_rf_all_data_metrics = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/rand_forest/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
+	
+	this_model_metrics = collect_metrics(this_model_results) %>% 
+		mutate(num_features = feature_number)
+	all_rf_all_data_metrics = bind_rows(all_rf_all_data_metrics, this_model_metrics)
+}
+
+all_xgb_all_data_metrics = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/xgboost/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
+	
+	this_model_metrics = collect_metrics(this_model_results) %>% 
+		mutate(num_features = feature_number)
+	all_xgb_all_data_metrics = bind_rows(all_xgb_all_data_metrics, this_model_metrics)
+}
+
+# 
+# all_NN_metrics = data.frame()
+# for (feature_number in c(100)) {
+# 	this_model_results = read_rds(
+# 		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results',
+# 				 sprintf('%dfeat.rds.gz',feature_number)))
+# 	
+# 	this_model_metrics = collect_metrics(this_model_results) %>% 
+# 		mutate(num_features = feature_number)
+# 	all_NN_metrics = bind_rows(all_NN_metrics, this_model_metrics)
+# }
+
+all_model_all_data_metrics = all_rf_all_data_metrics %>% 
+	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>% 
+	mutate(model_type = 'random_forest') %>% 
+	bind_rows(
+		all_xgb_all_data_metrics %>% 
+			pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>% 
+			mutate(model_type = 'xgboost')
+	) %>% 
+	# bind_rows(
+	# 	all_NN_metrics %>% 
+	# 		pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>% 
+	# 		mutate(model_type = 'NN')
+	# ) %>% 
+	mutate(.config = paste0(.config, '_',model_type)) %>% 
+	rename('model_id' = .config)
+
+write_csv(all_model_all_data_metrics, here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/all_model_metrics.csv'))
 ```
 

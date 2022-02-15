@@ -9,6 +9,7 @@ library(patchwork)
 library(ROCR)
 library(recipeselectors)
 library(argparse)
+library(keras)
 
 tic()
 parser <- ArgumentParser(description='Process input paramters')
@@ -55,6 +56,7 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							-starts_with("exp_"),
 							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
+	step_BoxCox(all_predictors()) %>% 
 	step_normalize(all_predictors())
 
 keras_spec <- mlp(
@@ -77,7 +79,6 @@ keras_grid = keras_param %>%
 	grid_max_entropy(size = 20)
 
 race_ctrl = control_resamples(
-	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
