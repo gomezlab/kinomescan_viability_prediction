@@ -89,7 +89,7 @@ results <- tune_grid(
 	grid = keras_grid,
 	control = race_ctrl
 ) %>% 
-	write_rds(full_output_file)
+	write_rds(full_output_file, compress = "gz")
 
 write_rds(results$.predictions[[1]], pred_output_file)
 
