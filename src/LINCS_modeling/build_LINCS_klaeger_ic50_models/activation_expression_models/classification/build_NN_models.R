@@ -63,7 +63,7 @@ keras_spec <- mlp(
 	hidden_units = tune(), 
 	penalty = tune()                  
 ) %>% 
-	set_engine("keras") %>% 
+	set_engine("keras", verbose = 0) %>% 
 	set_mode("classification")
 
 keras_param = keras_spec %>% 
@@ -79,6 +79,7 @@ keras_grid = keras_param %>%
 	grid_max_entropy(size = 2)
 
 race_ctrl = control_resamples(
+	save_pred = TRUE,
 	parallel_over = "everything",
 	verbose = TRUE
 )
