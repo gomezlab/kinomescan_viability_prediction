@@ -44,17 +44,17 @@ for (feature_number in c(100)) {
 	all_xgb_metrics = bind_rows(all_xgb_metrics, this_model_metrics)
 }
 
-# 
-# all_NN_metrics = data.frame()
-# for (feature_number in c(100)) {
-# 	this_model_results = read_rds(
-# 		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results',
-# 				 sprintf('%dfeat.rds.gz',feature_number)))
-# 	
-# 	this_model_metrics = collect_metrics(this_model_results) %>% 
-# 		mutate(num_features = feature_number)
-# 	all_NN_metrics = bind_rows(all_NN_metrics, this_model_metrics)
-# }
+
+all_NN_metrics = data.frame()
+for (feature_number in c(10)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results',
+				 sprintf('%dfeat.rds',feature_number)))
+
+	this_model_metrics = collect_metrics(this_model_results) %>%
+		mutate(num_features = feature_number)
+	all_NN_metrics = bind_rows(all_NN_metrics, this_model_metrics)
+}
 
 all_model_metrics = all_rf_metrics %>% 
 	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>% 

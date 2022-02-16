@@ -58,13 +58,14 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							-starts_with("dep_"),
 							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
+  step_BoxCox(all_predictors()) %>% 
 	step_normalize(all_predictors())
 
 keras_spec <- mlp(
 	hidden_units = tune(), 
 	penalty = tune()                  
 ) %>% 
-	set_engine("keras") %>% 
+	set_engine("keras", verbose = 0) %>% 
 	set_mode("classification")
 
 keras_param = keras_spec %>% 
@@ -77,7 +78,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_max_entropy(size = 20)
+	grid_max_entropy(size = 30)
 
 race_ctrl = control_resamples(
 	save_pred = TRUE, 
@@ -91,7 +92,7 @@ results <- tune_grid(
 	grid = keras_grid,
 	control = race_ctrl
 ) %>% 
-	write_rds(full_output_file)
+	write_rds(full_output_file, compress = "gz")
 
 write_rds(results$.predictions[[1]], pred_output_file)
 
