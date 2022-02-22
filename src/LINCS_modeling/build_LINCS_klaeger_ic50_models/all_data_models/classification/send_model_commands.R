@@ -16,7 +16,7 @@ for (feature_num in c(5000)) {
 
 	job_name = sprintf('a_xbg_%d',feature_num)
 
-	command = sprintf('sbatch --job-name=%s --mem=90G -c 32 --time=190:00:00 --wrap "Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/all_data_models/classification/build_xgboost_models_ANOVA.R --feature_num %d"', job_name, feature_num)
+	command = sprintf('sbatch --job-name=%s --mem=99G -c 64 --time=190:00:00 --wrap "Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/all_data_models/classification/build_xgboost_models_ANOVA.R --feature_num %d"', job_name, feature_num)
 
 	# print(command)
 	system(command)
