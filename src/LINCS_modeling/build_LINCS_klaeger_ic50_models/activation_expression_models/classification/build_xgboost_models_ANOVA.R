@@ -9,6 +9,7 @@ library(patchwork)
 library(ROCR)
 library(recipeselectors)
 library(argparse)
+library(xgboost)
 
 tic()
 parser <- ArgumentParser(description='Process input paramters')
@@ -62,7 +63,7 @@ xgb_spec <- boost_tree(
 	tree_depth = tune(),       
 	learn_rate = tune()                   
 ) %>% 
-	set_engine("xgboost", tree_method = "gpu_hist") %>% 
+	set_engine("xgboost", num.threads = 64) %>% 
 	set_mode("classification")
 
 xgb_param = xgb_spec %>% 
@@ -78,13 +79,13 @@ this_wflow <-
 	add_model(xgb_spec) %>%
 	add_recipe(this_recipe) 
 
-race_ctrl = control_race(
+race_ctrl = control_grid(
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- tune_race_anova(
+results <- tune_race_ANOVA(
 	this_wflow,
 	resamples = folds,
 	grid = xgb_grid,
@@ -93,6 +94,8 @@ results <- tune_race_anova(
 ) %>% 
 	write_rds(full_output_file)
 
+temp = results$.notes
+	
 write_rds(results$.predictions[[1]], pred_output_file)
 
 toc()

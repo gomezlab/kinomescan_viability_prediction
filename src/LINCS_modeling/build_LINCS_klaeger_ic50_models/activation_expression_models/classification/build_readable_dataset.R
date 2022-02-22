@@ -16,3 +16,4 @@ feat5000_data = data %>%
 
 write_csv(feat5000_data, here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 
+
