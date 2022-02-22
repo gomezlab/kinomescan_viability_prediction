@@ -1,4 +1,4 @@
-tis ---
+---
 title: "(try) to Combine LINCS and klaeger"
 output: html_document
 ---
@@ -9,6 +9,7 @@ library(here)
 library(webchem)
 ```
 
+
 ```{r}
 #read in data
 
@@ -16,83 +17,103 @@ LINCS_percent_matrix = read_csv(here('results/full_LINCS_UNC_1uM_data_imputed.cs
 
 klaeger_tidy = read_rds(here('data/klaeger_full_tidy.rds'))
 
+matched_kinases = read_csv(here('results/matching/LINCS_klaeger_kinase_matches.csv'))
+
+drug_matches = read_csv(here('results/matching/LINCS_klaeger_drug_matches.csv'))
+
 ```
 
 ```{r}
+klaeger_tidy_1uM = klaeger_tidy %>% 
+	filter(concentration_M == 0.000001)
+
 LINCS_long = LINCS_percent_matrix %>% 
 	pivot_longer(c(-Small.Molecule.Name, -Dose), names_to = 'kinase', values_to = 'percent_control')
-
-LINCS_binarized = LINCS_long %>% 
-	mutate(LINCS_hit = if_else(
-		percent_control < 80,
-		1,
-		0
-	))
-
-klaeger_binarized = klaeger_tidy %>% 
-	filter(concentration_M == 0.000001) %>% 
-	mutate(klaeger_hit = if_else(
-		relative_intensity < 0.8,
-		1,
-		0
-	))
-	
 ```
 
-```{r}
-#kinase matching
-klaeger_kinases = klaeger_binarized %>% 
-	select(gene_name) %>%
-	unique()
-	
-LINCS_kinases = LINCS_binarized %>% 
-	select(kinase) %>% 
-	unique()
-
-matched_kinases = LINCS_kinases %>% 
-	filter(kinase %in% klaeger_kinases$gene_name)
-```
 
 ```{r}
-#compound matching
-klaeger_cid = read_csv(here('data/klaeger_cids.csv')) %>% 
-	mutate(cid = as.character(cid))
-
-LINCS_cid = get_cid(unique(LINCS_binarized$Small.Molecule.Name), from = "name", domain = "compound", match = "all", verbose = T) %>% 
-	rename("LINCS_name" = query)
-	
-matches = klaeger_cid %>% 
-	left_join(LINCS_cid, by = 'cid') %>% 
-	filter(!is.na(LINCS_name))
-
-klaeger_no_matches = klaeger_cid %>%
-	filter(!cid %in% matches$cid)
-
-LINCS_no_matches = LINCS_cid %>%
-	filter(!cid %in% matches$cid)
-```
-
-```{r}
-LINCS_klaeger_data = LINCS_binarized %>% 
-	filter(kinase %in% matched_kinases$kinase) %>% 
-	filter(Small.Molecule.Name %in% matches$LINCS_name) %>% 
-	left_join(select(matches, -cid), by = c('Small.Molecule.Name' = 'LINCS_name')) %>% 
-	left_join(klaeger_binarized, by = c('klaeger_name' = 'drug', 'kinase' = 'gene_name')) %>% 
-	select(klaeger_name, kinase, percent_control, LINCS_hit, relative_intensity, klaeger_hit) %>% 
+#create matched dataset 
+matched_drug_data = LINCS_long %>% 
+	filter(kinase %in% matched_kinases$LINCS_name) %>%
+	left_join(matched_kinases, by = c('kinase' = 'LINCS_name')) %>%
+	rename('klaeger_kinase' = klaeger_name, 'LINCS_kinase' = kinase) %>% 
+	filter(Small.Molecule.Name %in% drug_matches$LINCS_name) %>% 
+	left_join(select(drug_matches, -cid), by = c('Small.Molecule.Name' = 'LINCS_name')) %>% 
+	left_join(klaeger_tidy_1uM, by = c('klaeger_name' = 'drug', 'klaeger_kinase' = 'gene_name' )) %>% 
+	select(klaeger_name, Small.Molecule.Name, klaeger_kinase, LINCS_kinase, percent_control, relative_intensity) %>% 
 	rename('LINCS_relative_intensity' = percent_control, 
-				 'klaeger_relative_intensity' = relative_intensity) %>%
-	mutate(LINCS_relative_intensity = LINCS_relative_intensity/100) %>% 
-	mutate(hit_agreement = if_else(
+				 'klaeger_relative_intensity' = relative_intensity,
+				 'LINCS_name' = Small.Molecule.Name) %>%
+	mutate(LINCS_relative_intensity = LINCS_relative_intensity/100)
+
+#plot correlation of matches
+matched_drug_data %>%
+	ggplot(aes(x = LINCS_relative_intensity, y = klaeger_relative_intensity)) +
+	geom_hex() +
+	scale_fill_gradient(low="lightblue1",high="darkblue") +
+	geom_smooth() +
+	labs(title = 
+			 	paste0('Klaeger vs Kinomescan Correlation at 1 uM (',
+			 				 round(
+			 				 	cor(
+			 				 		matched_drug_data$LINCS_relative_intensity,
+			 				 		matched_drug_data$klaeger_relative_intensity),
+			 				 	3),
+			 				 ')'),
+			 x = "LINCS Relative Intensity",
+			 y = "Klaeger Relative Intensity") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'red', linetype = 3)
+
+ggsave(here('figures/klaeger_LINCS_correlation.png'))
+```
+
+```{r}
+LINCS_klaeger_comparative_data = matched_drug_data %>% 
+	mutate(
+		LINCS_hit = if_else(
+			LINCS_relative_intensity < 0.2,
+			1,
+			0
+		), 
+		klaeger_hit = if_else(
+			klaeger_relative_intensity < 0.2,
+			1,
+			0
+		),
+		hit_agreement = if_else(
 		LINCS_hit == klaeger_hit,
 		TRUE,
-		FALSE
-	))
+		FALSE)
+	)
 
-kinase_summary = LINCS_klaeger_data %>% 
-	group_by(kinase) %>% 
+kinase_summary = LINCS_klaeger_comparative_data %>% 
+	group_by(klaeger_kinase) %>% 
 	summarise(mean_agree = mean(hit_agreement))
 
 disagreeable_kinases = kinase_summary %>% 
-	filter(mean_agree < 0.5)
+	filter(mean_agree < 0.8)
+
+write_csv(LINCS_klaeger_comparative_data, here('results/LINCS_Klaeger_Comparitive_Data.csv'))
+```
+
+```{r}
+LINCS_klaeger_comparative_data %>%
+	select(-LINCS_name) %>% 
+	unique() %>% 
+	ggplot(aes(x = klaeger_kinase, y = klaeger_name, fill = hit_agreement)) +
+	geom_tile() +
+	theme(legend.position = "none", axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+	labs(
+		title = paste0(
+		"Klaeger vs LINCS agreement heatmap, percent agreement = ", round(
+			LINCS_klaeger_comparative_data %>% 
+	summarise(mean(hit_agreement)),
+	3)),
+		x = "Kinase",
+		y = "Drug")
+ggsave(here('figures/klaeger_LINCS_heatmap.png'), width = 10, height = 4)
+
+
 ```
 
