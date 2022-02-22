@@ -12,7 +12,7 @@ library(tidyverse)
 # 
 # }
 # 
-for (feature_num in c(4000,5000)) {
+for (feature_num in c(5000)) {
 
 	job_name = sprintf('a_xbg_%d',feature_num)
 

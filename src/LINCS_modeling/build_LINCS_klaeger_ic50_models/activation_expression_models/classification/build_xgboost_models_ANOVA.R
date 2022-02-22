@@ -63,7 +63,7 @@ xgb_spec <- boost_tree(
 	tree_depth = tune(),       
 	learn_rate = tune()                   
 ) %>% 
-	set_engine("xgboost", num.threads = 64) %>% 
+	set_engine("xgboost", nthreads = 64) %>% 
 	set_mode("classification")
 
 xgb_param = xgb_spec %>% 
