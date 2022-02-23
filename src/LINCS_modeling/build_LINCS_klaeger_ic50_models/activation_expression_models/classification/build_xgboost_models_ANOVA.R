@@ -85,7 +85,7 @@ race_ctrl = control_grid(
 	verbose = TRUE
 )
 
-results <- tune_race_ANOVA(
+results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
 	grid = xgb_grid,
