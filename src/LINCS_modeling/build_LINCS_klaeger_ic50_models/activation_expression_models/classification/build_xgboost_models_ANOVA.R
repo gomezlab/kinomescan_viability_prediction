@@ -72,14 +72,14 @@ xgb_param = xgb_spec %>%
 				 tree_depth = tree_depth(c(4, 30)))
 
 xgb_grid = xgb_param %>% 
-	grid_latin_hypercube(size = 30)
+	grid_latin_hypercube(size = 3)
 
 this_wflow <-
 	workflow() %>%
 	add_model(xgb_spec) %>%
 	add_recipe(this_recipe) 
 
-race_ctrl = control_grid(
+race_ctrl = control_race(
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
@@ -93,8 +93,6 @@ results <- tune_race_anova(
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file)
-
-temp = results$.notes
 	
 write_rds(results$.predictions[[1]], pred_output_file)
 
