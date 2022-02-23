@@ -72,7 +72,7 @@ xgb_param = xgb_spec %>%
 				 tree_depth = tree_depth(c(4, 30)))
 
 xgb_grid = xgb_param %>% 
-	grid_latin_hypercube(size = 3)
+	grid_max_entropy(size = 30)
 
 this_wflow <-
 	workflow() %>%
