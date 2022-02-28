@@ -7,28 +7,25 @@ library(tictoc)
 library(doParallel)
 library(patchwork)
 library(ROCR)
-library(recipeselectors)
 library(argparse)
-library(keras)
+library(xgboost)
 
 tic()
-parser <- ArgumentParser(description='Process input paramters')
-parser$add_argument('--feature_num', default = 100, type="integer")
 
-args = parser$parse_args()
+args = data.frame(feature_num = 4000)
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('NN/results')), 
+								sprintf('xgboost/results')), 
 					 showWarnings = F, recursive = T)
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
-								sprintf('NN/predictions')), 
+								sprintf('xgboost/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/xgboost/results', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/predictions', 
+pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/xgboost/predictions', 
 												sprintf('%dfeat.rds',args$feature_num))
 
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
@@ -56,30 +53,31 @@ this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 							-starts_with("exp_"),
 							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
-	step_BoxCox(all_predictors()) %>% 
 	step_normalize(all_predictors())
 
-keras_spec <- mlp(
-	hidden_units = tune(), 
-	penalty = tune()                  
+xgb_spec <- boost_tree(
+	trees = tune(), 
+	tree_depth = tune(),       
+	learn_rate = tune()                   
 ) %>% 
-	set_engine("keras", verbose = 0) %>% 
+	set_engine("xgboost", tree_method = "gpu_hist", nthreads = 16) %>% 
 	set_mode("classification")
 
-keras_param = keras_spec %>% 
+xgb_param = xgb_spec %>% 
 	parameters() %>% 
-	update(hidden_units = hidden_units(c(1, 27)))
+	update(trees = trees(c(100, 1000)),
+				 tree_depth = tree_depth(c(4, 30)))
+
+xgb_grid = xgb_param %>% 
+	grid_max_entropy(size = 30)
 
 this_wflow <-
 	workflow() %>%
-	add_model(keras_spec) %>%
+	add_model(xgb_spec) %>%
 	add_recipe(this_recipe) 
 
-keras_grid = keras_param %>% 
-	grid_max_entropy(size = 30)
-
 race_ctrl = control_race(
-	save_pred = TRUE,
+	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
@@ -87,11 +85,11 @@ race_ctrl = control_race(
 results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
-	grid = keras_grid,
+	grid = xgb_grid,
 	metrics = metric_set(roc_auc),
 	control = race_ctrl
 ) %>% 
-	write_rds(full_output_file, compress = "gz")
+	write_rds(full_output_file)
 
 write_rds(results$.predictions[[1]], pred_output_file)
 
