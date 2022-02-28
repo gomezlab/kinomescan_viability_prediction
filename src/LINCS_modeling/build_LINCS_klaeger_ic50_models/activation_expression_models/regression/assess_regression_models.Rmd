@@ -1,5 +1,5 @@
 ---
-	title: "Assess Classification Models"
+	title: "Assess regression Models"
 author: "Chinmaya Joisa"
 date: "`r Sys.Date()`"
 output: github_document
@@ -22,37 +22,37 @@ library(Metrics)
 ```{r}
 tic()
 
-all_rf_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/rand_forest/results',
-				 sprintf('%dfeat.rds.gz',feature_number)))
-	
-	this_model_metrics = collect_metrics(this_model_results) %>%
-		arrange(desc(mean)) %>% 
-		slice(1) %>% 
-		mutate(num_features = feature_number)
-	all_rf_metrics = bind_rows(all_rf_metrics, this_model_metrics)
-}
-
-all_xgb_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/xgboost/results',
-				 sprintf('%dfeat.rds.gz',feature_number)))
-	
-	this_model_metrics = collect_metrics(this_model_results) %>%
-		arrange(desc(mean)) %>% 
-		slice(1) %>% 
-		mutate(num_features = feature_number)
-	all_xgb_metrics = bind_rows(all_xgb_metrics, this_model_metrics)
-}
+# all_rf_metrics = data.frame()
+# for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+# 	this_model_results = read_rds(
+# 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/rand_forest/results',
+# 				 sprintf('%dfeat.rds.gz',feature_number)))
+# 	
+# 	this_model_metrics = collect_metrics(this_model_results) %>%
+# 		arrange(desc(mean)) %>% 
+# 		slice(1) %>% 
+# 		mutate(num_features = feature_number)
+# 	all_rf_metrics = bind_rows(all_rf_metrics, this_model_metrics)
+# }
+# 
+# all_xgb_metrics = data.frame()
+# for (feature_number in c(100,200,300,400,500,1000,1500,2000)) {
+# 	this_model_results = read_rds(
+# 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/results',
+# 				 sprintf('%dfeat.rds.gz',feature_number)))
+# 	
+# 	this_model_metrics = collect_metrics(this_model_results) %>%
+# 		arrange(desc(mean)) %>% 
+# 		slice(1) %>% 
+# 		mutate(num_features = feature_number)
+# 	all_xgb_metrics = bind_rows(all_xgb_metrics, this_model_metrics)
+# }
 
 
 all_NN_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+for (feature_number in c(100)) {
 	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/NN/results',
+		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/NN/results',
 				 sprintf('%dfeat.rds',feature_number)))
 
 	this_model_metrics = collect_metrics(this_model_results) %>%
@@ -61,15 +61,15 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		mutate(num_features = feature_number)
 	all_NN_metrics = bind_rows(all_NN_metrics, this_model_metrics)
 }
-
+all_rf_metrics = data.frame()
 all_model_metrics = all_rf_metrics %>% 
-	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>% 
-	mutate(model_type = 'random_forest') %>% 
-	bind_rows(
-		all_xgb_metrics %>% 
-			pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>% 
-			mutate(model_type = 'xgboost')
-	) %>% 
+	# pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>% 
+	# mutate(model_type = 'random_forest') %>% 
+	# bind_rows(
+	# 	all_xgb_metrics %>% 
+	# 		pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>% 
+	# 		mutate(model_type = 'xgboost')
+	# ) %>% 
 	bind_rows(
 		all_NN_metrics %>%
 			pivot_longer(c(hidden_units, penalty), names_to = 'hyperparameter', values_to = 'value') %>%
@@ -79,7 +79,7 @@ all_model_metrics = all_rf_metrics %>%
 	rename('model_id' = .config) %>% 
 	mutate(data_type = "activation_expression")
 
-write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/all_model_metrics.csv'))
+write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/all_model_metrics.csv'))
 
 ```
 
@@ -90,7 +90,7 @@ write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models/activation
 all_rf_all_data_metrics = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000)) {
 	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/rand_forest/results',
+		here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/rand_forest/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 	
 		this_model_metrics = collect_metrics(this_model_results) %>%
@@ -103,7 +103,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000)) {
 all_xgb_all_data_metrics = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000, 4000)) {
 	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/xgboost/results',
+		here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/xgboost/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 	
 		this_model_metrics = collect_metrics(this_model_results) %>%
@@ -117,7 +117,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000, 4000)) {
 all_NN_all_data_metrics = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000)) {
 	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/NN/results',
+		here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/results',
 				 sprintf('%dfeat.rds',feature_number)))
 
 		this_model_metrics = collect_metrics(this_model_results) %>%
@@ -144,14 +144,14 @@ all_model_all_data_metrics = all_rf_all_data_metrics %>%
 	rename('model_id' = .config) %>% 
 	mutate(data_type = "all_datasets")
 
-write_csv(all_model_all_data_metrics, here('results/PRISM_LINCS_klaeger_models/all_datasets/classification/all_model_metrics.csv'))
+write_csv(all_model_all_data_metrics, here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/all_model_metrics.csv'))
 ```
 
 ```{r}
 model_metrics_combined = all_model_all_data_metrics %>% 
 	bind_rows(all_model_metrics)
 
-write_csv(model_metrics_combined, here('results/PRISM_LINCS_klaeger_ic50_models_classification_metrics.csv'))
+write_csv(model_metrics_combined, here('results/PRISM_LINCS_klaeger_ic50_models_regression_metrics.csv'))
 
 model_metrics_combined %>% 
 	ggplot(aes(x = num_features, y = mean, colour = data_type)) +
@@ -166,7 +166,7 @@ ggsave(here('figures/PRISM_LINCS_klaeger/all_classfication_models_metrics.png'),
 
 ```{r}
 #extract best model
-model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_classification_metrics.csv'))
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_regression_metrics.csv'))
 
 best_act_exp_model = model_metrics_combined %>% 
 	filter(data_type == "activation_expression") %>% 
@@ -183,7 +183,7 @@ print(sprintf('Features: %02d',args$feature_num))
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
-build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
+build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
 		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
@@ -194,7 +194,7 @@ build_all_data_classification_viability_set = function(num_features, all_data, f
 					 ic50_binary)
 }
 
-this_dataset = build_all_data_classification_viability_set(feature_correlations =  cors,
+this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
 																													 num_features = args$feature_num,
 																													 all_data = data)
 
@@ -213,7 +213,7 @@ xgb_spec <- boost_tree(
 	learn_rate = best_act_exp_model$learn_rate                   
 ) %>% 
 	set_engine("xgboost", tree_method = "gpu_hist", nthreads = 16) %>% 
-	set_mode("classification")
+	set_mode("regression")
 
 this_wflow <-
 	workflow() %>%
@@ -232,7 +232,7 @@ results <- fit_resamples(
 	grid = xgb_grid,
 	control = race_ctrl
 ) %>% 
-	write_rds(here('results/final_tuned_PRISM_LINCS_klaeger_classification_model_model.rds'))
+	write_rds(here('results/final_tuned_PRISM_LINCS_klaeger_regression_model_model.rds'))
 toc()
 
 final_metrics = collect_metrics(results)
@@ -260,9 +260,9 @@ b = final_predictions %>%
 	)
 
 c = a + b + plot_annotation(
-	title = "PRISM-Kinomescan-Klaeger xgboost classification model results"
+	title = "PRISM-Kinomescan-Klaeger xgboost regression model results"
 )
 
-ggsave(here('figures/final_tuned_PRISM_LINCS_klaeger_classification_model.png'))
+ggsave(here('figures/final_tuned_PRISM_LINCS_klaeger_regression_model.png'))
 ```
 

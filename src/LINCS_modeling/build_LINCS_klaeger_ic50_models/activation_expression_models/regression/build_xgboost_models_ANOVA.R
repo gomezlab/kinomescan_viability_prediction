@@ -11,11 +11,10 @@ library(recipeselectors)
 library(argparse)
 library(xgboost)
 
-tic()
-parser <- ArgumentParser(description='Process input paramters')
-parser$add_argument('--feature_num', default = 100, type="integer")
+args = data.frame(feature_num = c(100))
 
-args = parser$parse_args()
+for(i in length(args$feature_num)) {
+	tic()	
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/classification/', 
@@ -91,7 +90,5 @@ results <- tune_race_anova(
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file, compress = "gz")
-	
-write_rds(results$.predictions[[1]], pred_output_file)
-
 toc()
+}
