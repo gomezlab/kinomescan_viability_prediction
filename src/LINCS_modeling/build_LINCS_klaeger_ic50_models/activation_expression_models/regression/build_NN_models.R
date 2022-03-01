@@ -36,11 +36,13 @@ cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
+		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
 					 ic50,
-					 broad_id)
+					 broad_id,
+					 ic50_binary)
 }
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
@@ -52,7 +54,7 @@ folds = vfold_cv(this_dataset, v = 10)
 this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
-							-starts_with("ic50"),
+							-starts_with("ic50_binary"),
 							new_role = "id variable") %>%
 	step_BoxCox(all_predictors()) %>% 
 	step_normalize(all_predictors())
@@ -74,7 +76,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_max_entropy(size = 3)
+	grid_max_entropy(size = 30)
 
 race_ctrl = control_race(
 	save_pred = TRUE,
