@@ -7,7 +7,6 @@ library(tictoc)
 library(doParallel)
 library(patchwork)
 library(ROCR)
-library(recipeselectors)
 library(argparse)
 library(keras)
 
@@ -54,7 +53,7 @@ folds = vfold_cv(this_dataset, v = 10)
 this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
-							-starts_with("ic50_binary"),
+							-starts_with("ic50"),
 							new_role = "id variable") %>%
 	step_BoxCox(all_predictors()) %>% 
 	step_normalize(all_predictors())
@@ -76,7 +75,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_max_entropy(size = 30)
+	grid_max_entropy(size = 3)
 
 race_ctrl = control_race(
 	save_pred = TRUE,
@@ -88,7 +87,7 @@ results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
 	grid = keras_grid,
-	metrics = metric_set(roc_auc),
+	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file, compress = "gz")
