@@ -15,6 +15,7 @@ parser <- ArgumentParser(description='Process input paramters')
 parser$add_argument('--feature_num', default = 100, type="integer")
 
 args = parser$parse_args()
+
 print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
@@ -35,13 +36,11 @@ cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
-		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
 					 ic50,
-					 broad_id,
-					 ic50_binary)
+					 broad_id)
 }
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
