@@ -40,7 +40,7 @@ pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expressio
 												sprintf('%dfeat.rds',args$feature_num)[i])
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																											 num_features = args$feature_num,
+																											 num_features = args$feature_num[i],
 																											 all_data = data)
 
 folds = vfold_cv(this_dataset, v = 10)

@@ -7,29 +7,9 @@ library(tictoc)
 library(doParallel)
 library(patchwork)
 library(ROCR)
-library(recipeselectors)
 library(argparse)
 
-tic()
-parser <- ArgumentParser(description='Process input paramters')
-parser$add_argument('--feature_num', default = 100, type="integer")
-
-args = parser$parse_args()
-print(sprintf('Features: %02d',args$feature_num))
-
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
-								sprintf('rand_forest/results')), 
-					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
-								sprintf('rand_forest/predictions')), 
-					 showWarnings = F, recursive = T)
-
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/rand_forest/results', 
-												sprintf('%dfeat.rds',args$feature_num))
-
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/rand_forest/predictions', 
-												sprintf('%dfeat.rds',args$feature_num))
-
+args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
@@ -42,8 +22,19 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 broad_id)
 }
 
+for(i in 1:length(args$feature_num)) {
+	tic()	
+print(sprintf('Features: %02d',args$feature_num[i]))
+
+dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
+								sprintf('rand_forest/results')), 
+					 showWarnings = F, recursive = T)
+
+full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/rand_forest/results', 
+												sprintf('%dfeat.rds',args$feature_num[i]))
+
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																													 num_features = args$feature_num,
+																													 num_features = args$feature_num[i],
 																													 all_data = data)
 
 folds = vfold_cv(this_dataset, v = 10)
@@ -51,7 +42,7 @@ folds = vfold_cv(this_dataset, v = 10)
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
-							-starts_with("ic50_binary"),
+							-starts_with("ic50"),
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
 
@@ -88,3 +79,4 @@ results <- tune_race_anova(
 	write_rds(full_output_file, compress = "gz")
 
 toc()
+}
