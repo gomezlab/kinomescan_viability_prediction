@@ -50,7 +50,7 @@ this_dataset = build_all_data_regression_viability_set(feature_correlations =  c
 
 folds = vfold_cv(this_dataset, v = 10)
 
-this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
+this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),

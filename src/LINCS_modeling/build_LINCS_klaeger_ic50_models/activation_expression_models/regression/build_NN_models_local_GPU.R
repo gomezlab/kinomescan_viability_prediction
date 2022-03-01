@@ -70,7 +70,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_max_entropy(size = 30)
+	grid_max_entropy(size = 15)
 
 race_ctrl = control_race(
 	save_pred = TRUE,

@@ -9,7 +9,7 @@ library(patchwork)
 library(ROCR)
 library(argparse)
 
-args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
+args = data.frame(feature_num = c(2000,3000,4000,5000))
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
