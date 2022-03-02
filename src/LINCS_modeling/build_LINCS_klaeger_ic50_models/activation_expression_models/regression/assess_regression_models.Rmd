@@ -17,6 +17,7 @@ library(gghighlight)
 library(Metrics)
 library(conflicted)
 conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
 ```
 
 # Rand Forest, XGBoost and NN Model Assessment
@@ -63,7 +64,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000)) {
 
 
 all_NN_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000)) {
+for (feature_number in c(100,200,300,400,500,1000,1500)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/NN/results',
 				 sprintf('%dfeat.rds',feature_number)))
@@ -182,18 +183,16 @@ ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_metrics.png'), wi
 ```
 
 ```{r}
-#extract best model
-model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_regression_metrics.csv'))
+#extract best act-exp model
 
-best_act_exp_model = model_metrics_combined %>% 
-	filter(data_type == "activation_expression") %>% 
+best_act_exp_model = all_model_metrics %>% 
+	dplyr::filter(data_type == "activation_expression") %>% 
 	arrange(desc(mean)) %>% 
 	filter(model_id == model_id[1]) %>% 
 	pivot_wider(names_from = hyperparameter, values_from = value)
 ```
 
 ```{r}
-#run final tuned model again
 args = data.frame(feature_num = best_act_exp_model$num_features)
 print(sprintf('Features: %02d',args$feature_num))
 

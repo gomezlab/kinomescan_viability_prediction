@@ -84,7 +84,7 @@ results <- tune_race_anova(
 	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
-	write_rds(full_output_file)
+	write_rds(full_output_file, compress = "gz")
 
 write_rds(results$.predictions[[1]], pred_output_file)
 

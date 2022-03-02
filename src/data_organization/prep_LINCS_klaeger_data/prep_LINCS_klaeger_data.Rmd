@@ -79,6 +79,9 @@ unmatched_klaeger_data = klaeger_tidy_1uM %>%
 ```{r}
 #combine both matched and unmatched datasets 
 
+# Kinomescan is (in my opinion), a more sensitive and individualized assay than the klaeger kinobeads. For example, by looking at the orrelation figure, we can see that more often than not, kinobeads calls "no interaction" on a drug-kinase pair often, while Kinomescan reports inhibition values. While it is possible that this is an artifact of the assay, it is my assumption and belief here that Kinomescan values take precedence over klaeger in cases where kinomescan returns a "hit" when klaeger does not. 
+#However, in the few cases that klaeger calls a "hit" over kinomescan, I have kept the klaeger values in the interest of keeping as many "hits" as possible in the dataset.
+
 all_klaeger_LINCS_data = matched_drug_data %>% 
 	bind_rows(unmatched_klaeger_data) %>% 
 	bind_rows(unmatched_LINCS_data) %>%

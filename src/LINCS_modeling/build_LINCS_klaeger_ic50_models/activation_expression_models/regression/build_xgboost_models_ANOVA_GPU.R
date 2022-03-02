@@ -25,10 +25,10 @@ dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regres
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/results', 
-												sprintf('%dfeat.rds',args$feature_num))
+												sprintf('%dfeat.rds.gz',args$feature_num))
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/predictions', 
-												sprintf('%dfeat.rds',args$feature_num))
+												sprintf('%dfeat.rds.gz',args$feature_num))
 
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
@@ -43,8 +43,8 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 }
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																													 num_features = args$feature_num,
-																													 all_data = data)
+																											 num_features = args$feature_num,
+																											 all_data = data)
 
 folds = vfold_cv(this_dataset, v = 10)
 
@@ -60,7 +60,7 @@ xgb_spec <- boost_tree(
 	tree_depth = tune(),       
 	learn_rate = tune()                   
 ) %>% 
-	set_engine("xgboost", nthreads = 32) %>% 
+	set_engine("xgboost", tree_method = "gpu_hist") %>% 
 	set_mode("regression")
 
 xgb_param = xgb_spec %>% 
@@ -90,7 +90,7 @@ results <- tune_race_anova(
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file, compress = "gz")
-	
+
 write_rds(results$.predictions[[1]], pred_output_file)
 
 toc()
