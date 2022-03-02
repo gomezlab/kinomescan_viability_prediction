@@ -69,7 +69,7 @@ xgb_param = xgb_spec %>%
 				 tree_depth = tree_depth(c(4, 30)))
 
 xgb_grid = xgb_param %>% 
-	grid_max_entropy(size = 15)
+	grid_max_entropy(size = 20)
 
 this_wflow <-
 	workflow() %>%
