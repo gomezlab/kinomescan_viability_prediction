@@ -26,10 +26,10 @@ conflict_prefer("filter", "dplyr")
 tic()
 
 all_rf_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/rand_forest/results',
-				 sprintf('%dfeat.rds',feature_number)))
+				 sprintf('%dfeat.rds.gz',feature_number)))
 
 	this_model_metrics = collect_metrics(this_model_results) %>%
 		arrange(desc(mean)) %>%
@@ -39,10 +39,10 @@ for (feature_number in c(100,200,300,400,500,1000,1500)) {
 }
 
 all_xgb_metrics = data.frame()
-for (feature_number in c(100,200)) {
+for (feature_number in c(100,200,300,400,500)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/results',
-				 sprintf('%dfeat.rds',feature_number)))
+				 sprintf('%dfeat.rds.gz',feature_number)))
 
 	this_model_metrics = collect_metrics(this_model_results) %>%
 		arrange(desc(mean)) %>% 
@@ -52,7 +52,7 @@ for (feature_number in c(100,200)) {
 }
 
 all_lr_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/lr/results',
 				 sprintf('%dfeat.rds',feature_number)))
@@ -64,7 +64,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000)) {
 
 
 all_NN_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/NN/results',
 				 sprintf('%dfeat.rds',feature_number)))
@@ -184,7 +184,6 @@ ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_metrics.png'), wi
 
 ```{r}
 #extract best act-exp model
-
 best_act_exp_model = all_model_metrics %>% 
 	dplyr::filter(data_type == "activation_expression") %>% 
 	arrange(desc(mean)) %>% 
