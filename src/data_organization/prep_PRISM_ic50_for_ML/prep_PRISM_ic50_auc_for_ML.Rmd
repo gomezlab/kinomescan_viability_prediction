@@ -43,7 +43,7 @@ write_csv(PRISM_ic50_auc_for_ml, here('results/PRISM_auc_for_ml.csv'))
 #ic50 auc correlation
 PRISM_ic50_auc_for_ml %>%
 	ggplot(aes(x = ic50, y = auc)) +
-	geom_point() +
+	geom_hex() +
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
 	geom_smooth() +
 	labs(title = 

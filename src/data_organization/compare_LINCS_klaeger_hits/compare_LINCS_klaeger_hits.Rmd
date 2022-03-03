@@ -1,5 +1,5 @@
 ---
-title: "(try) to Combine LINCS and klaeger"
+title: "Compare LINCS and klaeger relative intensities and hit agreements "
 output: html_document
 ---
 
@@ -50,9 +50,9 @@ matched_drug_data = LINCS_long %>%
 #plot correlation of matches
 matched_drug_data %>%
 	ggplot(aes(x = LINCS_relative_intensity, y = klaeger_relative_intensity)) +
-	geom_hex() +
+	geom_point() +
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
-	geom_smooth() +
+	geom_smooth(method = "lm") +
 	labs(title = 
 			 	paste0('Klaeger vs Kinomescan Correlation at 1 uM (',
 			 				 round(
@@ -61,14 +61,17 @@ matched_drug_data %>%
 			 				 		matched_drug_data$klaeger_relative_intensity),
 			 				 	3),
 			 				 ')'),
-			 x = "LINCS Relative Intensity",
+			 x = "KinomeScan Relative Intensity",
 			 y = "Klaeger Relative Intensity") +
-	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'red', linetype = 3)
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'red', linetype = 3) +
+	coord_cartesian(xlim = c(0,1), ylim= c(0,1))
 
-ggsave(here('figures/klaeger_LINCS_correlation.png'))
+ggsave(here('figures/klaeger_LINCS_correlation.png'), height = 7, width = 7)
 ```
 
 ```{r}
+#Defining a "hit" to mean more than 80% inhibition of a kinase (relative intensity < 0.2)
+
 LINCS_klaeger_comparative_data = matched_drug_data %>% 
 	mutate(
 		LINCS_hit = if_else(
@@ -103,16 +106,16 @@ LINCS_klaeger_comparative_data %>%
 	unique() %>% 
 	ggplot(aes(x = klaeger_kinase, y = klaeger_name, fill = hit_agreement)) +
 	geom_tile() +
-	theme(legend.position = "none", axis.text.x=element_blank(), axis.ticks.x=element_blank()) +
+	theme(legend.position = 'none', axis.text.x=element_blank(), axis.ticks.x=element_blank(), axis.text.y=element_blank(), axis.ticks.y=element_blank()) +
 	labs(
 		title = paste0(
-		"Klaeger vs LINCS agreement heatmap, percent agreement = ", round(
+		"Klaeger and Kinomescan agreement heatmap, percent agreement = ", round(
 			LINCS_klaeger_comparative_data %>% 
 	summarise(mean(hit_agreement)),
 	3)),
 		x = "Kinase",
 		y = "Drug")
-ggsave(here('figures/klaeger_LINCS_heatmap.png'), width = 10, height = 4)
+ggsave(here('figures/klaeger_LINCS_heatmap.png'), width = 15, height = 4)
 
 
 ```
