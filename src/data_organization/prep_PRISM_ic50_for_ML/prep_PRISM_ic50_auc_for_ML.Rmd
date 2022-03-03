@@ -40,6 +40,36 @@ write_csv(PRISM_ic50_auc_for_ml, here('results/PRISM_auc_for_ml.csv'))
 ```
 
 ```{r}
+#EDA Figures
+
+PRISM_ic50_auc_for_ml %>% 
+	ggplot(aes(x = ic50)) +
+	geom_histogram() +
+		theme(panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA),
+    axis.ticks.x=element_blank(), 
+    axis.ticks.y=element_blank()
+      ) +
+	labs(x = "IC50", y = "count")
+ggsave(here('figures/PRISM_IC50_histogram.png'), width = 7, height = 6, units = "cm", bg = "transparent")
+
+PRISM_ic50_auc_for_ml %>% 
+	ggplot(aes(x = auc)) +
+	geom_histogram() +
+		theme(panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA),
+    axis.ticks.x=element_blank(), 
+    axis.ticks.y=element_blank()
+      ) +
+	labs(x = "AUC", y = "count")
+ggsave(here('figures/PRISM_AUC_histogram.png'), width = 7, height = 6, units = "cm", bg = "transparent")
+```
+
+```{r}
 #ic50 auc correlation
 PRISM_ic50_auc_for_ml %>%
 	ggplot(aes(x = ic50, y = auc)) +
@@ -47,18 +77,28 @@ PRISM_ic50_auc_for_ml %>%
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
 	geom_smooth() +
 	labs(title = 
-			 	paste0('PRISM IC50 vs AUC correlation (',
+			 	paste0('IC50/AUC R = ',
 			 				 round(
 			 				 	cor(
 			 				 		PRISM_ic50_auc_for_ml$ic50,
 			 				 		PRISM_ic50_auc_for_ml$auc),
-			 				 	3),
-			 				 ')'),
-			 x = "PRISM IC50",
-			 y = "PRISM AUC") +
-	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'red', linetype = 3)
+			 				 	3)
+			 				 ),
+			 x = "IC50",
+			 y = "AUC") +
+	# geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'red', linetype = 3) +
+		theme(
+			legend.position = "none",
+			panel.background = element_rect(fill = "transparent",colour = NA),
+    	panel.grid.minor = element_blank(), 
+    	panel.grid.major = element_blank(),
+    	plot.background = element_rect(fill = "transparent",colour = NA),
+    	axis.text.y=element_blank(), 
+    	axis.ticks.x=element_blank(), 
+    	axis.ticks.y=element_blank()
+      )
 
-ggsave(here('figures/PRISM_IC50_AUC_correlation.png'))
+ggsave(here('figures/PRISM_IC50_AUC_correlation.png'), width = 6.5, height = 6, units = "cm", bg = "transparent")
 	
 ```
 
