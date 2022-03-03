@@ -10,16 +10,16 @@ library(ROCR)
 library(argparse)
 library(keras)
 
-args = data.frame(feature_num = c(3000,4000,5000))
-data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.csv'))
-cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
+args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
+data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.csv'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
-					 ic50,
+					 auc,
 					 broad_id)
 }
 
@@ -28,18 +28,18 @@ for(i in 1:length(args$feature_num)) {
 tic()	
 print(sprintf('Features: %02d',args$feature_num[i]))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/', 
 								sprintf('NN/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/', 
 								sprintf('NN/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/results', 
-												sprintf('%dfeat.rds',args$feature_num)[i])
+full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/NN/results', 
+												sprintf('%dfeat.rds.gz',args$feature_num)[i])
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/predictions', 
-												sprintf('%dfeat.rds',args$feature_num)[i])
+pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/NN/predictions', 
+												sprintf('%dfeat.rds.gz',args$feature_num)[i])
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
 																											 num_features = args$feature_num[i],
@@ -47,13 +47,13 @@ this_dataset = build_all_data_regression_viability_set(feature_correlations =  c
 
 folds = vfold_cv(this_dataset, v = 10)
 
-this_recipe = recipe(ic50 ~ ., this_dataset) %>%
+this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("cnv_"),
 							-starts_with("prot_"),
 							-starts_with("dep_"),
-							-starts_with("ic50"),
+							-starts_with("auc"),
 							new_role = "id variable") %>%
 	step_BoxCox(all_predictors()) %>% 
 	step_normalize(all_predictors())
