@@ -1,0 +1,90 @@
+---
+title: "build correlation figure"
+output: html_document
+date: '2022-03-08'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(ggridges)
+knitr::opts_knit$set(root.dir = here())
+```
+
+```{r}
+#read in data
+
+ic50_correlations = read_csv(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv')) %>% 
+	mutate(feature_type = 
+				 	if_else(feature_type == "Activation", 
+				 					"Inhibition",
+				 					feature_type))
+auc_correlations = read_csv(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv')) %>% 
+		mutate(feature_type = 
+				 	if_else(feature_type == "Activation", 
+				 					"Inhibition",
+				 					feature_type))
+
+```
+
+```{r}
+#preprocessing
+ic50_correlations_medians = ic50_correlations %>% 
+	group_by(feature_type) %>% 
+	summarise(median = median(abs_cor, na.rm = TRUE)) %>% 
+	arrange(desc(median))
+
+ic50_correlations_summary = ic50_correlations %>% 
+	mutate(feature_type = as.factor(feature_type)) %>%  
+	mutate(feature_type = 
+				 	fct_relevel(feature_type, 
+				 							ic50_correlations_medians$feature_type[1], 
+				 							ic50_correlations_medians$feature_type[2], 
+				 							ic50_correlations_medians$feature_type[3], 
+				 							ic50_correlations_medians$feature_type[4] ))
+
+auc_correlations_medians = auc_correlations %>% 
+	group_by(feature_type) %>% 
+	summarise(median = median(abs_cor, na.rm = TRUE)) %>% 
+	arrange(desc(median))
+
+auc_correlations_summary = auc_correlations %>% 
+	mutate(feature_type = as.factor(feature_type)) %>%  
+	mutate(feature_type = 
+				 	fct_relevel(feature_type, 
+				 							auc_correlations_medians$feature_type[1], 
+				 							auc_correlations_medians$feature_type[2], 
+				 							auc_correlations_medians$feature_type[3], 
+				 							auc_correlations_medians$feature_type[4] ))
+```
+
+
+```{r}
+#ic50 plot
+
+ic50_correlations_summary %>% 
+	ggplot(aes(x = abs_cor, y = feature_type, fill = factor(stat(quantile)))) +
+	 stat_density_ridges(
+    geom = "density_ridges_gradient", calc_ecdf = TRUE,
+    quantiles = 4, quantile_lines = TRUE
+  ) +
+  scale_fill_viridis_d(name = "Quartiles") +
+	theme_ridges(center_axis_labels = TRUE) + 
+	labs(title = "IC50 Feature Correlations",x = "Absolute Correlation Value", y = "Data Type")
+	
+ggsave(here('figures/IC50_feature_correlations.png'), height = 6, width = 20.5, units = "cm")
+
+auc_correlations_summary %>% 
+	ggplot(aes(x = abs_cor, y = feature_type, fill = factor(stat(quantile)))) +
+	 stat_density_ridges(
+    geom = "density_ridges_gradient", calc_ecdf = TRUE,
+    quantiles = 4, quantile_lines = TRUE
+  ) +
+  scale_fill_viridis_d(name = "Quartiles") +
+	theme_ridges(center_axis_labels = TRUE) + 
+	labs(title = "AUC Feature Correlations",x = "Absolute Correlation Value", y = "Data Type")
+	
+ggsave(here('figures/auc_feature_correlations.png'), height = 6, width = 20.5, units = "cm")
+
+```
+

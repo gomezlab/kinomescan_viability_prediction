@@ -1,0 +1,67 @@
+---
+title: "find LINCS klaeger PRISM compound matches"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(webchem)
+```
+
+```{r}
+#read in data
+klaeger = read_csv(here('data/klaeger_no_match.csv'))
+
+klaeger_cids = read_csv(here('results/matching/klaeger_cids.csv')) %>% 
+	mutate(cid = as.character(cid))
+
+repurposing = read_tsv(here('data/repurposing_simple.tsv'))
+```
+
+```{r}
+#get repurposing cids
+repurposing_cids = get_cid(unique(repurposing$pert_iname), from = "name", domain = "compound", match = "all", verbose = T) %>% 
+	rename("repurposing_name" = query)
+
+klaeger_cids_matchlist = klaeger_cids %>% 
+	filter(klaeger_name %in% klaeger$drug)
+```
+
+
+```{r}
+#compound matching
+	
+klaeger_repurposing_matches = repurposing_cids %>% 
+	left_join(klaeger_cids_matchlist, by = 'cid') %>% 
+	filter(!is.na(klaeger_name))
+
+write_csv(LINCS_PRISM_combined_match_list, here('results/matching/PRISM_LINCS_combined_drug_matches.csv'))
+```
+
+```{r}
+#klaeger PRISM compound matching
+	
+klaeger_PRISM_cid_drug_matches = klaeger_cids %>% 
+	left_join(PRISM_cids, by = 'cid') %>% 
+	filter(!is.na(PRISM_name)) %>% 
+	select(klaeger_name, PRISM_name, broad_id)
+
+klaeger_PRISM_combined_match_list = klaeger_PRISM_manual_matchlist %>% 
+	left_join(PRISM_match_set, by = 'broad_id') %>% 
+	bind_rows(klaeger_PRISM_cid_drug_matches) %>% 
+	select(-name) %>% 
+	unique()
+
+write_csv(klaeger_PRISM_combined_match_list, here('results/matching/PRISM_klaeger_combined_drug_matches.csv'))
+```
+
+```{r}
+LINCS_klaeger_PRISM_drug_matches = klaeger_PRISM_combined_match_list %>% 
+	bind_rows(LINCS_PRISM_combined_match_list)
+
+write_csv(LINCS_klaeger_PRISM_drug_matches, here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+
+
+```
+
