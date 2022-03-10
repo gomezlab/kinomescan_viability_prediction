@@ -15,30 +15,18 @@ library(tictoc)
 library(broom)
 library(gghighlight)
 library(Metrics)
+library(vroom)
 library(conflicted)
+library(vip)
 conflict_prefer("slice", "dplyr")
 conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
 ```
 
 # Rand Forest, XGBoost and NN Model Assessment
 
 ```{r}
 tic()
-# feature_number = 500
-# all_tabnet_metrics = data.frame()
-# for (feature_number in c(500,1500,5000)) {
-# 	this_model_results = read_rds(
-# 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/tabnet/results',
-# 				 sprintf('%dfeat.rds.gz',feature_number)))
-# 
-# 	this_model_metrics = collect_metrics(this_model_results) %>%
-# 		arrange(desc(mean)) %>%
-# 		slice(1) %>%
-# 		mutate(num_features = feature_number)
-# 	all_tabnet_metrics = bind_rows(all_tabnet_metrics, this_model_metrics)
-# }
-
-
 all_rf_metrics = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,3000,4000,5000)) {
 	this_model_results = read_rds(
@@ -179,6 +167,11 @@ all_model_all_data_metrics = all_rf_all_data_metrics %>%
 			mutate(model_type = 'xgboost')
 	) %>% 
 	bind_rows(
+		all_lr_all_data_metrics %>% 
+			mutate(hyperparameter = NA, value = 0) %>%  
+			mutate(model_type = 'linear_regression')
+	) %>% 
+	bind_rows(
 		all_NN_all_data_metrics %>%
 			pivot_longer(c(hidden_units, penalty), names_to = 'hyperparameter', values_to = 'value') %>%
 			mutate(model_type = 'NN')
@@ -191,47 +184,72 @@ write_csv(all_model_all_data_metrics, here('results/PRISM_LINCS_klaeger_models_a
 ```
 
 ```{r}
+all_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/all_model_metrics.csv'))
 model_metrics_combined = all_model_all_data_metrics %>% 
 	bind_rows(all_model_metrics)
 
 write_csv(model_metrics_combined, here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv'))
+```
 
+```{r}
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv')) %>% 
+	mutate(data_type = if_else(
+		data_type == "activation_expression",
+		"inhibition_expression",
+		data_type))
+
+#final metrics figure
 model_metrics_combined %>% 
-	ggplot(aes(x = num_features, y = mean, colour = data_type)) +
+	ggplot(aes(x = num_features, y = mean, colour = data_type, shape = data_type)) +
 	geom_point() + 
   geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
                  position=position_dodge(.9)) +
-	labs(title = "KINOMEscan-Klaeger Single Dose models predicting AUC", x = "number of features", y = "R-squared") +
-	facet_wrap(vars(model_type)) 
+	coord_cartesian(ylim= c(0.2,0.68)) +
+	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+	facet_wrap(vars(model_type)) +
+		theme(
+		legend.position = "top",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png'), width = 10, height = 5)
+ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png'), width = 10.5, height = 10.5, units = "cm")
 ```
 
 ```{r}
 #extract best act-exp model
-best_act_exp_model = all_model_metrics %>% 
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv')) %>% 
+	mutate(data_type = if_else(
+		data_type == "activation_expression",
+		"inhibition_expression",
+		data_type))
+
+best_act_exp_model = model_metrics_combined %>% 
 	dplyr::filter(data_type == "activation_expression") %>% 
 	arrange(desc(mean)) %>% 
-	filter(model_id == model_id[1]) %>% 
+	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
 	pivot_wider(names_from = hyperparameter, values_from = value)
 ```
 
 ```{r}
+#fit best act-exp model 
 args = data.frame(feature_num = best_act_exp_model$num_features)
 print(sprintf('Features: %02d',args$feature_num))
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
-		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
-					 ic50,
 					 broad_id,
-					 ic50_binary)
+					 auc)
 }
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
@@ -240,10 +258,10 @@ this_dataset = build_all_data_regression_viability_set(feature_correlations =  c
 
 folds = vfold_cv(this_dataset, v = 10)
 
-this_recipe = recipe(ic50_binary ~ ., this_dataset) %>%
+this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
-							-starts_with("ic50_binary"),
+							-starts_with("auc"),
 							new_role = "id variable") %>%
 	step_normalize(all_predictors())
 
@@ -272,37 +290,46 @@ results <- fit_resamples(
 	grid = xgb_grid,
 	control = race_ctrl
 ) %>% 
-	write_rds(here('results/final_tuned_PRISM_LINCS_klaeger_regression_model_model.rds'))
+	write_rds(here('results/final_tuned_PRISM_LINCS_klaeger_auc_regression_model.rds'))
 toc()
 
+results = read_rds(here('results/final_tuned_PRISM_LINCS_klaeger_auc_regression_model.rds'))
 final_metrics = collect_metrics(results)
-final_predictions = collect_predictions(results)
-glimpse(final_predictions)
-
-a = final_predictions %>% 
-	roc_curve(truth = ic50_binary, .pred_0) %>% 
-	autoplot() +
-	labs(title = paste0("ROC, AUC =",
-		round(
-			final_metrics$mean[2],
-			2)
-		)
-	)
-
-b = final_predictions %>% 
-	pr_curve(truth = ic50_binary, .pred_0) %>% 
-	autoplot() +
-	labs(title = paste0("PRC, AUC = ",
-		round(
-			final_metrics$mean[1],
-			2)
-		)
-	)
-
-c = a + b + plot_annotation(
-	title = "PRISM-Kinomescan-Klaeger xgboost regression model results"
-)
-
-ggsave(here('figures/final_tuned_PRISM_LINCS_klaeger_regression_model.png'))
+final_predictions = collect_predictions(results) %>% 
+	rename("predicted_auc" = .pred)
 ```
+
+```{r}
+#final figure
+final_predictions %>%
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('R\u00B2 = ',
+			 				 round(
+			 				 	final_metrics$mean[2],
+			 				 	2),
+			 				 ' / ',
+			 				 'RMSE = ',
+			 				 round(
+			 				 	final_metrics$mean[1],
+			 				 	2)
+			 	),
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/final_tuned_PRISM_LINCS_klaeger_auc_regression_model.png'), width = 10.5, height = 10.5, units = "cm")
+```
+
+
 

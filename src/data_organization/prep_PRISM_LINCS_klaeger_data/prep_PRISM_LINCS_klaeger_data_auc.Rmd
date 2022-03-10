@@ -60,7 +60,7 @@ LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>%
 	filter(!is.na(broad_id)) %>% 
 	unique() %>% 
 	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
-	mutate_all(~replace(., is.na(.), 1))
+	mutate_all(~replace(., is.na(.), 1)) 
 
 all_model_data = PRISM_auc_binarized %>% 
 	left_join(CCLE, by = 'depmap_id') %>% 

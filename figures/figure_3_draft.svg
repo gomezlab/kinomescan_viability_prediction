@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="210mm"
+   viewBox="0 0 210 210"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
+   sodipodi:docname="figure_3_draft.svg"
+   inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/figure_3_draft.png"
+   inkscape:export-xdpi="300"
+   inkscape:export-ydpi="300"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     height="210mm"
+     inkscape:zoom="1"
+     inkscape:cx="396.5"
+     inkscape:cy="414"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <image
+       width="104.98666"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/all_regression_models_ic50_metrics.png"
+       id="image225"
+       x="0"
+       y="0" />
+    <image
+       width="104.98666"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png"
+       id="image237"
+       x="105"
+       y="0" />
+    <image
+       width="104.98666"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="final_tuned_PRISM_LINCS_klaeger_ic50_regression_model.png"
+       id="image249"
+       x="0.013343811"
+       y="104.98666" />
+    <image
+       width="104.98666"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="final_tuned_PRISM_LINCS_klaeger_auc_regression_model.png"
+       id="image261"
+       x="105"
+       y="104.98666" />
+  </g>
+</svg>

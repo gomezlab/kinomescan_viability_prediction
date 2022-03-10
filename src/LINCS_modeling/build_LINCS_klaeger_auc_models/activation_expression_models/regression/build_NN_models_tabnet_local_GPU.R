@@ -19,7 +19,7 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 					 auc,
 					 broad_id)
 }
-args = data.frame(feature_num = c(500,1500,5000,10000))
+args = data.frame(feature_num = c(500))
 
 for(i in 1:length(args$feature_num)) {
 	tic()	
@@ -33,16 +33,16 @@ for(i in 1:length(args$feature_num)) {
 						 showWarnings = F, recursive = T)
 	
 	full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/tabnet/results', 
-													sprintf('%dfeat.rds.gz',args$feature_num)[i])
+													sprintf('%dfeattest.rds.gz',args$feature_num)[i])
 	
 	pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/tabnet/predictions', 
-													sprintf('%dfeat.rds.gz',args$feature_num)[i])
+													sprintf('%dfeattest.rds.gz',args$feature_num)[i])
 	
 	this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
 																												 num_features = args$feature_num[i],
 																												 all_data = data)
 	
-	folds = vfold_cv(this_dataset, v = 10)
+	folds = vfold_cv(this_dataset, v = 5)
 	
 	this_recipe = recipe(auc ~ ., this_dataset) %>%
 		update_role(-starts_with("act_"),
@@ -52,7 +52,7 @@ for(i in 1:length(args$feature_num)) {
 		step_BoxCox(all_predictors()) %>% 
 		step_normalize(all_predictors())
 
-tabnet_spec <- tabnet(epochs = 10, decision_width = tune(), attention_width = tune(),
+tabnet_spec <- tabnet(epochs = tune(), decision_width = tune(), attention_width = tune(),
 											num_steps = tune(), penalty = 0.000001, virtual_batch_size = 512, momentum = 0.6,
 											feature_reusage = 1.5, learn_rate = tune()) %>%
 	set_engine("torch", verbose = TRUE) %>%
@@ -67,12 +67,13 @@ grid <-
 	this_wflow %>%
 	parameters() %>%
 	update(
+		epochs = epochs(range = c(10, 50)),
 		decision_width = decision_width(range = c(8, 64)),
 		attention_width = attention_width(range = c(8, 64)),
 		num_steps = num_steps(range = c(3, 10)),
 		learn_rate = learn_rate(range = c(-2.5, -1))
 	) %>%
-	grid_max_entropy(size = 16)
+	grid_max_entropy(size = 5)
 
 race_ctrl = control_race(
 	save_pred = TRUE,
@@ -84,8 +85,7 @@ fit <- this_wflow %>%
 	tune_race_anova(
 		resamples = folds, 
 		grid = grid,
-		control = race_ctrl,
-		metrics = metric_set(rsq)
+		control = race_ctrl
 	) %>% 
 	write_rds(full_output_file, compress = "gz")
 toc()
