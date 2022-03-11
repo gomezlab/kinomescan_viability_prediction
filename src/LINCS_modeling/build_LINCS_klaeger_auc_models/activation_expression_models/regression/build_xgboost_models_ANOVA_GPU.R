@@ -44,7 +44,7 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							ccle_name,
 							auc,
 							broad_id,
-							any_of(feature_correlations$feature[1:args$feature_num])) %>% 
+							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
 xgb_spec <- boost_tree(
@@ -61,7 +61,7 @@ xgb_param = xgb_spec %>%
 				 tree_depth = tree_depth(c(4, 30)))
 
 xgb_grid = xgb_param %>% 
-	grid_max_entropy(size = 20)
+	grid_max_entropy(size = 15)
 
 this_wflow <-
 	workflow() %>%

@@ -45,7 +45,7 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							ccle_name,
 							auc,
 							broad_id,
-							any_of(feature_correlations$feature[1:args$feature_num])) %>% 
+							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
 keras_spec <- mlp(
@@ -65,7 +65,7 @@ this_wflow <-
 	add_recipe(this_recipe) 
 
 keras_grid = keras_param %>% 
-	grid_max_entropy(size = 3)
+	grid_max_entropy(size = 15)
 
 race_ctrl = control_race(
 	save_pred = TRUE,

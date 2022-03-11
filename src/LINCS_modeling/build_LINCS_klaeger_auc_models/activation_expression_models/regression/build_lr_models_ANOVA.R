@@ -38,7 +38,7 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							ccle_name,
 							auc,
 							broad_id,
-							any_of(feature_correlations$feature[1:args$feature_num])) %>% 
+							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
 lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%

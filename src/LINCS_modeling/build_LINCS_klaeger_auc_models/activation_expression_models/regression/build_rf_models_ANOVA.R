@@ -43,7 +43,7 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							ccle_name,
 							auc,
 							broad_id,
-							any_of(feature_correlations$feature[1:args$feature_num])) %>% 
+							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
 rf_spec <- rand_forest(
