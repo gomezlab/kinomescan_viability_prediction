@@ -8,16 +8,11 @@ library(doParallel)
 library(patchwork)
 library(ROCR)
 
-all_cores <- parallel::detectCores(logical = FALSE)
-cl <- makeCluster(all_cores)
-registerDoParallel(cl)
-
 data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
-build_all_data_classification_viability_set = function(num_features, all_data, feature_correlations) {
+build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
-		mutate(ic50_binary = as.factor(ic50_binary)) %>% 
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
@@ -25,17 +20,17 @@ build_all_data_classification_viability_set = function(num_features, all_data, f
 					 broad_id)
 }
 
-this_dataset = build_all_data_classification_viability_set(feature_correlations =  cors,
+this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
 																							num_features = 5000,
 																							all_data = data)
 
-folds = vfold_cv(this_dataset, v = 10)
+folds = vfold_cv(this_dataset, v = 2)
 
 get_recipe = function(data, feature_number, feature_correlations) {
 	normal_recipe = recipe(ic50 ~ ., this_dataset) %>%
 		update_role(-starts_with("act_"),
 								-starts_with("exp_"),
-								-starts_with("ic50_binary"),
+								-starts_with("ic50"),
 								new_role = "id variable") %>%
 		step_select(depmap_id,
 								ccle_name,
@@ -81,7 +76,7 @@ rf_param = rf_spec %>%
 	parameters() %>% 
 	update(trees = trees(c(100, 1000)))
 
-lr_spec <- logistic_reg() %>%
+lr_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
 	set_engine("glmnet")
 
 keras_spec <- mlp(
@@ -157,12 +152,12 @@ all_results = complete_workflowset %>%
 		"tune_race_anova",
 		seed = 2222,
 		resamples = folds,
-		grid = 2,
+		grid = 3,
 		control = race_ctrl
 	)
 
-write_rds(all_results, here('results/LINCS_klaeger_PRISM_xgb_rf_lr_NN_models_classification_results_ANOVA.rds'))
+write_rds(all_results, here('results/LINCS_klaeger_PRISM_xgb_rf_lr_NN_models_regression_results_ANOVA.rds'))
 
 cv_metrics_regression = collect_metrics(all_results)
 
-write_csv(cv_metrics_regression, here('results/LINCS_klaeger_PRISM_xgb_rf_lr_NN_models_classification_metrics_ANOVA.csv'))
+write_csv(cv_metrics_regression, here('results/LINCS_klaeger_PRISM_xgb_rf_lr_NN_models_regression_metrics_ANOVA.csv'))
