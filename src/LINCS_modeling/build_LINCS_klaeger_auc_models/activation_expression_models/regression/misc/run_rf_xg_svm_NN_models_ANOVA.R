@@ -8,15 +8,15 @@ library(doParallel)
 library(patchwork)
 library(ROCR)
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
 		select(any_of(feature_correlations$feature[1:num_features]),
 					 depmap_id,
 					 ccle_name,
-					 ic50,
+					 auc,
 					 broad_id)
 }
 
@@ -27,14 +27,14 @@ this_dataset = build_all_data_regression_viability_set(feature_correlations =  c
 folds = vfold_cv(this_dataset, v = 10)
 
 get_recipe = function(data, feature_number, feature_correlations) {
-	normal_recipe = recipe(ic50 ~ ., this_dataset) %>%
+	normal_recipe = recipe(auc ~ ., this_dataset) %>%
 		update_role(-starts_with("act_"),
 								-starts_with("exp_"),
-								-starts_with("ic50"),
+								-starts_with("auc"),
 								new_role = "id variable") %>%
 		step_select(depmap_id,
 								ccle_name,
-								ic50,
+								auc,
 								broad_id,
 								any_of(feature_correlations$feature[1:feature_number])) %>% 
 		step_normalize(all_predictors()) 
@@ -156,8 +156,8 @@ all_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-write_rds(all_results, here('results/LINCS_klaeger_PRISM_xgb_rf_lr_NN_models_regression_results_ANOVA.rds'))
+write_rds(all_results, here('results/PRISM_LINCS_klaeger_xgb_rf_lr_NN_models_regression_results_ANOVA.rds'))
 
 cv_metrics_regression = collect_metrics(all_results)
 
-write_csv(cv_metrics_regression, here('results/LINCS_klaeger_PRISM_xgb_rf_lr_NN_models_regression_metrics_ANOVA.csv'))
+write_csv(cv_metrics_regression, here('results/PRISM_LINCS_klaeger_xgb_rf_lr_NN_models_regression_metrics_ANOVA.csv'))
