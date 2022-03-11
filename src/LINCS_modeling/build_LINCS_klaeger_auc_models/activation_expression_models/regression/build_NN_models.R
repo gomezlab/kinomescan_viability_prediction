@@ -26,35 +26,26 @@ dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regres
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/NN/results', 
-												sprintf('%dfeat.rds',args$feature_num))
+												sprintf('%dfeat.rds.gz',args$feature_num))
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/NN/predictions', 
-												sprintf('%dfeat.rds',args$feature_num))
+												sprintf('%dfeat.rds.gz',args$feature_num))
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.csv'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
-build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
-	this_data_filtered = all_data %>%
-		select(any_of(feature_correlations$feature[1:num_features]),
-					 depmap_id,
-					 ccle_name,
-					 auc,
-					 broad_id)
-}
-
-this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																													 num_features = args$feature_num,
-																													 all_data = data)
-
-folds = vfold_cv(this_dataset, v = 10)
+folds = read_rds(here('results/PRISM_LINCS_klaeger_folds_auc.rds'))
 
 this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("auc"),
 							new_role = "id variable") %>%
-	step_BoxCox(all_predictors()) %>% 
+	step_select(depmap_id,
+							ccle_name,
+							auc,
+							broad_id,
+							any_of(feature_correlations$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
 keras_spec <- mlp(
