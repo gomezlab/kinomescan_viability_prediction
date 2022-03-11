@@ -24,7 +24,7 @@ this_dataset = build_all_data_regression_viability_set(feature_correlations =  c
 																							num_features = 5000,
 																							all_data = data)
 
-folds = vfold_cv(this_dataset, v = 2)
+folds = vfold_cv(this_dataset, v = 10)
 
 get_recipe = function(data, feature_number, feature_correlations) {
 	normal_recipe = recipe(ic50 ~ ., this_dataset) %>%
@@ -152,7 +152,7 @@ all_results = complete_workflowset %>%
 		"tune_race_anova",
 		seed = 2222,
 		resamples = folds,
-		grid = 3,
+		grid = 15,
 		control = race_ctrl
 	)
 
