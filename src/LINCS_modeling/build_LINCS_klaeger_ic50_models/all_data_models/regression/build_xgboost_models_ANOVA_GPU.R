@@ -30,23 +30,10 @@ full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regress
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/xgboost/predictions', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.csv'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.rds'))
 cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
 
-build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
-	this_data_filtered = all_data %>%
-		select(any_of(feature_correlations$feature[1:num_features]),
-					 depmap_id,
-					 ccle_name,
-					 ic50,
-					 broad_id)
-}
-
-this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																											 num_features = args$feature_num,
-																											 all_data = data)
-
-folds = vfold_cv(this_dataset, v = 10)
+folds = read_rds(here(results/'PRISM_LINCS_klaeger_all_multiomic_data_folds.rds'))
 
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -56,6 +43,11 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							-starts_with("dep_"),
 							-starts_with("ic50"),
 							new_role = "id variable") %>%
+	step_select(depmap_id,
+							ccle_name,
+							ic50,
+							broad_id,
+							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
 xgb_spec <- boost_tree(

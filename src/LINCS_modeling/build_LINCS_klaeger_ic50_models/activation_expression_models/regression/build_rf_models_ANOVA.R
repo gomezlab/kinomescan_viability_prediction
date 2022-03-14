@@ -32,7 +32,7 @@ pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expressio
 this_dataset = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
 
-folds = read_rds(here('results/PRISM_LINCS_klaeger_folds_ic50.rds'))
+folds = read_rds(here('results/PRISM_LINCS_klaeger_folds.rds'))
 
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),

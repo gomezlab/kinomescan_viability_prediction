@@ -9,35 +9,25 @@ library(patchwork)
 library(ROCR)
 library(argparse)
 
-args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
-data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.csv'))
-cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
+tic()
+parser <- ArgumentParser(description='Process input paramters')
+parser$add_argument('--feature_num', default = 100, type="integer")
 
-build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
-	this_data_filtered = all_data %>%
-		select(auc,
-					 any_of(feature_correlations$feature[1:num_features]),
-					 depmap_id,
-					 ccle_name,
-					 broad_id)
-}
+args = parser$parse_args()
 
-for(i in 1:length(args$feature_num)) {
-	tic()	
-	print(sprintf('Features: %02d',args$feature_num[i]))
+print(sprintf('Features: %02d',args$feature_num))
 
 dir.create(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/', 
 								sprintf('lr/results')), 
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/lr/results', 
-												sprintf('%dfeat.rds.gz',args$feature_num[i]))
+												sprintf('%dfeat.rds.gz',args$feature_num))
 
-this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																											 num_features = args$feature_num[i],
-																											 all_data = data)
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.rds'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
 
-folds = vfold_cv(this_dataset, v = 10)
+folds = read_rds(here(results/'PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds'))
 
 this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -47,9 +37,14 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							-starts_with("dep_"),
 							-starts_with("auc"),
 							new_role = "id variable") %>%
+	step_select(depmap_id,
+							ccle_name,
+							auc,
+							broad_id,
+							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
-lr_spec <- linear_reg() %>%
+lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
 	set_mode("regression")
 
 this_wflow <-
@@ -71,4 +66,3 @@ results <- fit_resamples(
 	write_rds(full_output_file, compress = "gz")
 
 toc()
-}

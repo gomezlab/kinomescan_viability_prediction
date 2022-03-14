@@ -10,7 +10,7 @@ library(ROCR)
 library(argparse)
 library(keras)
 
-args = data.frame(feature_num = c(3000,4000,5000))
+args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
 data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.csv'))
 cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
 
@@ -36,10 +36,10 @@ dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/',
 					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/results', 
-												sprintf('%dfeat.rds',args$feature_num)[i])
+												sprintf('%dfeat.rds.gz',args$feature_num)[i])
 
 pred_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/predictions', 
-												sprintf('%dfeat.rds',args$feature_num)[i])
+												sprintf('%dfeat.rds.gz',args$feature_num)[i])
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
 																											 num_features = args$feature_num[i],
