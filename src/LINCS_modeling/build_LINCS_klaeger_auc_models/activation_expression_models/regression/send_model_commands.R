@@ -1,7 +1,7 @@
 library(here)
 library(tidyverse)
 
-for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+for (feature_num in c(100)) {
 
 		job_name = sprintf('aucRF%d',feature_num)
 
@@ -12,7 +12,7 @@ for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 }
 
-for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+for (feature_num in c(100)) {
 	
 	job_name = sprintf('auclr%d',feature_num)
 	
@@ -23,7 +23,7 @@ for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	
 }
 
-for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+for (feature_num in c(100)) {
 
 	job_name = sprintf('aucxg%d',feature_num)
 
@@ -34,8 +34,8 @@ for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 }
 
-
-for (feature_num in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+#,200,300,400,500,1000,1500,2000,3000,4000,5000
+for (feature_num in c(100)) {
 
 
 	job_name = sprintf('aucNN%d',feature_num)
