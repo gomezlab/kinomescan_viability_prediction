@@ -9,7 +9,7 @@ library(patchwork)
 library(ROCR)
 library(argparse)
 library(xgboost)
-
+set.seed(2222)
 tic()
 parser <- ArgumentParser(description='Process input paramters')
 parser$add_argument('--feature_num', default = 100, type="integer")
@@ -51,36 +51,28 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 
 xgb_spec <- boost_tree(
 	trees = tune(), 
-	tree_depth = tune(),       
-	learn_rate = tune()                   
+	tree_depth = tune()                  
 ) %>% 
 	set_engine("xgboost", tree_method = "gpu_hist") %>% 
 	set_mode("regression")
 
-xgb_param = xgb_spec %>% 
-	parameters() %>% 
-	update(trees = trees(c(100, 1000)),
-				 tree_depth = tree_depth(c(4, 30)))
-
-xgb_grid = xgb_param %>% 
-	grid_max_entropy(size = 20)
+xgb_grid = read_rds(here('results/hyperparameter_grids/xbg_grid.rds'))
 
 this_wflow <-
 	workflow() %>%
 	add_model(xgb_spec) %>%
 	add_recipe(this_recipe) 
 
-race_ctrl = control_race(
+race_ctrl = control_grid(
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- tune_race_anova(
+results <- tune_grid(
 	this_wflow,
 	resamples = folds,
 	grid = xgb_grid,
-	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file, compress = "gz")

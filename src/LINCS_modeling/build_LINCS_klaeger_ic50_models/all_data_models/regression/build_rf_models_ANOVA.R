@@ -56,29 +56,23 @@ rf_spec <- rand_forest(
 ) %>% set_engine("ranger", num.threads = 16) %>%
 	set_mode("regression")
 
-rf_param = rf_spec %>% 
-	parameters() %>% 
-	update(trees = trees(c(100, 2000)))
-
 this_wflow <-
 	workflow() %>%
 	add_model(rf_spec) %>%
 	add_recipe(this_recipe) 
 
-rf_grid = rf_param %>% 
-	grid_max_entropy(size = 15)
+rf_grid = read_rds(here('results/hyperparameter_grids/rf_grid.rds'))
 
-race_ctrl = control_race(
+race_ctrl = control_grid(
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- tune_race_anova(
+results <- tune_grid(
 	this_wflow,
 	resamples = folds,
 	grid = rf_grid,
-	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file, compress = "gz")

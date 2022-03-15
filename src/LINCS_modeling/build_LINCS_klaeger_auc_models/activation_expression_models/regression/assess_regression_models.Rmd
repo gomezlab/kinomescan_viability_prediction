@@ -28,7 +28,7 @@ conflict_prefer("vi", "vip")
 ```{r}
 tic()
 all_rf_metrics = data.frame()
-for (feature_number in c(100)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/rand_forest/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
@@ -40,21 +40,21 @@ for (feature_number in c(100)) {
 	all_rf_metrics = bind_rows(all_rf_metrics, this_model_metrics)
 }
 
-# all_xgb_metrics = data.frame()
-# for (feature_number in c(100,200,300,400,1000,1500,2000,3000)) {
-# 	this_model_results = read_rds(
-# 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/results',
-# 				 sprintf('%dfeat.rds.gz',feature_number)))
-# 
-# 	this_model_metrics = collect_metrics(this_model_results) %>%
-# 		arrange(desc(mean)) %>% 
-# 		slice(1) %>%
-# 		mutate(num_features = feature_number)
-# 	all_xgb_metrics = bind_rows(all_xgb_metrics, this_model_metrics)
-# }
+all_xgb_metrics = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
+
+	this_model_metrics = collect_metrics(this_model_results) %>%
+		arrange(desc(mean)) %>%
+		slice(1) %>%
+		mutate(num_features = feature_number)
+	all_xgb_metrics = bind_rows(all_xgb_metrics, this_model_metrics)
+}
 
 all_lr_metrics = data.frame()
-for (feature_number in c(100)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/lr/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
@@ -66,7 +66,7 @@ for (feature_number in c(100)) {
 
 
 all_NN_metrics = data.frame()
-for (feature_number in c(100)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/NN/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
@@ -81,14 +81,14 @@ for (feature_number in c(100)) {
 all_model_metrics = all_rf_metrics %>% 
 	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>%
 	mutate(model_type = 'random_forest') %>%
-	# bind_rows(
-	# 	all_xgb_metrics %>%
-	# 		pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>%
-	# 		mutate(model_type = 'xgboost')
-	# ) %>% 
+	bind_rows(
+		all_xgb_metrics %>%
+			pivot_longer(c(trees, tree_depth, learn_rate), names_to = 'hyperparameter', values_to = 'value') %>%
+			mutate(model_type = 'xgboost')
+	) %>%
 	bind_rows(
 		all_lr_metrics %>%
-			mutate(model_type = 'linear_regression', hyperparameter = "NA", value = 0)
+			mutate(model_type = 'lasso', hyperparameter = "NA", value = 0)
 	) %>% 
 	bind_rows(
 		all_NN_metrics %>%
@@ -97,9 +97,9 @@ all_model_metrics = all_rf_metrics %>%
 	) %>%
 	mutate(.config = paste0(.config, '_',model_type)) %>% 
 	rename('model_id' = .config) %>% 
-	mutate(data_type = "activation_expression")
+	mutate(data_type = "inhibition_expression")
 
-write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/all_model_metrics.csv'))
+# write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/all_model_metrics.csv'))
 
 ```
 
@@ -184,7 +184,7 @@ write_csv(all_model_all_data_metrics, here('results/PRISM_LINCS_klaeger_models_a
 ```
 
 ```{r}
-all_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/all_model_metrics.csv'))
+all_model_all_data_metrics = data.frame()
 model_metrics_combined = all_model_all_data_metrics %>% 
 	bind_rows(all_model_metrics)
 
@@ -192,11 +192,27 @@ write_csv(model_metrics_combined, here('results/PRISM_LINCS_klaeger_ic50_models_
 ```
 
 ```{r}
-model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv')) %>% 
-	mutate(data_type = if_else(
-		data_type == "activation_expression",
-		"inhibition_expression",
-		data_type))
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv'))
+#inhibtion expression metrics figure
+model_metrics_combined %>% 
+	filter(data_type == "inhibition_expression") %>% 
+	ggplot(aes(x = num_features, y = mean, colour = model_type, shape = model_type)) +
+	geom_point() + 
+  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+                 position=position_dodge(.9)) +
+	coord_cartesian(ylim= c(0.2,0.68)) +
+	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+		theme(
+		legend.position = "right",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibion_expression_regression_models_auc_metrics.png'))
 
 #final metrics figure
 model_metrics_combined %>% 

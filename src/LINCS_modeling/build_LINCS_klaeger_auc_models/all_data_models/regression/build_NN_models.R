@@ -34,7 +34,7 @@ pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/reg
 this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.rds'))
 cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
 
-folds = read_rds(here(results/'PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds'))
+folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds'))
 
 this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -58,29 +58,24 @@ keras_spec <- mlp(
 	set_engine("keras", verbose = 0) %>% 
 	set_mode("regression")
 
-keras_param = keras_spec %>% 
-	parameters() %>% 
-	update(hidden_units = hidden_units(c(1, 27)))
-
 this_wflow <-
 	workflow() %>%
 	add_model(keras_spec) %>%
 	add_recipe(this_recipe) 
 
-keras_grid = keras_param %>% 
-	grid_max_entropy(size = 15)
+keras_grid = read_rds(here('results/hyperparameter_grids/keras_grid.rds'))
 
-race_ctrl = control_race(
+race_ctrl = control_grid(
 	save_pred = TRUE,
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- tune_race_anova(
+set.seed(2222)
+results <- tune_grid(
 	this_wflow,
 	resamples = folds,
 	grid = keras_grid,
-	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file, compress = "gz")
