@@ -32,7 +32,7 @@ pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/reg
 this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.rds'))
 cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
 
-folds = read_rds(here(results/'PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds'))
+folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds'))
 
 this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
