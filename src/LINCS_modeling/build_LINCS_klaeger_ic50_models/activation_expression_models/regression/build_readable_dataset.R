@@ -16,4 +16,14 @@ feat5000_data = data %>%
 
 write_csv(feat5000_data, here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
 
+feat10000_data = data %>% 
+	select(any_of(cors$feature[1:10005]),
+				 depmap_id,
+				 ccle_name,
+				 ic50,
+				 broad_id,
+				 ic50_binary)
+
+write_rds(feat10000_data, here('results/PRISM_LINCS_klaeger_data_for_ml_10000feat.rds.gz'), compress = "gz")
+
 

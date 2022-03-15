@@ -59,7 +59,7 @@ xgb_spec <- boost_tree(
 	set_engine("xgboost", tree_method = "gpu_hist") %>% 
 	set_mode("regression")
 
-xgb_grid = read_rds(here('results/hyperparameter_grids/xbg_grid.rds'))
+xgb_grid = read_rds(here('results/hyperparameter_grids/xgb_grid.rds'))
 
 this_wflow <-
 	workflow() %>%
