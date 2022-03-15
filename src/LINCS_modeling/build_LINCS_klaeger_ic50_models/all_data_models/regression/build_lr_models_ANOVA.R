@@ -36,10 +36,12 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							-starts_with("prot_"),
 							-starts_with("dep_"),
 							-starts_with("ic50"),
+							ic50_binary,
 							new_role = "id variable") %>%
 	step_select(depmap_id,
 							ccle_name,
 							ic50,
+							ic50_binary,
 							broad_id,
 							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())

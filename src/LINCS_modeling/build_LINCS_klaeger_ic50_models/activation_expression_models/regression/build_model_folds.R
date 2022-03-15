@@ -21,10 +21,11 @@ build_all_data_regression_viability_set = function(num_features, all_data, featu
 }
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																											 num_features = 5001,
-																											 all_data = data) %>% 
+																											 num_features = 5010,
+																											 all_data = data) %>%
+	mutate(ic50_binary = 1) %>% 
 	write_rds(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.rds'))
 
 set.seed(2222)
 folds = vfold_cv(this_dataset, v = 10) %>% 
-	write_rds(here('results/PRISM_LINCS_klaeger_folds_ic50.rds'))
+	write_rds(here('results/PRISM_LINCS_klaeger_folds.rds'))
