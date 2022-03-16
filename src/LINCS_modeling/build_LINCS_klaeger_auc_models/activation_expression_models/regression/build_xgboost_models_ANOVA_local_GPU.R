@@ -13,7 +13,7 @@ library(xgboost)
 args = data.frame(feature_num = c(6000,7000))
 this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_data_for_ml_10000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-folds = read_rds(here('results/PRISM_LINCS_klaeger_folds_auc.rds'))
+folds = read_rds(here('results/PRISM_LINCS_klaeger_folds_10000_auc.rds.gz'))
 xgb_grid = read_rds(here('results/hyperparameter_grids/xgb_grid.rds'))
 
 for(i in 1:length(args$feature_num)) {
@@ -31,6 +31,7 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("auc"),
+							auc_binary,
 							new_role = "id variable") %>%
 	step_select(depmap_id,
 							ccle_name,
@@ -66,4 +67,3 @@ results <- tune_grid(
 	write_rds(full_output_file, compress = "gz")
 toc()
 }
-
