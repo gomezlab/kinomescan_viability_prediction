@@ -16,15 +16,20 @@ LINCS_percent_matrix = read_csv(here('results/full_LINCS_UNC_1uM_data_imputed.cs
 
 klaeger_tidy = read_rds(here('data/klaeger_full_tidy.rds'))
 
-matched_kinases = read_csv(here('results/LINCS_klaeger_kinase_matches.csv'))
+matched_kinases = read_csv(here('results/matching/LINCS_klaeger_kinase_matches.csv'))
 
-drug_matches = read_csv(here('results/LINCS_klaeger_drug_matches.csv'))
+drug_matches = read_csv(here('results/matching/LINCS_klaeger_drug_matches.csv'))
 
 ```
 
 ```{r}
+klaeger_doses = klaeger_tidy %>% 
+	select(concentration_M) %>% 
+	unique()
+
+#using most correlated klaeger concentration of 30uM
 klaeger_tidy_1uM = klaeger_tidy %>% 
-	filter(concentration_M == 0.000001)
+	filter(concentration_M == klaeger_doses$concentration_M[9])
 
 LINCS_long = LINCS_percent_matrix %>% 
 	pivot_longer(c(-Small.Molecule.Name, -Dose), names_to = 'kinase', values_to = 'percent_control')
@@ -113,7 +118,7 @@ all_klaeger_LINCS_data_for_ml = all_klaeger_LINCS_data %>%
 	group_by(drug, kinase) %>% 
 	summarise(relative_intensity = min(relative_intensity)) %>% 
 	mutate(binary_hit = if_else(
-		relative_intensity < 0.8,
+		relative_intensity < 0.2,
 		1,
 		0
 	)) %>% 

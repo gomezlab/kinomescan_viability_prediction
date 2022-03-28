@@ -6,7 +6,6 @@ output: html_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(here)
-
 ```
 
 ```{r}
@@ -15,13 +14,30 @@ compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combin
 
 LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 
-PRISM_auc = read_csv(here('results/PRISM_auc_for_ml.csv'))
+PRISM_auc = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_auc_for_ml.csv'))
 
 CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
 	rename('depmap_id' = DepMap_ID) %>% 
 	filter(depmap_id %in% PRISM_auc$depmap_id)
 
 ```
+
+```{r}
+#variable renaming
+LINCS_klaeger_data_long_processed = LINCS_klaeger_data_long %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
+	mutate(kinase = if_else(
+		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		kinase
+	))
+
+CCLE_processed = CCLE %>% 
+	pivot_longer(-depmap_id, names_to = "gene", values_to = "value") %>% 
+	mutate(gene = str_replace(gene, "[-;]", "_")) %>% 
+	pivot_wider(names_from = gene, values_from = 'value')
+```
+
 
 ```{r}
 PRISM_auc_binarized = PRISM_auc %>% 
@@ -31,7 +47,7 @@ PRISM_auc_binarized = PRISM_auc %>%
 		0
 	))
 
-LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>% 
+LINCS_klaeger_data_for_model = LINCS_klaeger_data_long_processed %>% 
 	mutate(act_gene_name = paste0('act_', kinase)) %>% 
 	select(-kinase, -binary_hit) %>% 
 	left_join(compound_match_list,
@@ -63,13 +79,14 @@ LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>%
 	mutate_all(~replace(., is.na(.), 1)) 
 
 all_model_data = PRISM_auc_binarized %>% 
-	left_join(CCLE, by = 'depmap_id') %>% 
+	left_join(CCLE_processed, by = 'depmap_id') %>% 
 	left_join(LINCS_klaeger_data_for_model, by = c('broad_id')) %>% 
 	select(-name, -PRISM_name) %>%
 	mutate(auc_binary = as.factor(auc_binary)) %>% 
-	drop_na()
+	drop_na() 
 
-LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long %>% 
+
+LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long_processed %>% 
 	mutate(act_gene_name = paste0('act_', kinase)) %>% 
 	select(-kinase, -relative_intensity) %>% 
 		left_join(compound_match_list,
@@ -101,7 +118,7 @@ LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long %>%
 	mutate_all(~replace(., is.na(.), 0))
 
 all_binary_model_data = PRISM_auc_binarized %>% 
-	left_join(CCLE, by = 'depmap_id') %>% 
+	left_join(CCLE_processed, by = 'depmap_id') %>% 
 	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('broad_id')) %>% 
 	select(-name, -PRISM_name) %>% 
 	drop_na()
@@ -115,7 +132,9 @@ all_data_filtered = all_model_data %>%
 	filter(auc <= 1) %>% 
 	mutate(across(starts_with(c('auc_binary')), ~ as.factor(.)))
 
-write_csv(all_data_filtered, here('results/PRISM_LINCS_klaeger_data_for_ml_auc.csv'))
-write_csv(binary_data_filtered, here('results/PRISM_LINCS_klaeger_binary_data_for_ml_auc.csv'))
+write_rds(all_data_filtered,
+					here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'), compress = "gz")
+write_rds(binary_data_filtered, 
+					here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_binary_data_for_ml_auc.rds.gz'), compress = "gz")
 
 ```

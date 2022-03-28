@@ -1,5 +1,7 @@
+library(torch)
 library(tidyverse)
 library(here)
+library(tabnet)
 library(tidymodels)
 library(finetune)
 
@@ -49,7 +51,27 @@ keras_param = keras_spec %>%
 keras_grid = keras_param %>% 
 	grid_max_entropy(size = 30)
 
+#build tabnet grid 
+tabnet_spec <- tabnet(epochs = 10, decision_width = tune(), attention_width = tune(),
+											num_steps = tune(), penalty = 0.000001, virtual_batch_size = 512, momentum = 0.6,
+											feature_reusage = 1.5, learn_rate = tune()) %>%
+	set_engine("torch", verbose = TRUE) %>%
+	set_mode("regression")
+
+set.seed(2222)
+tabnet_grid <-
+	tabnet_spec %>%
+	parameters() %>%
+	update(
+		decision_width = decision_width(range = c(8, 64)),
+		attention_width = attention_width(range = c(8, 64)),
+		num_steps = num_steps(range = c(3, 10)),
+		learn_rate = learn_rate(range = c(-2.5, -1))
+	) %>%
+	grid_max_entropy(size = 30)
+
 #write out grids 
 write_rds(rf_grid, here('results/hyperparameter_grids/rf_grid.rds'))
 write_rds(xgb_grid, here('results/hyperparameter_grids/xgb_grid.rds'))
 write_rds(keras_grid, here('results/hyperparameter_grids/keras_grid.rds'))
+write_rds(tabnet_grid, here('results/hyperparameter_grids/tabnet_grid.rds'))

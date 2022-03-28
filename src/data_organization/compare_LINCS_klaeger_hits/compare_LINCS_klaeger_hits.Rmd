@@ -25,8 +25,13 @@ drug_matches = read_csv(here('results/matching/LINCS_klaeger_drug_matches.csv'))
 ```
 
 ```{r}
+klaeger_doses = klaeger_tidy %>% 
+	select(concentration_M) %>% 
+	unique()
+
+#using most correlated klaeger concentration of 30uM
 klaeger_tidy_1uM = klaeger_tidy %>% 
-	filter(concentration_M == 0.000001)
+	filter(concentration_M == klaeger_doses$concentration_M[9])
 
 LINCS_long = LINCS_percent_matrix %>% 
 	pivot_longer(c(-Small.Molecule.Name, -Dose), names_to = 'kinase', values_to = 'percent_control')
@@ -99,7 +104,7 @@ LINCS_klaeger_comparative_data = matched_drug_data %>%
 	)
 
 kinase_summary = LINCS_klaeger_comparative_data %>% 
-	group_by(klaeger_kinase) %>% 
+	group_by(klaeger_kinase, LINCS_kinase) %>% 
 	summarise(mean_agree = mean(hit_agreement))
 
 disagreeable_kinases = kinase_summary %>% 
