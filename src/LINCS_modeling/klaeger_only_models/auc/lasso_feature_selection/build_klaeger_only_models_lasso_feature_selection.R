@@ -10,40 +10,38 @@ library(patchwork)
 library(ROCR)
 library(vip)
 
-this_dataset = read_rds(here('results/klaeger_only_model/PRISM_klaeger_only_data_5000feat_auc.rds.gz'))
+this_dataset = read_rds(here('results/klaeger_only_models_auc/PRISM_klaeger_only_data_5000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
 folds = read_rds(here(here('results/cv_folds/PRISM_klaeger_only_folds_auc.rds.gz')))
 
-lasso_feature_number = 2000
-feature_number = 100
+lr_recipe = recipe(auc_target ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc"),
+							new_role = "id variable") %>%
+	step_zv(all_predictors()) %>% 
+	step_select(depmap_id,
+							ccle_name,
+							auc_target,
+							broad_id,
+							any_of(cors$feature[1:5000])) %>%
+	step_normalize(all_predictors())
+
+lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+	set_mode("regression")
+
+this_wflow <-
+	workflow() %>%
+	add_model(lr_spec) %>%
+	add_recipe(lr_recipe)
+
+results = this_wflow %>% fit(this_dataset)
+
+all_importance = vi(results %>% extract_fit_parsnip()) %>% 
+	arrange(desc(Importance))
+
 get_recipe = function(data, lasso_feature_number, feature_number) {
-	
-	lr_recipe = recipe(auc_target ~ ., this_dataset) %>%
-		update_role(-starts_with("act_"),
-								-starts_with("exp_"),
-								-starts_with("auc"),
-								new_role = "id variable") %>%
-		step_zv(all_predictors()) %>% 
-		step_select(depmap_id,
-								ccle_name,
-								auc_target,
-								broad_id,
-								any_of(cors$feature[1:lasso_feature_number])) %>%
-		step_normalize(all_predictors())
-
-	lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
-		set_mode("regression")
-
-	this_wflow <-
-		workflow() %>%
-		add_model(lr_spec) %>%
-		add_recipe(lr_recipe)
-
-	results = this_wflow %>% fit(this_dataset)
-	
-	all_importance = vi(results %>% extract_fit_parsnip()) %>% 
-		arrange(desc(Importance))
 	
 	this_recipe = recipe(auc_target ~ ., this_dataset) %>%
 		update_role(-starts_with("act_"),
@@ -60,14 +58,14 @@ get_recipe = function(data, lasso_feature_number, feature_number) {
 	return(this_recipe)
 }
 
-recipe_100 = get_recipe(data = this_dataset, feature_number = 100)
-recipe_200 = get_recipe(data = this_dataset, feature_number = 200)
-recipe_300 = get_recipe(data = this_dataset, feature_number = 300)
-recipe_400 = get_recipe(data = this_dataset, feature_number = 400)
-recipe_500 = get_recipe(data = this_dataset, feature_number = 500)
-recipe_1000 = get_recipe(data = this_dataset, feature_number = 1000)
-recipe_1500 = get_recipe(data = this_dataset, feature_number = 1500)
-recipe_2000 = get_recipe(data = this_dataset, feature_number = 2000)
+recipe_100 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 100)
+recipe_200 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 200)
+recipe_300 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 300)
+recipe_400 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 400)
+recipe_500 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 500)
+recipe_1000 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 1000)
+recipe_1500 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 1500)
+recipe_2000 = get_recipe(data = this_dataset, lasso_feature_number = 2000, feature_number = 2000)
 # recipe_3000 = get_recipe(data = this_dataset, feature_number = 3000)
 # recipe_3500 = get_recipe(data = this_dataset, feature_number = 3500)
 # recipe_4000 = get_recipe(data = this_dataset, feature_number = 4000)
@@ -151,8 +149,8 @@ all_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-temp = all_results$result
-autoplot(all_results)
+# temp = all_results$result
+# autoplot(all_results)
 
 write_rds(
 	all_results,
