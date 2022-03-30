@@ -2,7 +2,7 @@ library(tidyverse)
 library(here)
 library(vroom)
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_auc.csv'))
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
 
 find_feature_correlations <- function(row_indexes = NA, all_data) {
   if (is.na(row_indexes)) {

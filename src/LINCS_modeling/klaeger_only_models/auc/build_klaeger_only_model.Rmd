@@ -26,8 +26,8 @@ conflict_prefer("rmse", "Metrics")
 
 ```{r}
 compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
-full_dataset = read_rds(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+full_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 args = data.frame(feature_num = 5000)
 ```
 
@@ -149,6 +149,7 @@ klaeger_only_data %>%
 	write_rds(here('results/klaeger_only_model/PRISM_klaeger_only_data_5000feat_auc.rds.gz'), compress = "gz")
 
 set.seed(2222)
-folds = 
+folds = vfold_cv(klaeger_only_data, v = 5) %>% 
+	write_rds(here('results/cv_folds/PRISM_klaeger_only_folds_auc.rds.gz'), compress = "gz")
 ```
 
