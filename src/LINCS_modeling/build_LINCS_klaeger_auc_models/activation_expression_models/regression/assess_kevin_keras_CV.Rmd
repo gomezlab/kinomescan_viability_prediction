@@ -55,7 +55,7 @@ for (cv_number in (1:10)) {
 
 
 ```{r}
-#Overall metrics figure
+#Overall metrics
 rsq = cor(
 		all_keras_preds %>% 
 		pull(predicted_auc),
@@ -125,7 +125,7 @@ ggsave(here('figures/PRISM_LINCS_klaeger/tuned_keras_PRISM_LINCS_klaeger_auc_reg
 
 ```{r}
 # comparing kinomescan vs klaeger results 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
 
 final_full_predictions = all_keras_preds %>% 
 	left_join(compound_match_list, by = 'broad_id') %>% 

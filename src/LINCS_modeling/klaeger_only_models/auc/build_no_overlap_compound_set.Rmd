@@ -1,0 +1,53 @@
+---
+	title: "build no overlap individual datasets"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("rmse", "Metrics")
+```
+
+```{r}
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+```
+
+```{r}
+klaeger_broad_ids = compound_match_list %>% 
+  select(klaeger_name, broad_id) %>% 
+  filter(!is.na(klaeger_name))
+
+kinomescan_broad_ids = compound_match_list %>% 
+  select(LINCS_name, broad_id) %>% 
+  filter(!is.na(LINCS_name))
+
+overlap_broad_ids = klaeger_broad_ids %>% 
+  left_join(kinomescan_broad_ids, by = 'broad_id') %>% 
+  filter(!is.na(LINCS_name))
+
+non_overlap_broad_ids = compound_match_list %>% 
+  filter(!broad_id %in% overlap_broad_ids$broad_id)
+```
+
+```{r}
+write_csv(non_overlap_broad_ids, here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+```
+
+
+

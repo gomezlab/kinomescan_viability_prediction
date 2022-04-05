@@ -101,12 +101,12 @@ model_predictions = augment(results, kinomescan_only_data) %>%
 	select(-starts_with("act_"), -starts_with("exp_")) %>% 
 	rename("predicted_auc" = .pred, "auc" = auc_target)
 
-kinomescan_r = cor(
+kinomescan_rsq = cor(
 	model_predictions %>% 
 		pull(predicted_auc),
 		model_predictions %>% 
 		pull(auc)
-)
+)^2
 
 kinomescan_rmse = rmse(	
 		model_predictions %>% 
@@ -122,7 +122,7 @@ model_predictions %>%
 	labs(title = 
 			 	paste0('KINOMEscan R = ',
 			 				 round(
-			 				 	kinomescan_r,
+			 				 	kinomescan_rsq,
 			 				 	2),
 			 				 '/ RMSE = ',
 			 				 round(
@@ -140,7 +140,7 @@ model_predictions %>%
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/xgboost_klaeger_only_model_kinomescan_predictions.png'), height = 7, width = 10)
+ggsave(here('figures/klaeger_only_models_auc/xgboost_klaeger_only_model_kinomescan_predictions.png'), height = 7, width = 10)
 ```
 
 ```{r}

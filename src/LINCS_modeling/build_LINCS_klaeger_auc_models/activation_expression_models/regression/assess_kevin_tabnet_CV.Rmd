@@ -125,7 +125,7 @@ ggsave(here('figures/PRISM_LINCS_klaeger/tuned_tabnet_PRISM_LINCS_klaeger_auc_re
 
 ```{r}
 # comparing kinomescan vs klaeger results 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
 
 final_full_predictions = all_tabnet_preds %>% 
 	left_join(compound_match_list, by = 'broad_id') %>% 
