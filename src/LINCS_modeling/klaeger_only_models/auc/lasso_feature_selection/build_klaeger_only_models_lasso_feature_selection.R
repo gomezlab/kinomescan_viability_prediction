@@ -131,15 +131,15 @@ all_results = complete_workflowset %>%
 	)
 
 # temp = all_results$result
-# autoplot(all_results)
-
-write_rds(
-	all_results,
-	here(
-		'results/PRISM_klaeger_only_xgb_rf_NN_models_regression_results_lasso_feature_selection.rds.gz'),
-	compress = "gz")
+# autoplot(all_results))
 
 cv_metrics_regression = collect_metrics(all_results)
+
+# write_rds(
+# 	all_results,
+# 	here(
+# 		'results/PRISM_klaeger_only_xgb_rf_NN_models_regression_results_lasso_feature_selection.rds.gz'),
+# 	compress = "gz")
 
 write_csv(
 	cv_metrics_regression,

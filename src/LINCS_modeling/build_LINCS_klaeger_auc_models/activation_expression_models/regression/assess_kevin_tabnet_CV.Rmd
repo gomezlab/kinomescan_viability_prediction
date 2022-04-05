@@ -1,0 +1,232 @@
+---
+	title: "Assess kevin tabnet regression"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("rmse", "Metrics")
+```
+
+# Rand Forest, XGBoost and NN Model Assessment
+
+```{r}
+# full_dataset = read_rds(
+# 	here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+
+#read in CV files
+all_tabnet_preds = data.frame()
+for (cv_number in (1:10)) {
+	this_cv_set = read_csv(
+		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/cv_tabnet',
+				 sprintf('X_valid_%d.csv',cv_number))) %>% 
+		rename("cv_id" = ...1) %>%
+		mutate(col_id = 0:(n()-1)) %>% 
+		select(-starts_with(c("act_", "exp_")))
+	
+	this_preds_set = read_csv(
+		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/cv_tabnet',
+				 sprintf('y_pred_%d.csv',cv_number))) %>% 
+		rename("col_id" = ...1, "predicted_auc" = 2)
+	
+	this_full_preds = this_cv_set %>% 
+		left_join(this_preds_set)
+	
+	all_tabnet_preds = bind_rows(all_tabnet_preds, this_full_preds)
+}
+
+```
+
+
+```{r}
+#Overall metrics figure
+rsq = cor(
+		all_tabnet_preds %>% 
+		pull(predicted_auc),
+		all_tabnet_preds %>% 
+		pull(auc)
+)^2
+
+rmse = rmse(
+	all_tabnet_preds %>% 
+		pull(predicted_auc),
+		all_tabnet_preds %>% 
+		pull(auc)
+)
+
+# model_metrics_combined %>%
+# 	ggplot(aes(x = num_features, y = mean, colour = data_type, shape = data_type)) +
+# 	geom_point() +
+#   geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+#                  position=position_dodge(.9)) +
+# 	coord_cartesian(ylim= c(0.2,0.68)) +
+# 	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+# 	facet_wrap(vars(model_type)) +
+# 		theme(
+# 		legend.position = "top",
+# 		legend.text = element_text(size = 9),
+# 		legend.background = element_rect(fill = "transparent",colour = NA),
+# 		panel.background = element_rect(fill = "transparent",colour = NA),
+#     panel.grid.minor = element_blank(),
+#     panel.grid.major = element_blank(),
+#     plot.background = element_rect(fill = "transparent",colour = NA)
+#       )
+# 
+# ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+```
+
+```{r}
+#final figure
+all_tabnet_preds %>%
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	2),
+			 				 ' / ',
+			 				 'RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	),
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/tuned_tabnet_PRISM_LINCS_klaeger_auc_regression_model.png'), width = 10.5, height = 10.5, units = "cm")
+```
+
+```{r}
+# comparing kinomescan vs klaeger results 
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+
+final_full_predictions = all_tabnet_preds %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) 
+
+kinomescan_rsq = cor(
+	final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)^2
+
+klaeger_rsq = cor(
+	final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)^2
+
+kinomescan_rmse = rmse(
+	final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)
+
+klaeger_rmse = rmse(
+	final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)
+	
+a = final_full_predictions %>%
+	filter(origin == "KINOMEscan") %>% 
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('KINOMEscan R\u00B2 = ',
+			 				 round(
+			 				 	kinomescan_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	kinomescan_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+b = final_full_predictions %>%
+	filter(origin == "Kinobeads") %>% 
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('Kinobeads R\u00B2 = ',
+			 				 round(
+			 				 	klaeger_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	klaeger_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+c = a+b
+ggsave(here('figures/PRISM_LINCS_klaeger/tabnet_klaeger_kinomescan_comparison.png'), width = 12, height = 8)
+```
+
+

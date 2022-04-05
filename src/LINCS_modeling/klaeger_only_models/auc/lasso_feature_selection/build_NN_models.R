@@ -21,14 +21,8 @@ print(sprintf('Features: %02d',args$feature_num))
 dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
 								sprintf('NN/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
-								sprintf('NN/predictions')), 
-					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/NN/results', 
-												sprintf('%dfeat.rds.gz',args$feature_num))
-
-pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/NN/predictions', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
 this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds'))

@@ -26,12 +26,13 @@ conflict_prefer("rmse", "Metrics")
 
 ```{r}
 compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
-full_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+full_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-args = data.frame(feature_num = 5000)
 ```
 
 ```{r}
+#build 5000 feat individual datasets 
+args = data.frame(feature_num = 5000)
 full_annotated_dataset = full_dataset %>% 
 	left_join(compound_match_list, by = 'broad_id') %>% 
 	mutate(origin = if_else(
@@ -153,3 +154,41 @@ folds = vfold_cv(klaeger_only_data, v = 5) %>%
 	write_rds(here('results/cv_folds/PRISM_klaeger_only_folds_auc.rds.gz'), compress = "gz")
 ```
 
+```{r}
+#build 10000 feat individual datasets 
+args = data.frame(feature_num = 10000)
+full_annotated_dataset = full_dataset %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) %>% 
+	rename('auc_target' = auc) %>% 
+	select(depmap_id,
+					auc_target,
+					ccle_name,
+					broad_id,
+				 origin,
+					any_of(cors$feature[1:args$feature_num])) %>% 
+	unique()
+	
+klaeger_only_data = full_annotated_dataset %>% 
+	filter(origin == "Kinobeads") %>% 
+	drop_na()
+kinomescan_only_data = full_annotated_dataset %>% 
+	filter(origin == "KINOMEscan") %>% 
+	drop_na()
+```
+
+```{r}
+#build klaeger only dataset and folds 
+
+klaeger_only_data %>% 
+	write_rds(here('results/klaeger_only_models_auc/PRISM_klaeger_only_data_10000feat_auc.rds.gz'), compress = "gz")
+
+set.seed(2222)
+folds = vfold_cv(klaeger_only_data, v = 5) %>% 
+	write_rds(here('results/cv_folds/PRISM_klaeger_only_folds_10000_auc.rds.gz'), compress = "gz")
+```
