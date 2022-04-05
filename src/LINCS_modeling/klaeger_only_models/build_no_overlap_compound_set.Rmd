@@ -1,0 +1,173 @@
+---
+	title: "build no overlap individual datasets"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("rmse", "Metrics")
+```
+
+```{r}
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+full_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+args = data.frame(feature_num = 5000)
+```
+
+```{r}
+klaeger_broad_ids = compound_match_list %>% 
+  select(klaeger_name, broad_id) %>% 
+  filter(!is.na(klaeger_name))
+
+kinomescan_broad_ids = compound_match_list %>% 
+  select(LINCS_name, broad_id) %>% 
+  filter(!is.na(LINCS_name))
+
+overlap_broad_ids = klaeger_broad_ids %>% 
+  left_join(kinomescan_broad_ids, by = 'broad_id') %>% 
+  filter(!is.na(LINCS_name))
+
+non_overlap_broad_ids = compound_match_list %>% 
+  filter(!broad_id %in% overlap_broad_ids$broad_id)
+```
+
+
+```{r}
+full_annotated_dataset = full_dataset %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) %>% 
+	rename('auc_target' = auc) %>% 
+	select(depmap_id,
+					auc_target,
+					ccle_name,
+					broad_id,
+				 origin,
+					any_of(cors$feature[1:args$feature_num])) %>% 
+	unique()
+	
+klaeger_only_data = full_annotated_dataset %>% 
+	filter(origin == "Kinobeads") %>% 
+	drop_na()
+kinomescan_only_data = full_annotated_dataset %>% 
+	filter(origin == "KINOMEscan") %>% 
+	drop_na()
+# kinomescan_only_data <- kinomescan_only_data %>% 
+#   rowwise %>% 
+#   filter(!all(is.infinite(c_across(where(is.numeric)))))
+# kinomescan_only_data <- kinomescan_only_data %>% 
+#   rowwise %>% 
+#   filter(!all(is.nan(c_across(where(is.numeric)))))
+```
+
+```{r}
+#fit klaeger-only model 
+tic()
+
+print(sprintf('Features: %02d',args$feature_num))
+
+this_recipe = recipe(auc_target ~ ., klaeger_only_data) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc_target"),
+							new_role = "id variable")
+
+xgb_spec <- boost_tree(
+	trees = 168, 
+	tree_depth = 5                
+) %>% 
+	set_engine("xgboost", tree_method = "gpu_hist") %>% 
+	set_mode("regression")
+
+this_wflow <-
+	workflow() %>%
+	add_model(xgb_spec) %>%
+	add_recipe(this_recipe) 
+
+set.seed(2222)
+results = this_wflow %>% 
+	fit(data = klaeger_only_data) 
+toc()
+```
+
+```{r}
+#predict kinomescan data with klaeger model 
+
+model_predictions = augment(results, kinomescan_only_data) %>% 
+	select(-starts_with("act_"), -starts_with("exp_")) %>% 
+	rename("predicted_auc" = .pred, "auc" = auc_target)
+
+kinomescan_r = cor(
+	model_predictions %>% 
+		pull(predicted_auc),
+		model_predictions %>% 
+		pull(auc)
+)
+
+kinomescan_rmse = rmse(	
+		model_predictions %>% 
+		pull(auc),
+		model_predictions %>% 
+		pull(predicted_auc)
+)
+
+model_predictions %>%
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('KINOMEscan R = ',
+			 				 round(
+			 				 	kinomescan_r,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	kinomescan_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+ggsave(here('figures/PRISM_LINCS_klaeger/xgboost_klaeger_only_model_kinomescan_predictions.png'), height = 7, width = 10)
+```
+
+```{r}
+#build klaeger only dataset and folds 
+
+klaeger_only_data %>% 
+	write_rds(here('results/klaeger_only_model/PRISM_klaeger_only_data_5000feat_auc.rds.gz'), compress = "gz")
+
+set.seed(2222)
+folds = vfold_cv(klaeger_only_data, v = 5) %>% 
+	write_rds(here('results/cv_folds/PRISM_klaeger_only_folds_auc.rds.gz'), compress = "gz")
+```
+
