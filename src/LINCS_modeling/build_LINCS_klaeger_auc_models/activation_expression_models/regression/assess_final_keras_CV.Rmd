@@ -1,0 +1,163 @@
+```{r, setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(patchwork)
+library(keras)
+library(vroom)
+library(tidymodels)
+library(tfdatasets)
+library(tictoc)
+library(Metrics)
+library(conflicted)
+conflict_prefer("fit", "keras")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("all_numeric", "tfdatasets")
+conflict_prefer("rmse", "Metrics")
+knitr::opts_knit$set(root.dir = here())
+```
+
+```{r}
+all_metrics = read_csv(here("results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_cv_metrics.csv"))
+all_predictions = read_rds(here("results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_cv_predictions.rds.gz"))
+```
+
+```{r}
+mean_rsq = mean(all_metrics$rsq)
+mean_rmse = mean(all_metrics$rmse)
+median_epochs = median(all_metrics$epochs)
+
+#final model performance figure
+
+all_predictions %>%
+ ggplot(aes(x = predicted_auc, y = auc)) +
+ geom_hex() +
+ scale_fill_viridis_c() +
+ labs(title = 
+  paste0('R\u00B2 = ',
+			 				 round(
+			 				 	mean_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	mean_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results.png'))
+```
+
+```{r}
+# comparing kinomescan vs klaeger results 
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+
+final_full_predictions = all_predictions %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) 
+
+kinomescan_rsq = cor(
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)^2
+
+klaeger_rsq = cor(
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)^2
+
+kinomescan_rmse = rmse(
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)
+
+klaeger_rmse = rmse(
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)
+
+a = final_full_predictions %>%
+	filter(origin == "KINOMEscan") %>% 
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('KINOMEscan R\u00B2 = ',
+			 				 round(
+			 				 	kinomescan_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	kinomescan_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+
+b = final_full_predictions %>%
+	filter(origin == "Kinobeads") %>% 
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('Kinobeads R\u00B2 = ',
+			 				 round(
+			 				 	klaeger_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	klaeger_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+c = a+b
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_final_CV_klaeger_kinomescan_comparison.png'), width = 12, height = 8)
+```

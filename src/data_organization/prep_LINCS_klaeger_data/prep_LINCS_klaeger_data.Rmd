@@ -122,7 +122,13 @@ all_klaeger_LINCS_data_for_ml = all_klaeger_LINCS_data %>%
 		1,
 		0
 	)) %>% 
-	select(drug, kinase, relative_intensity, binary_hit)
+	select(drug, kinase, relative_intensity, binary_hit) %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
+	mutate(kinase = if_else(
+		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		kinase
+	))
 
 write_csv(all_klaeger_LINCS_data_for_ml, here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 

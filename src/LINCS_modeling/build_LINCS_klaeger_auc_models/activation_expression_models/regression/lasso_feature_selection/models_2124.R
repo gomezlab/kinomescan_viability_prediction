@@ -18,7 +18,7 @@ full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expre
 												sprintf('2124feat.csv'))
 
 dataset_2124 = read_csv(
-	here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/lasso_selected_data_kevin/lasso_select2124.csv'))
+	here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/lasso_selected_data_kevin/lasso_select2124.csv.gz'))
 
 this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_10000feat_auc.rds.gz'))
 folds = read_rds(here(here('results/cv_folds/PRISM_LINCS_klaeger_folds_10000_auc.rds.gz')))

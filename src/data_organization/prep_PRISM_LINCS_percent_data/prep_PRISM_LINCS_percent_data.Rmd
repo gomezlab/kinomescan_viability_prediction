@@ -13,7 +13,7 @@ library(patchwork)
 
 ```{r}
 #READING IN DATA
-PRISM_parms = read_csv(here('data/secondary/secondary-screen-dose-response-curve-parameters.csv'))
+PRISM_parms = read_csv(here('data/PRISM/secondary/secondary-screen-dose-response-curve-parameters.csv'))
 
 LINCS_KINOMEscan_percent = read_csv(here('data/LINCS/full_LINCS_UNC_data.csv'))
 
@@ -52,7 +52,7 @@ LINCS_KINOMEscan_percent_wide = LINCS_KINOMEscan_percent_tidy %>%
 	#replacing NAs with standard DiscoverX "100" value for "no hit"
 	mutate_all(~replace(., is.na(.), 100))
 
-write_csv(LINCS_KINOMEscan_percent_wide, here('src/data_organization/prep_PRISM_LINCS_percent_data/full_LINCS_UNC_1uM_data_imputed.csv'))
+write_csv(LINCS_KINOMEscan_percent_wide, here('results/full_LINCS_UNC_1uM_data_imputed.csv'))
 
 matched_LINCS_UNC = LINCS_KINOMEscan_percent_wide %>% 
 	filter(Small.Molecule.Name %in% LINCS_PRISM_matches$name) %>% 

@@ -1,0 +1,178 @@
+---
+title: "Run final Neural Network"
+output: html_document
+date: '2022-04-06'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(patchwork)
+library(keras)
+library(vroom)
+library(tidymodels)
+library(tfdatasets)
+library(tictoc)
+library(Metrics)
+library(conflicted)
+conflict_prefer("fit", "keras")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("all_numeric", "tfdatasets")
+conflict_prefer("rmse", "Metrics")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#read in data
+
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+#set feature number to 2000
+feature_num = 2000
+
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+
+CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds'))
+
+PRISM_auc = read_csv(here('results/PRISM_auc_for_ml.csv'))
+
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
+		mutate(drug = if_else(
+		is.na(klaeger_name),
+		LINCS_name, 
+		klaeger_name
+	)) 
+```
+
+```{r}
+#data preprocessing
+LINCS_klaeger_data_wide = LINCS_klaeger_data_wide %>% 
+	select(-binary_hit) %>% 
+	mutate(kinase = paste0("act_",kinase)) %>% 
+	pivot_wider(names_from = kinase, values_from = relative_intensity) %>% 
+	mutate_all(~replace(., is.na(.), 1))
+
+CCLE_data = CCLE_data %>% 
+	rename('depmap_id' = DepMap_ID) %>% 
+	pivot_longer(-depmap_id, names_to = "gene", values_to = "value") %>% 
+	mutate(gene = str_replace(gene, "[-;]", "_")) %>% 
+	pivot_wider(names_from = gene, values_from = 'value')
+
+compound_match_list = compound_match_list %>% 
+	mutate(drug = if_else(
+		is.na(klaeger_name),
+		LINCS_name, 
+		klaeger_name
+	)) 
+```
+
+
+```{r}
+# run final 2000 feature model 
+tic()	
+
+this_dataset = data %>% 
+	select(depmap_id,
+				 auc,
+				 ccle_name,
+				 broad_id,
+				 any_of(cors$feature[1:feature_num])) %>% 
+	unique() %>% 
+	drop_na()
+
+spec = feature_spec(this_dataset %>% 
+											select(auc, starts_with(c("act", "exp_"))),
+										auc ~ .) %>%
+	step_numeric_column(all_numeric()) %>%
+	fit()
+
+	X = this_dataset %>% 
+		select(starts_with(c("act", "exp_")))
+	
+	y = this_dataset %>% 
+		select(auc)
+	
+	input <- layer_input_from_dataset(X)
+	
+	main_output = input %>% 
+		layer_dense_features(dense_features(spec)) %>%
+		layer_batch_normalization() %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.2) %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.2) %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.2) %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.2) %>% 
+		layer_dense(units = 1, activation = 'linear')
+	
+	model = keras_model(
+		inputs = input,
+		outputs = main_output
+	)
+	
+	model %>% 
+		compile(
+			optimizer = optimizer_adam(learning_rate = 0.003),
+			loss = 'mse',
+			metrics= metric_root_mean_squared_error())
+	
+#set number of epochs based on average of CV early stop points
+set.seed(2222)
+	history <- model %>% fit(
+		x = X,
+		y = y$auc,
+		epochs = 85,
+		batch_size = 512
+	) %>% 
+		write_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_model.rds.gz'), compress = "gz")
+	
+#k_clear_session()
+```
+
+```{r}
+# make untested dataset 
+
+possible_drug_CCLE_combos = crossing(
+	drug = unique(LINCS_klaeger_data_wide$drug),
+	depmap_id = unique(CCLE_data$depmap_id)
+) 
+
+already_tested_combos = PRISM_auc %>%
+	select(depmap_id,name) %>%
+	rename("PRISM_name" = name) %>% 
+	left_join(compound_match_list %>% 
+							select(drug, PRISM_name), 
+						by = 'PRISM_name') %>% 
+	unique()
+
+non_tested_combos = possible_drug_CCLE_combos %>%
+	anti_join(already_tested_combos)
+
+not_tested_data = non_tested_combos %>%
+	left_join(LINCS_klaeger_data_wide %>% 
+							select(drug,
+										 any_of(names(X))),
+						by = c('drug')) %>% 
+	left_join(CCLE_data %>% 
+							select(depmap_id,
+										 any_of(names(X))),
+						by = 'depmap_id')
+
+# names_non_tested = names(not_tested_data) %>%
+# 	as.data.frame() %>% 
+# 	rename(name = 1)
+# names_tested = names(X) %>%
+# 	as.data.frame() %>% 
+# 	rename(name = 1)
+# names_not_in_non_tested = names_tested %>% 
+# 	filter(!name %in% names_non_tested$name)
+```
+
+```{r}
+
+```
+
