@@ -1,0 +1,234 @@
+---
+	title: "Assess kevin keras regression"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("rmse", "Metrics")
+```
+
+#NN Model Assessment
+
+```{r}
+
+#read in hyperparameter search files
+
+all_keras_scores = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+	this_keras_scores = read_csv(
+		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results',
+				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
+		mutate(num_features = feature_number) %>% 
+		select(num_features, starts_with("param_"), mean_test_score) %>% 
+		rename(rsq = mean_test_score)
+
+	all_keras_scores = bind_rows(all_keras_scores, this_keras_scores)
+}
+
+write_csv(all_keras_scores, here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/hyperparameter_search_metrics.csv'))
+```
+
+
+```{r}
+#Overall metrics
+# rsq = cor(
+# 		all_keras_preds %>% 
+# 		pull(predicted_auc),
+# 		all_keras_preds %>% 
+# 		pull(auc)
+# )^2
+# 
+# rmse = rmse(
+# 	all_keras_preds %>% 
+# 		pull(predicted_auc),
+# 		all_keras_preds %>% 
+# 		pull(auc)
+# )
+
+all_keras_scores_processed = all_keras_scores %>% 
+	pivot_longer(starts_with("param_"), names_to = 'hyperparameter', values_to = "value") 
+	separate(hyperparameter, into = c('misc', 'hyperparameter'), sep = "_") %>% 
+	select(-misc)
+
+all_keras_scores %>%
+	ggplot(aes(x = num_features, y = rsq)) +
+	geom_point() +
+#  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+#                position=position_dodge(.9)) +
+	coord_cartesian(ylim= c(0.2,0.68)) +
+	labs(title = "Keras Hyperparameter Search", x = "number of features", y = "R-squared") +
+#	facet_wrap(vars(model_type)) +
+		theme(
+		legend.position = "top",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+
+
+```
+
+```{r}
+#final figure
+all_keras_preds %>%
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	2),
+			 				 ' / ',
+			 				 'RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	),
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/tuned_keras_PRISM_LINCS_klaeger_auc_regression_model.png'), width = 10.5, height = 10.5, units = "cm")
+```
+
+```{r}
+# comparing kinomescan vs klaeger results 
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+
+final_full_predictions = all_keras_preds %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) 
+
+kinomescan_rsq = cor(
+	final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)^2
+
+klaeger_rsq = cor(
+	final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)^2
+
+kinomescan_rmse = rmse(
+	final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)
+
+klaeger_rmse = rmse(
+	final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)
+	
+a = final_full_predictions %>%
+	filter(origin == "KINOMEscan") %>% 
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('KINOMEscan R\u00B2 = ',
+			 				 round(
+			 				 	kinomescan_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	kinomescan_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+b = final_full_predictions %>%
+	filter(origin == "Kinobeads") %>% 
+	ggplot(aes(x = predicted_auc, y = auc)) +
+	geom_hex() +
+	scale_fill_viridis_c() +
+	labs(title = 
+			 	paste0('Kinobeads R\u00B2 = ',
+			 				 round(
+			 				 	klaeger_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	klaeger_rmse,
+			 				 	2)
+			 	), 
+			 x = "Predicted AUC",
+			 y = "Actual AUC") +
+	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
+	geom_smooth(colour = "red") +
+	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+c = a+b
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_klaeger_kinomescan_comparison.png'), width = 12, height = 8)
+```
+
+
+
+
+
