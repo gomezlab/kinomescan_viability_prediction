@@ -8,24 +8,28 @@ date: '2022-03-08'
 library(tidyverse)
 library(here)
 library(ggridges)
+library(patchwork)
 knitr::opts_knit$set(root.dir = here())
 ```
 
 ```{r}
 #read in data
 
-ic50_correlations = read_csv(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv')) %>% 
+ic50_data = read_rds(here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_data_for_ml.rds.gz'))
+
+ic50_correlations = read_csv(here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv')) %>% 
 	mutate(feature_type = 
 				 	if_else(feature_type == "Activation", 
 				 					"Inhibition",
 				 					feature_type))
-auc_correlations = read_csv(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv')) %>% 
+auc_correlations = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv')) %>% 
 		mutate(feature_type = 
 				 	if_else(feature_type == "Activation", 
 				 					"Inhibition",
 				 					feature_type))
 
 ```
+
 
 ```{r}
 #preprocessing
@@ -58,38 +62,6 @@ auc_correlations_summary = auc_correlations %>%
 				 							auc_correlations_medians$feature_type[4] ))
 ```
 
-
-```{r}
-#ic50 plot
-
-ic50_correlations_summary %>% 
-	ggplot(aes(x = abs_cor, y = feature_type, fill = factor(stat(quantile)))) +
-	 stat_density_ridges(
-    geom = "density_ridges_gradient", calc_ecdf = TRUE,
-    quantiles = 4, quantile_lines = TRUE
-  ) +
-  scale_fill_viridis_d(name = "Quartiles") +
-	theme_ridges(center_axis_labels = TRUE) + 
-	labs(title = "IC50 Feature Correlations",x = "Absolute Correlation Value", y = "Data Type")
-	
-ggsave(here('figures/IC50_feature_correlations.png'), height = 6, width = 21, units = "cm")
-
-auc_correlations_summary %>% 
-	ggplot(aes(x = abs_cor, y = feature_type, fill = factor(stat(quantile)))) +
-	 stat_density_ridges(
-    geom = "density_ridges_gradient", calc_ecdf = TRUE,
-    quantiles = 4, quantile_lines = TRUE
-  ) +
-  scale_fill_viridis_d(name = "Quartiles") +
-	theme_ridges(center_axis_labels = TRUE) + 
-	labs(title = "AUC Feature Correlations",x = "Absolute Correlation Value", y = "Data Type")
-	
-ggsave(here('figures/auc_feature_correlations.png'), height = 6, width = 21, units = "cm")
-
-```
-
-## Overall Feature Correlation Plotting
-
 ```{r}
 per_group_rank = ic50_correlations_summary %>%
 	group_by(feature_type) %>%
@@ -105,6 +77,107 @@ per_group_rank = ic50_correlations_summary %>%
 ic50_correlations_summary = ic50_correlations_summary %>%
 	left_join(per_group_rank)
 ```
+
+```{r}
+#Pull out sample kinase inhibition correlations
+sample_inhibitions = ic50_correlations_summary %>%
+	filter(feature_type == "Inhibition") %>%
+	filter(sub_rank == 3 | sub_rank == 100 | sub_rank == 300)
+
+PRISM_klaeger_samples = ic50_data %>%
+	select(ic50, sample_inhibitions$feature[1], sample_inhibitions$feature[2], sample_inhibitions$feature[3]) %>%
+	pivot_longer(contains("act_"), names_to = "act_gene",values_to = "activation") %>%
+	separate(act_gene, into = c("prefix","gene"),sep="_") %>% 
+	mutate(gene = fct_relevel(gene, "RPS6KA5", "MAP2K2", "CYC1"))
+
+# PRISM_klaeger_samples %>%
+# 	ggplot(aes(x=activation,y=ic50)) +
+# 	geom_point(size=0,alpha=0.1) +
+# 	geom_smooth(method = lm) +
+# 	labs(x="Kinase Inhibition State",y="IC50") +
+# 	BerginskiRMisc::theme_berginski() +
+# 	theme(aspect.ratio = 1:1) +
+# 	facet_wrap(~gene, scales = "free_x")
+
+activation_hex = ggplot(PRISM_klaeger_samples, aes(x=activation,y=ic50)) +
+	# geom_hex(fill = log10(..count..)) +
+	stat_binhex(aes(fill=log10(..count..))) +
+	geom_smooth(method = lm, color = 'red', lwd=1) +
+	labs(x="Kinase Inhibition State",y="LogIC50",fill="Log10\nData Points") +
+	BerginskiRMisc::theme_berginski() +
+	theme(aspect.ratio = 1:1, legend.text = element_text(size=8), legend.title = element_text(size=8)) +
+	scale_x_continuous(breaks = c(0,.3,.6,1)) +
+	scale_fill_viridis_c() +
+	facet_wrap(~gene, scales = "free_x")
+
+ggsave(here('figures/sample_activation_cor.png'),width=10.5,height=6, units = "cm")
+```
+
+```{r}
+#Pull out sample kinase inhibition correlations
+sample_expressions = ic50_correlations_summary %>%
+	filter(feature_type == "Expression") %>%
+	filter(sub_rank == 1 | sub_rank == 400 | sub_rank == 5000)
+
+PRISM_klaeger_samples = ic50_data %>%
+	select(ic50, sample_expressions$feature[1], sample_expressions$feature[2], sample_expressions$feature[3]) %>%
+	pivot_longer(contains("exp_"), names_to = "exp_gene",values_to = "expression") %>%
+	separate(exp_gene, into = c("prefix","gene"),sep="_") %>% 
+	mutate(gene = fct_relevel(gene, "TMEM14C", "KCTD7", "ERCC2"))
+
+# PRISM_klaeger_samples %>%
+# 	ggplot(aes(x=activation,y=ic50)) +
+# 	geom_point(size=0,alpha=0.1) +
+# 	geom_smooth(method = lm) +
+# 	labs(x="Kinase expression State",y="IC50") +
+# 	BerginskiRMisc::theme_berginski() +
+# 	theme(aspect.ratio = 1:1) +
+# 	facet_wrap(~gene, scales = "free_x")
+
+activation_hex = ggplot(PRISM_klaeger_samples, aes(x=expression,y=ic50)) +
+	# geom_hex(fill = log10(..count..)) +
+	stat_binhex(aes(fill=log10(..count..))) +
+	geom_smooth(method = lm, color = 'red', lwd=1) +
+	labs(x="Gene Expression (Log 2 TPM)",y="LogIC50",fill="Log10\nData Points") +
+	BerginskiRMisc::theme_berginski() +
+	theme(aspect.ratio = 1:1, legend.text = element_text(size=8), legend.title = element_text(size=8)) +
+	#scale_y_continuous(breaks = seq(0,1,by=0.25)) +
+	scale_fill_viridis_c() +
+	facet_wrap(~gene, scales = "free_x")
+
+ggsave(here('figures/sample_expression_cor.png'),width=10.5,height=6, units = "cm")
+```
+
+```{r}
+#ic50 plot
+
+a = ic50_correlations_summary %>% 
+	ggplot(aes(x = abs_cor, y = feature_type, fill = factor(stat(quantile)))) +
+	 stat_density_ridges(
+    geom = "density_ridges_gradient", calc_ecdf = TRUE,
+    quantiles = 4, quantile_lines = TRUE
+  ) +
+  scale_fill_viridis_d(name = "Quartiles") +
+	theme_ridges(center_axis_labels = TRUE) + 
+	labs(title = " ",x = "Absolute Correlation Value", y = "Data Type")
+	
+ggsave(here('figures/IC50_feature_correlations.png'), height = 6, width = 21, units = "cm")
+
+auc_correlations_summary %>% 
+	ggplot(aes(x = abs_cor, y = feature_type, fill = factor(stat(quantile)))) +
+	 stat_density_ridges(
+    geom = "density_ridges_gradient", calc_ecdf = TRUE,
+    quantiles = 4, quantile_lines = TRUE
+  ) +
+  scale_fill_viridis_d(name = "Quartiles") +
+	theme_ridges(center_axis_labels = TRUE) + 
+	labs(title = " ",x = "Absolute Correlation Value", y = "Data Type")
+	
+ggsave(here('figures/auc_feature_correlations.png'), height = 6, width = 21, units = "cm")
+
+```
+
+## Overall Feature Correlation Plotting
 
 ### By Feature Type - Overall Rank
 ```{r}
@@ -133,7 +206,7 @@ rank_zoom = ggplot(ic50_correlations_summary %>% filter(rank <= 5001), aes(x=ran
 	geom_vline(aes(xintercept = 3000), linetype = 3) +
 	geom_vline(aes(xintercept = 4000), linetype = 3) +
 	geom_vline(aes(xintercept = 5000), linetype = 3) + 
-	geom_line(size=1.5) +
+	geom_line(size=0.75) +
 	labs(x="Overall Correlation Rank",y="Number of Features", color='Feature Type') +
 	scale_x_continuous(breaks=seq(0,5000,by=500)) +
 		theme(
@@ -143,6 +216,8 @@ rank_zoom = ggplot(ic50_correlations_summary %>% filter(rank <= 5001), aes(x=ran
     plot.background = element_rect(fill = "transparent",colour = NA),
 		axis.title = element_text(size = 14)
       ) 
-	
-ggsave(here('figures/feature_selection_ic50_group_rank_count.png'), height = 6, width = 21, units = "cm")
+
+c = a / rank_zoom
+ggsave(here('figures/combined_feature_selection_figure.png'), height = 12, width = 21, units = "cm")
+#ggsave(here('figures/feature_selection_ic50_group_rank_count.png'), height = 6, width = 21, units = "cm")
 ```

@@ -3,8 +3,8 @@
 
 <svg
    width="210mm"
-   height="120mm"
-   viewBox="0 0 210 120"
+   height="297mm"
+   viewBox="0 0 210 297"
    version="1.1"
    id="svg5"
    inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/figure_2_draft.png"
@@ -27,10 +27,10 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     height="120mm"
+     height="1e-05mm"
      inkscape:zoom="1.2218217"
-     inkscape:cx="349.88739"
-     inkscape:cy="316.74016"
+     inkscape:cx="525.03569"
+     inkscape:cy="185.78816"
      inkscape:window-width="1920"
      inkscape:window-height="1043"
      inkscape:window-x="0"
@@ -45,19 +45,27 @@
      id="layer1">
     <image
        width="209.97333"
-       height="59.944"
+       height="119.97266"
        preserveAspectRatio="none"
-       xlink:href="IC50_feature_correlations.png"
-       id="image107"
-       x="0"
-       y="0" />
+       xlink:href="combined_feature_selection_figure.png"
+       id="image100"
+       x="0.40564728"
+       y="60.208157" />
     <image
-       width="209.97333"
+       width="104.98666"
        height="59.944"
        preserveAspectRatio="none"
-       xlink:href="feature_selection_ic50_group_rank_count.png"
-       id="image199"
-       x="0"
-       y="59.944" />
+       xlink:href="sample_activation_cor.png"
+       id="image215"
+       x="0.40565005"
+       y="0.26415551" />
+    <image
+       width="104.98666"
+       height="59.944"
+       preserveAspectRatio="none"
+       xlink:href="sample_expression_cor.png"
+       id="image387"
+       x="105.39232"
+       y="0.26415634" />
   </g>
 </svg>

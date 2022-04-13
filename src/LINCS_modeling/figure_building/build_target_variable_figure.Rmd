@@ -1,0 +1,46 @@
+---
+title: "build target variable figure"
+output: html_document
+date: '2022-03-08'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(patchwork)
+library(vroom)
+knitr::opts_knit$set(root.dir = here())
+```
+
+```{r}
+#read in data
+
+raw_screen_data = vroom(here('data/PRISM/secondary/secondary-screen-logfold-change.csv'))
+
+treatment_info = vroom(here('data/PRISM/secondary/secondary-screen-replicate-treatment-info.csv'))
+
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
+	mutate(drug = if_else(
+		is.na(klaeger_name),
+		LINCS_name,
+		klaeger_name
+	))
+
+```
+
+```{r}
+match_treatment_info = treatment_info %>% 
+	filter(broad_id %in% compound_match_list$broad_id) %>%
+	left_join(compound_match_list %>% select(broad_id,drug))
+
+raw_screen_tidy = raw_screen_data %>%
+	rename(depmap_id = ...1) %>%
+	select(depmap_id, any_of(match_treatment_info$column_name)) %>%
+	pivot_longer(-depmap_id, names_to = "column_name", values_to = 'viability') %>%
+	left_join(match_treatment_info %>% select(column_name,drug,dose))
+```
+
+```{r}
+
+```
+

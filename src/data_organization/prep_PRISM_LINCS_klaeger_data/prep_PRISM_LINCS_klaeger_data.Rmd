@@ -15,12 +15,28 @@ compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combin
 
 LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 
-PRISM_ic50 = read_csv(here('results/PRISM_ic50_for_ml.csv'))
+PRISM_ic50 = read_csv(here('results/PRISM_LINCS_klaeger_models/PRISM_ic50_for_ml.csv'))
 
 CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
 	rename('depmap_id' = DepMap_ID) %>% 
 	filter(depmap_id %in% PRISM_ic50$depmap_id)
 
+```
+
+```{r}
+#variable renaming
+LINCS_klaeger_data_long_processed = LINCS_klaeger_data_long %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
+	mutate(kinase = if_else(
+		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		kinase
+	))
+
+CCLE_processed = CCLE %>% 
+	pivot_longer(-depmap_id, names_to = "gene", values_to = "value") %>% 
+	mutate(gene = str_replace(gene, "[-;]", "_")) %>% 
+	pivot_wider(names_from = gene, values_from = 'value')
 ```
 
 ```{r}
@@ -119,7 +135,8 @@ all_data_filtered = all_model_data %>%
 	mutate(ic50 = log10(ic50)) %>% 
 	mutate(across(starts_with(c('ic50_binary')), ~ as.factor(.)))
 
-write_csv(all_data_filtered, here('results/PRISM_LINCS_klaeger_data_for_ml.csv'))
-write_csv(binary_data_filtered, here('results/PRISM_LINCS_klaeger_binary_data_for_ml.csv'))
+write_rds(all_data_filtered, here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_data_for_ml.rds.gz'), compress = "gz")
+write_rds(binary_data_filtered, here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_binary_data_for_ml.rds.gz'),
+					compress = "gz")
 
 ```

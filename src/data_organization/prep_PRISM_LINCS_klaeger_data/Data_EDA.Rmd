@@ -1,0 +1,47 @@
+
+```{r}
+library(tidyverse)
+library(here)
+library(vroom)
+```
+
+```{r}
+#read in data
+auc_data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
+ic50_data = read_rds(here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_data_for_ml.rds.gz'))
+```
+
+
+```{r}
+#EDA Figures
+
+ic50_data %>% 
+	ggplot(aes(x = ic50)) +
+	geom_histogram() +
+		theme(panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA),
+    axis.ticks.x=element_blank(), 
+    axis.ticks.y=element_blank()
+      ) +
+	labs(x = "IC50 (log10[\u00B5M])", y = "count")
+ggsave(here('figures/PRISM_IC50_histogram.png'), width = 7, height = 6, units = "cm", bg = "transparent")
+
+auc_data %>% 
+	ggplot(aes(x = auc)) +
+	geom_histogram() +
+		theme(panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA),
+    axis.ticks.x=element_blank(), 
+    axis.ticks.y=element_blank()
+      ) +
+	labs(x = "AUC", y = "count")
+ggsave(here('figures/PRISM_AUC_histogram.png'), width = 7, height = 6, units = "cm", bg = "transparent")
+```
+
+
+
+

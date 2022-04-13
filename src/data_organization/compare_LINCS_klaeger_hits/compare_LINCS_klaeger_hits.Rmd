@@ -120,10 +120,9 @@ LINCS_klaeger_comparative_data %>%
 	ggplot(aes(x = klaeger_kinase, y = klaeger_name, fill = hit_agreement)) +
 	geom_tile() +
 	theme(
-		legend.position = 'top', 
+		legend.position = 'top',
 		axis.text.x=element_blank(), 
 		axis.ticks.x=element_blank(), 
-		axis.text.y=element_blank(), 
 		axis.ticks.y=element_blank(),
 		legend.key.height = unit(0.25, 'cm'),
 		legend.key.width = unit(0.25, 'cm')) +
@@ -135,8 +134,8 @@ LINCS_klaeger_comparative_data %>%
 	# 3)),
 	fill = 'Agree on "hit" at 80% inhibition threshold',
 		x = "Kinase",
-		y = "Drug")
-ggsave(here('figures/klaeger_LINCS_heatmap.png'), width = 20.5, height = 5.5, units = "cm")
+		y = "Inhibitor")
+ggsave(here('figures/klaeger_LINCS_heatmap.png'), width = 20.5, height = 7, units = "cm")
 
 
 ```
