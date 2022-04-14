@@ -2,14 +2,14 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="210mm"
-   height="297mm"
-   viewBox="0 0 210 297"
+   width="210.06573mm"
+   height="168.49048mm"
+   viewBox="0 0 210.06573 168.49048"
    version="1.1"
    id="svg5"
    inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/figure_2_draft.png"
-   inkscape:export-xdpi="96"
-   inkscape:export-ydpi="96"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600"
    inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
    sodipodi:docname="figure_2_draft.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -29,28 +29,33 @@
      showgrid="false"
      height="1e-05mm"
      inkscape:zoom="1.2218217"
-     inkscape:cx="525.03569"
-     inkscape:cy="185.78816"
+     inkscape:cx="646.57552"
+     inkscape:cy="250.85493"
      inkscape:window-width="1920"
-     inkscape:window-height="1043"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-height="960"
+     inkscape:window-x="1920"
+     inkscape:window-y="27"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer1" />
+     inkscape:current-layer="layer1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
   <defs
      id="defs2" />
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
-     id="layer1">
+     id="layer1"
+     transform="translate(-0.40565005,-0.26415551)">
     <image
        width="209.97333"
        height="119.97266"
        preserveAspectRatio="none"
        xlink:href="combined_feature_selection_figure.png"
        id="image100"
-       x="0.40564728"
-       y="60.208157" />
+       x="0.49806091"
+       y="48.781979" />
     <image
        width="104.98666"
        height="59.944"
@@ -67,5 +72,51 @@
        id="image387"
        x="105.39232"
        y="0.26415634" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.2436191"
+       y="14.369635"
+       id="text1287"><tspan
+         id="tspan1285"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.2436191"
+         y="14.369635"
+         sodipodi:role="line">a</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="106.10144"
+       y="13.909841"
+       id="text1287-6"
+       inkscape:transform-center-x="-0.71033743"
+       inkscape:transform-center-y="-1.8672395"><tspan
+         id="tspan1285-2"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="106.10144"
+         y="13.909841"
+         sodipodi:role="line">b</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.2297587"
+       y="72.212265"
+       id="text1287-1"><tspan
+         id="tspan1285-7"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.2297587"
+         y="72.212265"
+         sodipodi:role="line">c</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.0643908"
+       y="122.98846"
+       id="text1287-8"><tspan
+         id="tspan1285-5"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.0643908"
+         y="122.98846"
+         sodipodi:role="line">d</tspan></text>
   </g>
 </svg>

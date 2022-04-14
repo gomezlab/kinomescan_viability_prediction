@@ -31,6 +31,29 @@ depmap_data = read_rds(here('data/full_depmap_for_ML.rds'))
 ```
 
 ```{r}
+#variable renaming
+LINCS_klaeger_data_long_processed = LINCS_klaeger_data_long %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
+	mutate(kinase = if_else(
+		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		kinase
+	))
+
+CCLE_processed = CCLE %>% 
+	rename_with(~ str_replace(.x, "[-;]", "_"))
+
+CNV_processed = CNV %>% 
+ rename_with(~ str_replace(.x, "[-;]", "_"))
+
+proteomics_data_processed = proteomics_data %>% 
+	rename_with(~ str_replace(.x, "[-;]", "_"))
+
+depmap_data_processed = depmap_data %>% 
+	rename_with(~ str_replace(.x, "[-;]", "_"))
+```
+
+```{r}
 PRISM_ic50_binarized = PRISM_ic50 %>% 
 	mutate(ic50_binary = if_else(
 		ic50 <= median(PRISM_ic50$ic50),
@@ -70,17 +93,17 @@ LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>%
 	mutate_all(~replace(., is.na(.), 1))
 
 all_model_data = PRISM_ic50_binarized %>% 
-	filter(depmap_id %in% depmap_data$DepMap_ID) %>%
-	filter(depmap_id %in% CCLE$depmap_id) %>%
-	filter(depmap_id %in% CNV$DepMap_ID) %>%
-	filter(depmap_id %in% proteomics_data$DepMap_ID) %>%
-	left_join(CCLE, by = 'depmap_id') %>% 
+	filter(depmap_id %in% depmap_data_processed$DepMap_ID) %>%
+	filter(depmap_id %in% CCLE_processed$depmap_id) %>%
+	filter(depmap_id %in% CNV_processed$DepMap_ID) %>%
+	filter(depmap_id %in% proteomics_data_processed$DepMap_ID) %>%
+	left_join(CCLE_processed, by = 'depmap_id') %>% 
 	left_join(LINCS_klaeger_data_for_model, by = c('broad_id')) %>% 
 	select(-name, -PRISM_name) %>%
 	mutate(ic50_binary = as.factor(ic50_binary)) %>%
-	left_join(depmap_data, by=c('depmap_id' = 'DepMap_ID')) %>%
-	left_join(CNV, by=c('depmap_id' = 'DepMap_ID')) %>%
-	left_join(proteomics_data, by=c('depmap_id' = 'DepMap_ID')) %>%
+	left_join(depmap_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
+	left_join(CNV_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
+	left_join(proteomics_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
 	drop_na()
 
 #excluding wild ic50 values
@@ -91,5 +114,5 @@ all_data_filtered = all_model_data %>%
 	mutate(ic50 = log10(ic50)) %>% 
 	mutate(across(starts_with(c('ic50_binary')), ~ as.factor(.)))
 
-write_csv(all_data_filtered, here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.csv'))
+write_rds(all_data_filtered, here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.rds.gz'), compress = "gz")
 ```

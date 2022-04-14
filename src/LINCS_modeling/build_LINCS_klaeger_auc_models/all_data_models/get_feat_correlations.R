@@ -3,8 +3,8 @@ library(here)
 library(vroom)
 
 Sys.setenv("VROOM_CONNECTION_SIZE" = 131072 * 10)
-data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_auc.csv'))
-act_exp_cors = vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_auc.rds.gz'))
+act_exp_cors = vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
 
 find_all_data_feature_correlations <- function(row_indexes = NA, all_data, query) {
@@ -50,4 +50,4 @@ all_cors = bind_rows(act_exp_cors, cnv_cors, prot_cors, dep_cors) %>%
 	arrange(desc(abs_cor)) %>% 
 	mutate(rank = 1:n())
 
-write_csv(all_cors, here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
+write_csv(all_cors, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
