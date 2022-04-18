@@ -16,7 +16,7 @@ conflict_prefer("rmse", "Metrics")
 #read in data
 data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
+args = data.frame(feature_num = c(500,1000,1500,2000,3000,4000,5000))
 dropout = c(0.2,0.4,0.6)
 neurons = c(100,200,300,400,500,600,700,800,900,1000)
 grid = data.frame(crossing(dropout, neurons))
