@@ -64,7 +64,7 @@ grid = data.frame(crossing(dropout, neurons))
 	for(j in 1:dim(grid)[1]) {
 		
 		all_metrics = data.frame()
-		for (split_id in 1:10) {
+		for (split_id in 1:5) {
 			
 			
 			split = folds$splits[[split_id]]
