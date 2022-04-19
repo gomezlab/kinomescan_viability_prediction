@@ -8,6 +8,7 @@ library(tfdatasets)
 library(tictoc)
 library(Metrics)
 library(conflicted)
+library(argparse)
 conflict_prefer("fit", "keras")
 conflict_prefer("filter", "dplyr")
 conflict_prefer("all_numeric", "tfdatasets")
@@ -16,20 +17,29 @@ conflict_prefer("rmse", "Metrics")
 #read in data
 data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-args = data.frame(feature_num = c(200,300,400,500,1000,1500,2000,3000,4000,5000))
+# folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_auc.rds.gz'))
+
+tic()
+parser <- ArgumentParser(description='Process input paramters')
+parser$add_argument('--feature_num', default = 100, type="integer")
+
+args = parser$parse_args()
+
+print(sprintf('Features: %02d',args$feature_num))
+
 dropout = c(0.2,0.4,0.6)
 neurons = c(100,200,300,400,500,600,700,800,900,1000)
 grid = data.frame(crossing(dropout, neurons))
 
-for(i in 1:length(args$feature_num)) {
+# for(i in 1:length(args$feature_num)) {
 	tic()	
 	
 	dir.create(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/', 
-									sprintf('keras/results')), 
+									sprintf('keras/results/one_layer')), 
 						 showWarnings = F, recursive = T)
 	
-	full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results', 
-													sprintf('%dfeat.csv',args$feature_num[i]))
+	full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/one_layer', 
+													sprintf('%dfeat.csv',args$feature_num))
 	
 	this_dataset = data %>% 
 		rename('auc_target' = auc) %>% 
@@ -37,7 +47,7 @@ for(i in 1:length(args$feature_num)) {
 					 auc_target,
 					 ccle_name,
 					 broad_id,
-					 any_of(cors$feature[1:args$feature_num[i]])) %>% 
+					 any_of(cors$feature[1:args$feature_num])) %>% 
 		unique() %>% 
 		drop_na()
 	
@@ -54,14 +64,14 @@ for(i in 1:length(args$feature_num)) {
 	for(j in 1:dim(grid)[1]) {
 		
 		all_metrics = data.frame()
-		for (split_id in 1:5) {
+		for (split_id in 1:10) {
 			
 			
 			split = folds$splits[[split_id]]
 			x_train = training(split) %>% 
-				select(auc_target, starts_with(c("act", "exp_")))
+				select(auc_target, starts_with(c("act_", "exp_")))
 			x_val = testing(split) %>% 
-				select(auc_target, starts_with(c("act", "exp_")))
+				select(auc_target, starts_with(c("act_", "exp_")))
 			
 			input <- layer_input_from_dataset(x_train %>% select(-auc_target))
 			
@@ -121,7 +131,7 @@ for(i in 1:length(args$feature_num)) {
 			this_metrics = data.frame('loss' = loss,
 																'rmse' = rmse,
 																'rsq' = rsq_val,
-																'num_features' = args$feature_num[i],
+																'num_features' = args$feature_num,
 																'split_id' = split_id,
 																'epochs' = n_epochs,
 																'dropout' = grid$dropout[j],
@@ -148,4 +158,4 @@ for(i in 1:length(args$feature_num)) {
 		
 	}
 	write_csv(all_tuning_summarised_metrics, full_output_file)
-}
+# }
