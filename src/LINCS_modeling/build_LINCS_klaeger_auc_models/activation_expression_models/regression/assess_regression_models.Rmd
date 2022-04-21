@@ -24,7 +24,7 @@ conflict_prefer("vi", "vip")
 conflict_prefer("rmse", "Metrics")
 ```
 
-# Rand Forest, XGBoost and NN Model Assessment
+# Rand Forest, XGBoost Model Assessment
 
 ```{r}
 tic()
@@ -200,35 +200,73 @@ for (feature_number in c(6000,7000,8000,9000)) {
 }
 ```
 
+```{r}
+#add in keras NN metrics
+keras_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/best_hyperparameter_search_metrics.csv')) %>%
+	mutate(
+		layers = case_when(
+		layers == "one_layer" ~ '1',
+		layers == "two_layer" ~ '2', 
+		layers == "four_layer" ~ '4',
+		layers == "six_layer" ~ '6', 
+		T ~ layers
+					)
+	) %>%
+	mutate(layers = as.numeric(layers)) %>% 
+	pivot_longer(c(dropout, neurons, layers, mean_epochs), names_to = "hyperparameter", values_to = "value") %>% 
+	mutate(model_type = "4-layer NN",
+				 data_type = "inhibition_expression",
+				 .metric = "rsq", 
+				 n = 5) %>%
+	rename("mean" = mean_rsq, 
+				 "std_err" = sd_rsq)
+
+keras_all_data_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results/best_hyperparameter_search_metrics.csv')) %>%
+	mutate(
+		layers = case_when(
+		layers == "one_layer" ~ '1',
+		layers == "two_layer" ~ '2', 
+		layers == "four_layer" ~ '4',
+		layers == "six_layer" ~ '6', 
+		T ~ layers
+					)
+	) %>%
+	mutate(layers = as.numeric(layers)) %>% 
+	pivot_longer(c(dropout, neurons, layers, mean_epochs), names_to = "hyperparameter", values_to = "value") %>% 
+	mutate(model_type = "4-layer NN",
+				 data_type = "all_datasets",
+				 .metric = "rsq", 
+				 n = 5) %>%
+	rename("mean" = mean_rsq, 
+				 "std_err" = sd_rsq)
+```
+
+
 
 ```{r}
 all_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/all_model_metrics.csv'))
 all_model_all_data_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/all_model_metrics.csv'))
-
-keras_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/best_hyperparameter_search_metrics.csv')) %>% 
-	pivot_longer(starts_with("param_"), names_to = "hyperparameter", values_to = "value") %>% 
-	mutate(model_type = "4-layer NN",
-				 data_type = "inhibition_expression",
-				 .metric = "rsq") %>%
-	rename("mean" = rsq)
 	
 model_metrics_combined = all_model_all_data_metrics %>% 
 	bind_rows(all_model_metrics) %>% 
 	filter(!model_type == "NN") %>% 
-	bind_rows(keras_metrics)
+	bind_rows(keras_metrics) %>% 
+	bind_rows(keras_all_data_metrics) %>% 
+	select(-mean_rmse, -sd_rmse, -mean_loss, -sd_loss, -.estimator) %>% 
+	mutate(target = "AUC")
 
 write_csv(model_metrics_combined, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_models_auc_regression_metrics.csv'))
 ```
 
 ```{r}
 # metrics figure
-model_metrics_combined %>% 
+model_metrics_combined %>%
 	ggplot(aes(x = num_features, y = mean, colour = model_type, shape = model_type)) +
 	geom_point() + 
   # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
   #                position=position_dodge(.9)) +
 	coord_cartesian(ylim= c(0.4,0.7)) +
-	facet_wrap(vars(data_type)) +
+	facet_wrap(vars(target, data_type), scales = "free_x") +
 	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
 		theme(
 		legend.position = "right",
@@ -240,7 +278,7 @@ model_metrics_combined %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics_updated.png'))
+ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png'))
 
 #final metrics figure
 # model_metrics_combined %>% 

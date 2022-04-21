@@ -85,7 +85,7 @@ best_keras_scores %>%
 ggsave(here('figures/PRISM_LINCS_klaeger/kevin_keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
 ```
 
-#Keras Tuning Assessment
+#Keras Activation Expression Tuning Assessment
 
 ```{r}
 layers = c('one_layer', 'two_layer', 'four_layer', 'six_layer')
@@ -94,7 +94,7 @@ best_keras_scores = data.frame()
 combined_all_keras_scores = data.frame()
 combined_best_keras_scores = data.frame()	
 
-for (feature_number in c(100,200,300)) {
+for (feature_number in c(100,200,300,400)) {
 	
 	for (layer in layers) {
 		this_keras_scores = read_csv(
@@ -123,11 +123,59 @@ write_csv(combined_all_keras_scores, here('results/PRISM_LINCS_klaeger_models_au
 write_csv(combined_best_keras_scores, here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/best_hyperparameter_search_metrics.csv'))
 ```
 
+#Keras All Datasets Tuning Assessment
+
+```{r}
+layers = c('one_layer', 'two_layer', 'four_layer', 'six_layer')
+
+best_keras_scores = data.frame()
+all_data_combined_all_keras_scores = data.frame()
+all_data_combined_best_keras_scores = data.frame()	
+
+for (feature_number in c(100,200,300,400,500)) {
+	
+	for (layer in layers) {
+		this_keras_scores = read_csv(
+			here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results',layer,
+					sprintf('%dfeat.csv',feature_number))) %>% 
+			mutate(data_type = "all_datasets",
+						 layers = paste0(layer))
+			
+	best_keras_scores = bind_rows(best_keras_scores, this_keras_scores)
+	}
+
+this_feature_scores = best_keras_scores %>%
+	arrange(desc(mean_rsq)) %>% 
+			slice(1)
+	
+all_data_combined_best_keras_scores = bind_rows(all_data_combined_best_keras_scores, this_feature_scores)
+all_data_combined_all_keras_scores = bind_rows(all_data_combined_best_keras_scores, best_keras_scores) 
+
+	
+}
+
+all_data_combined_best_keras_scores = all_data_combined_best_keras_scores %>% 
+	arrange(desc(mean_rsq))
+
+write_csv(all_data_combined_all_keras_scores, here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results/hyperparameter_search_metrics.csv'))
+write_csv(all_data_combined_best_keras_scores, here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results/best_hyperparameter_search_metrics.csv'))
+```
+
+Combine Inhibition Expression and All Datasets results
+
+```{r}
+all_combined_best_scores = combined_best_keras_scores %>% 
+	bind_rows(all_data_combined_best_keras_scores)
+
+all_combined_all_scores = combined_all_keras_scores %>% 
+	bind_rows(all_data_combined_all_keras_scores)
+```
+
 
 ```{r}
 # best per feature plot
-combined_best_keras_scores %>%
-	ggplot(aes(x = num_features, y = mean_rsq)) +
+all_combined_best_scores %>%
+	ggplot(aes(x = num_features, y = mean_rsq, colour = data_type, shape = data_type)) +
 	geom_point() +
 #  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
 #                position=position_dodge(.9)) +
@@ -144,12 +192,12 @@ combined_best_keras_scores %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/kevin_keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
 ```
 
 ```{r}
 # all hyperparameter plot for best feature count
-combined_all_keras_scores %>%
+all_combined_all_scores %>%
 	filter(num_features == combined_best_keras_scores$num_features[1]) %>% 
 	mutate(
 		layers = case_when(
@@ -179,7 +227,7 @@ combined_all_keras_scores %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/kevin_keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_hyperparameter_search_effects.png'), width = 10.5, height = 10.5, units = "cm")
 ```
 
 

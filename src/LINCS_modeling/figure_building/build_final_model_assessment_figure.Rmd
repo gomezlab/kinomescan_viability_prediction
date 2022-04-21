@@ -1,0 +1,60 @@
+---
+	title: "Assess Regression Models"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(vroom)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(conflicted)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+```
+
+```{r}
+#read in data 
+ic50_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_models_ic50_regression_metrics.csv'))
+
+auc_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_models_auc_regression_metrics.csv')) 
+```
+
+```{r}
+#combine both model metrics
+
+combined_metrics = ic50_model_metrics %>% 
+	bind_rows(auc_model_metrics)
+```
+
+
+```{r}
+combined_metrics %>%
+	ggplot(aes(x = num_features, y = mean, colour = model_type, shape = model_type)) +
+	geom_point() + 
+  # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+  #                position=position_dodge(.9)) +
+	coord_cartesian(ylim= c(0.4,0.7)) +
+	facet_wrap(vars(target, data_type), scales = "free_x") +
+	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+		theme(
+		legend.position = "right",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png'))
+```
+
