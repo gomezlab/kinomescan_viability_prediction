@@ -8,24 +8,13 @@ library(doParallel)
 library(patchwork)
 library(ROCR)
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
-
-build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
-	this_data_filtered = all_data %>%
-		select(any_of(feature_correlations$feature[1:num_features]),
-					 depmap_id,
-					 ccle_name,
-					 ic50,
-					 broad_id)
-}
-
-this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																											 num_features = 5010,
-																											 all_data = data) %>%
-	mutate(ic50_binary = 1) %>% 
-	write_rds(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.rds'))
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.rds.gz'))
+data_1000 = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_10000feat_ic50.rds.gz'))
 
 set.seed(2222)
-folds = vfold_cv(this_dataset, v = 10) %>% 
-	write_rds(here('results/PRISM_LINCS_klaeger_folds.rds'))
+folds = vfold_cv(data, v = 10) %>% 
+	write_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_ic50.rds.gz'), compress = "gz")
+
+set.seed(2222)
+folds = vfold_cv(data_1000, v = 10) %>% 
+	write_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_10000_ic50.rds.gz'), compress = "gz")
