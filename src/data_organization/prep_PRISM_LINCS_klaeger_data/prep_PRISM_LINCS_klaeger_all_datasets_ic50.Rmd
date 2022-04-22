@@ -61,7 +61,7 @@ PRISM_ic50_binarized = PRISM_ic50 %>%
 		0
 	))
 
-LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>% 
+LINCS_klaeger_data_for_model = LINCS_klaeger_data_long_processed %>% 
 	mutate(act_gene_name = paste0('act_', kinase)) %>% 
 	select(-kinase, -binary_hit) %>% 
 	left_join(compound_match_list,
@@ -114,5 +114,5 @@ all_data_filtered = all_model_data %>%
 	mutate(ic50 = log10(ic50)) %>% 
 	mutate(across(starts_with(c('ic50_binary')), ~ as.factor(.)))
 
-write_rds(all_data_filtered, here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml.rds.gz'), compress = "gz")
+write_rds(all_data_filtered, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_ic50.rds.gz'), compress = "gz")
 ```

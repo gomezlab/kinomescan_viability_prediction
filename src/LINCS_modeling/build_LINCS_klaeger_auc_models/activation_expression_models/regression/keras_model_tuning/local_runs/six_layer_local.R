@@ -24,10 +24,10 @@ parser <- ArgumentParser(description='Process input paramters')
 parser$add_argument('--feature_num', default = 100, type="integer")
 
 #args = parser$parse_args()
-args = data.frame(feature_num = c(500,1000,1500,2000,3000,4000,5000)) 
+args = data.frame(feature_num = c(1000,1500,2000,3000,4000,5000)) 
 
 dropout = c(0.2,0.4,0.6)
-neurons = c(100,200,300,400,500,600,700,800,900,1000)
+neurons = c(200,400,600,800,1000)
 grid = data.frame(crossing(dropout, neurons))
 
 for(i in 1:length(args$feature_num)) {
@@ -36,10 +36,10 @@ tic()
 print(sprintf('Features: %02d',args$feature_num[i]))	
 	
 dir.create(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/', 
-								sprintf('keras/results/two_layer')), 
+								sprintf('keras/results/six_layer')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/two_layer', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/six_layer', 
 												sprintf('%dfeat.csv',args$feature_num[i]))
 
 this_dataset = data %>% 
@@ -79,6 +79,14 @@ for(j in 1:dim(grid)[1]) {
 		main_output = input %>% 
 			layer_dense_features(dense_features(spec)) %>%
 			layer_batch_normalization() %>% 
+			layer_dense(units = grid$neurons[j], activation = 'relu') %>% 
+			layer_dropout(rate = grid$dropout[j]) %>%
+			layer_dense(units = grid$neurons[j], activation = 'relu') %>% 
+			layer_dropout(rate = grid$dropout[j]) %>%
+			layer_dense(units = grid$neurons[j], activation = 'relu') %>% 
+			layer_dropout(rate = grid$dropout[j]) %>%
+			layer_dense(units = grid$neurons[j], activation = 'relu') %>% 
+			layer_dropout(rate = grid$dropout[j]) %>%
 			layer_dense(units = grid$neurons[j], activation = 'relu') %>% 
 			layer_dropout(rate = grid$dropout[j]) %>%
 			layer_dense(units = grid$neurons[j], activation = 'relu') %>% 

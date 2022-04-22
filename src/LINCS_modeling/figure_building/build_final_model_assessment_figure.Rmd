@@ -23,7 +23,7 @@ conflict_prefer("filter", "dplyr")
 
 ```{r}
 #read in data 
-ic50_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models/PRISM_LINCS_klaeger_models_ic50_regression_metrics.csv'))
+ic50_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_models_ic50_regression_metrics.csv'))
 
 auc_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_models_auc_regression_metrics.csv')) 
 ```
@@ -42,11 +42,11 @@ combined_metrics %>%
 	geom_point() + 
   # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
   #                position=position_dodge(.9)) +
-	coord_cartesian(ylim= c(0.4,0.7)) +
+	coord_cartesian(ylim= c(0.3,0.7)) +
 	facet_wrap(vars(target, data_type), scales = "free_x") +
-	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+	labs(x = "number of features", y = "R-squared") +
 		theme(
-		legend.position = "right",
+		legend.position = "bottom",
 		legend.text = element_text(size = 9),
 		legend.background = element_rect(fill = "transparent",colour = NA),
 		panel.background = element_rect(fill = "transparent",colour = NA),
@@ -55,6 +55,6 @@ combined_metrics %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png'))
+ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_model_metrics.png'), height = 10.5, width = 14, units = "cm")
 ```
 
