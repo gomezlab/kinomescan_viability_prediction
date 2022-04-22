@@ -241,6 +241,44 @@ keras_all_data_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/a
 				 "std_err" = sd_rsq)
 ```
 
+```{r}
+#add in missing lasso results
+missing_lr_metrics = data.frame()
+for (feature_number in c(3000,4000,5000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/lr/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
+
+	this_model_metrics = show_best(this_model_results, metric = "rsq") %>% 
+		mutate(num_features = feature_number)
+	missing_lr_metrics = bind_rows(missing_lr_metrics, this_model_metrics)
+}
+
+missing_lr_metrics = missing_lr_metrics %>% 
+	mutate(hyperparameter = NA, value = 0) %>%
+	mutate(model_type = 'lasso',
+				 data_type = "inhibition_expression") 
+
+missing_lr_all_data_metrics = data.frame()
+for (feature_number in c(4000,5000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/lr/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
+
+	this_model_metrics = show_best(this_model_results, metric = "rsq") %>%
+		mutate(num_features = feature_number)
+	missing_lr_all_data_metrics = bind_rows(missing_lr_all_data_metrics, this_model_metrics)
+}
+
+missing_lr_all_data_metrics = missing_lr_all_data_metrics %>% 
+	mutate(hyperparameter = NA, value = 0) %>%
+	mutate(model_type = 'lasso',
+				 data_type = "all_datasets")
+
+all_missing_lr_metrics = missing_lr_metrics %>% 
+	bind_rows(missing_lr_all_data_metrics)
+
+```
 
 
 ```{r}
@@ -252,6 +290,7 @@ model_metrics_combined = all_model_all_data_metrics %>%
 	filter(!model_type == "NN") %>% 
 	bind_rows(keras_metrics) %>% 
 	bind_rows(keras_all_data_metrics) %>% 
+	bind_rows(all_missing_lr_metrics) %>% 
 	select(-mean_rmse, -sd_rmse, -mean_loss, -sd_loss, -.estimator) %>% 
 	mutate(target = "AUC")
 
@@ -265,7 +304,7 @@ model_metrics_combined %>%
 	geom_point() + 
   # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
   #                position=position_dodge(.9)) +
-	coord_cartesian(ylim= c(0.4,0.7)) +
+	coord_cartesian(ylim= c(0.35,0.7)) +
 	facet_wrap(vars(target, data_type), scales = "free_x") +
 	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
 		theme(

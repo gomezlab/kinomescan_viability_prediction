@@ -27,7 +27,7 @@ args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
 dropout = c(0.2,0.4,0.6)
-neurons = c(100,200,300,400,500,600,700,800,900,1000)
+neurons = c(200,400,600,800,1000)
 grid = data.frame(crossing(dropout, neurons))
 
 # for(i in 1:length(args$feature_num)) {

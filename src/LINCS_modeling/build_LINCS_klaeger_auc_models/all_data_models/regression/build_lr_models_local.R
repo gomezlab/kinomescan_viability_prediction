@@ -45,7 +45,7 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							any_of(cors$feature[1:args$feature_num[i]])) %>% 
 	step_normalize(all_predictors())
 
-lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+lr_spec <- linear_reg(penalty = 0.0001, mixture = 1) %>%
 	set_mode("regression")
 
 this_wflow <-
