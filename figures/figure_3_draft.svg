@@ -3,8 +3,8 @@
 
 <svg
    width="210mm"
-   height="210mm"
-   viewBox="0 0 210 210"
+   height="297mm"
+   viewBox="0 0 210 297"
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
@@ -32,7 +32,7 @@
      height="210mm"
      inkscape:zoom="1"
      inkscape:cx="396.5"
-     inkscape:cy="414"
+     inkscape:cy="254"
      inkscape:window-width="1920"
      inkscape:window-height="1043"
      inkscape:window-x="0"
@@ -46,36 +46,20 @@
      inkscape:groupmode="layer"
      id="layer1">
     <image
-       width="104.98666"
+       width="139.95399"
        height="104.98666"
        preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/all_regression_models_ic50_metrics.png"
-       id="image225"
-       x="0"
-       y="0" />
+       xlink:href="PRISM_LINCS_klaeger/all_regression_model_metrics.png"
+       id="image350"
+       x="-0.35282046"
+       y="0.23767477" />
     <image
-       width="104.98666"
+       width="69.934669"
        height="104.98666"
        preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/all_regression_models_auc_metrics.png"
-       id="image237"
-       x="105"
-       y="0" />
-    <image
-       width="104.98666"
-       height="104.98666"
-       preserveAspectRatio="none"
-       xlink:href="final_tuned_PRISM_LINCS_klaeger_ic50_regression_model.png"
-       id="image249"
-       x="0.013343811"
-       y="104.98666" />
-    <image
-       width="104.98666"
-       height="104.98666"
-       preserveAspectRatio="none"
-       xlink:href="final_tuned_PRISM_LINCS_klaeger_auc_regression_model.png"
-       id="image261"
-       x="105"
-       y="104.98666" />
+       xlink:href="PRISM_LINCS_klaeger/final_keras_CV_results.png"
+       id="image994"
+       x="139.60118"
+       y="0.23767477" />
   </g>
 </svg>
