@@ -1,0 +1,360 @@
+---
+	title: "Compare Performance of Models on Klaeger Drugs vs Kinomescan Drugs"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("rmse", "Metrics")
+```
+
+```{r}
+#read in data 
+
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_auc.rds.gz'))
+```
+
+
+```{r}
+#extract best inhibition expression models per model type
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_models_auc_regression_metrics.csv')) 
+
+best_xgboost_model = model_metrics_combined %>% 
+	filter(data_type == "inhibition_expression" & model_type == "xgboost") %>% 
+	arrange(desc(mean)) %>% 
+	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
+	pivot_wider(names_from = hyperparameter, values_from = value)
+
+best_rand_forest_model = model_metrics_combined %>% 
+	filter(data_type == "inhibition_expression" &model_type == "random_forest") %>% 
+	arrange(desc(mean)) %>% 
+	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
+	pivot_wider(names_from = hyperparameter, values_from = value)
+
+best_lasso_model = model_metrics_combined %>% 
+	filter(data_type == "inhibition_expression" &model_type == "lasso") %>% 
+	arrange(desc(mean)) %>% 
+	filter(model_id == model_id[1] & num_features == num_features[1]) 
+
+keras_predictions = read_rds(
+	here(
+		"results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_cv_predictions.rds.gz"
+		)
+	)
+```
+
+```{r}
+#read in / fit best xgboost model 
+if (file.exists(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_xgboost_regression_model_auc.rds.gz'))) {
+	xgboost_results = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_xgboost_regression_model_auc.rds.gz'))
+} else { 
+
+args = data.frame(feature_num = best_xgboost_model$num_features)
+print(sprintf('Features: %02d',args$feature_num))
+
+this_recipe = recipe(auc ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc"),
+							new_role = "id variable") %>%
+	step_select(depmap_id,
+							ccle_name,
+							auc,
+							broad_id,
+							any_of(cors$feature[1:args$feature_num])) %>% 
+	step_normalize(all_predictors())
+
+xgb_spec <- boost_tree(
+	trees = best_xgboost_model$trees, 
+	tree_depth = best_xgboost_model$tree_depth                
+) %>% 
+	set_engine("xgboost", tree_method = "gpu_hist") %>% 
+	set_mode("regression")
+
+this_wflow <-
+	workflow() %>%
+	add_model(xgb_spec) %>%
+	add_recipe(this_recipe) 
+
+race_ctrl = control_resamples(
+	save_pred = TRUE, 
+	parallel_over = "everything",
+	verbose = TRUE
+)
+tic()
+xgboost_results <- fit_resamples(
+	this_wflow,
+	resamples = folds,
+	grid = xgb_grid,
+	control = race_ctrl
+) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_xgboost_regression_model_auc.rds.gz'),
+						compress = "gz")
+toc()
+}
+
+xgboost_predictions = collect_predictions(xgboost_results) %>% 
+	rename("predicted_auc" = .pred)
+```
+
+```{r}
+#read in / fit best random forest model
+if (file.exists(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_random_forest_regression_model_auc.rds.gz'))) {
+	rand_forest_results = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_random_forest_regression_model_auc.rds.gz'))
+} else { 
+	
+args = data.frame(feature_num = best_rand_forest_model$num_features)
+print(sprintf('Features: %02d',args$feature_num))
+
+this_recipe = recipe(auc ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc"),
+							new_role = "id variable") %>%
+	step_select(depmap_id,
+							ccle_name,
+							auc,
+							broad_id,
+							any_of(cors$feature[1:args$feature_num])) %>% 
+	step_normalize(all_predictors())
+
+rf_spec <- rand_forest(
+	trees = best_rand_forest_model$trees
+) %>% set_engine("ranger", num.threads = 16) %>%
+	set_mode("regression")
+
+this_wflow <-
+	workflow() %>%
+	add_model(rf_spec) %>%
+	add_recipe(this_recipe) 
+
+race_ctrl = control_resamples(
+	save_pred = TRUE, 
+	parallel_over = "everything",
+	verbose = TRUE
+)
+tic()
+rand_forest_results <- fit_resamples(
+	this_wflow,
+	resamples = folds,
+	control = race_ctrl
+) %>% 
+		write_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_random_forest_regression_model_auc.rds.gz'),
+						compress = "gz")
+toc()
+}
+
+rand_forest_predictions = collect_predictions(rand_forest_results) %>% 
+	rename("predicted_auc" = .pred)
+```
+
+```{r}
+#read in / fit best lasso model
+if (file.exists(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_lasso_regression_model_auc.rds.gz'))) {
+	lasso_results = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_lasso_regression_model_auc.rds.gz'))
+} else { 
+	
+args = data.frame(feature_num = best_lasso_model$num_features)
+print(sprintf('Features: %02d',args$feature_num))
+
+this_recipe = recipe(auc ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc"),
+							new_role = "id variable") %>%
+	step_select(depmap_id,
+							ccle_name,
+							auc,
+							broad_id,
+							any_of(cors$feature[1:args$feature_num])) %>% 
+	step_normalize(all_predictors())
+
+lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+	set_mode("regression")
+
+this_wflow <-
+	workflow() %>%
+	add_model(lr_spec) %>%
+	add_recipe(this_recipe) 
+
+race_ctrl = control_resamples(
+	save_pred = TRUE, 
+	parallel_over = "everything",
+	verbose = TRUE
+)
+
+lasso_results <- fit_resamples(
+	this_wflow,
+	resamples = folds,
+	control = race_ctrl
+) %>% 
+		write_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_tuned_lasso_regression_model_auc.rds.gz'),
+						compress = "gz")
+toc()
+}
+
+lasso_predictions = collect_predictions(lasso_results) %>% 
+	rename("predicted_auc" = .pred)
+```
+
+```{r}
+# make dataset with rownumbers and drug origin labelled 
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+
+dataset_with_rownumbers = this_dataset %>% 
+	rownames_to_column(var = "rownumber") %>% 
+	select(rownumber,broad_id, depmap_id, auc, ccle_name) %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name, -auc) 
+```
+
+
+```{r}
+#compare kinomescan vs klaeger performance
+
+get_kinomescan_klaeger_comparison = function(final_predictions, model_type) {
+final_full_predictions = final_predictions %>%
+	rename("rownumber" = .row) %>% 
+	mutate(rownumber = as.character(rownumber)) %>% 
+	left_join(dataset_with_rownumbers, by = 'rownumber')
+
+kinomescan_rsq = cor(
+	final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)^2
+
+klaeger_rsq = cor(
+	final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)^2
+
+kinomescan_rmse = rmse(
+	final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)
+
+klaeger_rmse = rmse(
+	final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+		final_full_predictions %>% 
+	filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)
+
+relative_rsq = kinomescan_rsq/klaeger_rsq
+
+comparison_metrics = data.frame(model_type = model_type,
+																kinomescan_rsq = kinomescan_rsq,
+																klaeger_rsq = klaeger_rsq,
+																kinomescan_rmse = kinomescan_rmse,
+																klaeger_rmse = klaeger_rmse,
+																relative_rsq = relative_rsq)
+}
+
+lasso_comparison = get_kinomescan_klaeger_comparison(final_predictions = lasso_predictions,
+																										model_type = "lasso")
+rand_forest_comparison = get_kinomescan_klaeger_comparison(final_predictions = rand_forest_predictions,
+																										model_type = "random_forest")
+xgboost_comparison = get_kinomescan_klaeger_comparison(final_predictions = xgboost_predictions,
+																										model_type = "xgboost")	
+
+all_comparisons = bind_rows(lasso_comparison, rand_forest_comparison, xgboost_comparison)
+```
+
+```{r}
+# adding in keras NN kinomescan vs klaeger results 
+
+final_full_predictions = keras_predictions %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) 
+
+kinomescan_rsq = cor(
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)^2
+
+klaeger_rsq = cor(
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)^2
+
+kinomescan_rmse = rmse(
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "KINOMEscan") %>% 
+		pull(auc)
+)
+
+klaeger_rmse = rmse(
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(predicted_auc),
+	final_full_predictions %>% 
+		filter(origin == "Kinobeads") %>% 
+		pull(auc)
+)
+
+relative_rsq = kinomescan_rsq/klaeger_rsq
+
+keras_comparison_metrics = data.frame(model_type = "4-layer NN",
+																kinomescan_rsq = kinomescan_rsq,
+																klaeger_rsq = klaeger_rsq,
+																kinomescan_rmse = kinomescan_rmse,
+																klaeger_rmse = klaeger_rmse,
+																relative_rsq = relative_rsq)
+
+final_comparison_metrics = bind_rows(all_comparisons, keras_comparison_metrics) %>% 
+	write_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_origin_comparison_metrics_auc.csv'))
+```

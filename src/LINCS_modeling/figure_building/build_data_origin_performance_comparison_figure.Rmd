@@ -1,0 +1,40 @@
+#Plot Relative Performance on KINOMESCAN vs Klaeger Data by model type
+
+```{r}
+library(tidyverse)
+library(patchwork)
+library(here)
+library(vroom)
+```
+
+```{r}
+#read in data
+final_comparisons = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_origin_comparison_metrics_auc.csv'))
+```
+
+```{r}
+#reorder levels of model_type and build figure
+
+final_comparisons %>% 
+	mutate(model_type = as.factor(model_type)) %>% 
+	mutate(model_type = fct_relevel(model_type, "lasso", "xgboost", "random_forest", "4-layer NN")) %>% 
+	ggplot(aes(x = model_type, y = relative_rsq, shape = model_type, colour = model_type)) +
+	geom_point(alpha = 1.5, size = 3) +
+	geom_hline(aes(yintercept = 1), linetype = 3) + 
+	labs(title = "KINOMEscan R\u00B2 / \n Kinobeads R\u00B2",x = "Model Type", y = "Relative R\u00B2", colour = "Model Type", shape = "Model Type") +
+		theme(
+		legend.position = "none",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		plot.title = element_text(hjust = 0.5),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/data_origin_comparison_figure.png'), width = 7, height = 10.5, units = "cm")
+```
+
+

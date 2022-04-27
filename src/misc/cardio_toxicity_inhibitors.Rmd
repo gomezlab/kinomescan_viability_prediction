@@ -1,0 +1,133 @@
+```{r}
+library(tidyverse)
+library(patchwork)
+library(here)
+library(vroom)
+```
+
+```{r}
+# Load the data
+cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv'))
+LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+```
+
+```{r}
+#pre-process data
+cardio_toxicity_data_processed = cardio_toxicity_data %>% 
+	mutate(across(-Drug, ~case_when(. == 0 ~ "No Reported Event",
+																	. == 1 ~ "Reported Event",
+																	. == 2 ~ ">10% Event Incidence"))) %>% 
+	rename(drug = Drug)
+
+cardio_toxicity_data_long = cardio_toxicity_data_processed %>% 
+	pivot_longer(-drug, names_to = "cardiac_adverse_event", values_to = "Incidence")
+```
+
+
+```{r}
+#generate promiscuity scores for drugs
+promiscuity_scores = LINCS_klaeger_data %>% 
+	group_by(drug) %>% 
+	summarise(promiscuity_score = sum(binary_hit))
+
+drug_targets = LINCS_klaeger_data %>%
+	filter(binary_hit == 1) %>% 
+	select(-relative_intensity)
+```
+
+```{r}
+#plot by promiscuity 
+
+cardio_promiscuity_data = cardio_toxicity_data_long %>% 
+	left_join(promiscuity_scores) %>% 
+	mutate(Incidence = as.factor(Incidence)) %>% 
+	mutate(Incidence = fct_relevel(Incidence, "No Reported Event", "Reported Event", ">10% Event Incidence"))
+
+cardio_promiscuity_data %>% 
+	ggplot(aes(x = Incidence, y = promiscuity_score, fill = Incidence)) +
+	geom_violin() +
+	facet_wrap(~cardiac_adverse_event) +
+	labs(y = "Inhibitor Promiscuity", title = "Inhibitor Promiscuity Does Not Explain Cardiac Toxicity") +
+		theme(
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+ggsave(here('figures/cardio_toxicity/promscuity_by_event_figure.png'), height = 10.5, width = 21, units = "cm")
+```
+
+```{r}
+#plot by top targets 
+
+primary_diseases = cardio_promiscuity_data %>%
+	filter(!is.na(cardiac_adverse_event)) %>% 
+	pull(cardiac_adverse_event) %>% 
+	unique() 
+
+top_10_drugs_per_disease = data.frame()
+top_10_kinases_per_disease = data.frame()
+for(disease in primary_diseases) {
+	
+	this_top_10_drugs = cardio_promiscuity_data %>% 
+		filter(cardiac_adverse_event == disease) %>%
+		mutate(Incidence_score =  case_when(
+																	Incidence == "No Reported Event" ~ 0,
+																	Incidence == "Reported Event" ~ 1,
+																	Incidence == ">10% Event Incidence" ~ 2)) %>%
+		group_by(cardiac_adverse_event, drug) %>% 
+		summarise(mean_Incidence_score = mean(Incidence_score)) %>% 
+		arrange(mean_Incidence_score) %>% 
+		mutate(disease_sub_rank = 1:n()) %>%
+		filter(disease_sub_rank <= 10)
+	
+	this_top_10_drugs_with_target = this_top_10_drugs %>% 
+		#join in drug target information
+		left_join(drug_targets)
+	
+	this_kinase_scores = this_top_10_drugs_with_target %>% 
+		select(cardiac_adverse_event, kinase, binary_hit) %>% 
+		group_by(cardiac_adverse_event, kinase) %>%
+		summarise(target_score = sum(binary_hit)) %>% 
+		arrange(desc(target_score)) %>% 
+		mutate(kinase_sub_rank = 1:n()) %>% 
+		filter(kinase_sub_rank <= 10)
+	
+	top_10_drugs_per_disease = bind_rows(top_10_drugs_per_disease, this_top_10_drugs)
+	top_10_kinases_per_disease = bind_rows(top_10_kinases_per_disease, this_kinase_scores)
+	
+}
+
+kinase_order = top_10_kinases_per_disease %>%
+	select(cardiac_adverse_event, kinase) %>% 
+	unique() %>% 
+	count(kinase) %>% 
+	arrange(n) %>% 
+	mutate(kinase = fct_inorder(kinase))
+
+top_10_kinases_per_disease$kinase = factor(top_10_kinases_per_disease$kinase, levels = kinase_order$kinase)
+
+top_10_kinases_per_disease %>% 
+	ggplot(aes(x = cardiac_adverse_event, y = kinase, size = target_score, colour = kinase)) +
+	geom_point(alpha = 0.7) +
+	labs(x = " ", y = "Kinase", title = "Kinase Inhibition Frequency\nby Cardiac Toxicity", size = "Number of Toxicity-Causing Drugs\nThat Inhibit the Given Kinase") +
+		theme(
+		legend.position = "bottom",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      ) +
+	guides(size = guide_legend(title.position = "bottom",
+														 title.hjust = 0.5)) +
+	scale_color_discrete(guide = "none")
+
+ggsave(here('figures/cardio_toxicity/kinase_inhibition_by_event_figure.png'), height = 20, width = 10, units = "cm")
+```
+

@@ -38,13 +38,24 @@ combined_metrics = ic50_model_metrics %>%
 
 ```{r}
 combined_metrics %>%
+	mutate(
+		data_type = if_else(
+		data_type == "inhibition_expression",
+		"Inhibition and Expression only",
+		"All Multi-Omics"
+	),
+		model_type = if_else(
+			model_type == "random_forest",
+			"random forest",
+			model_type
+		)) %>% 
 	ggplot(aes(x = num_features, y = mean, colour = model_type, shape = model_type)) +
 	geom_point() + 
   # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
   #                position=position_dodge(.9)) +
 	coord_cartesian(ylim= c(0.3,0.7)) +
 	facet_wrap(vars(target, data_type), scales = "free_x") +
-	labs(x = "number of features", y = "R-squared") +
+	labs(x = "number of features", y = "R-squared", colour = "Model Type", shape = "Model Type") +
 		theme(
 		legend.position = "bottom",
 		legend.text = element_text(size = 9),
