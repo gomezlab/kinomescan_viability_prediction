@@ -25,8 +25,8 @@ dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/r
 full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/xgboost/results', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-this_dataset = read_rds(here('results/RISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.rds.gz'))
-cors =  vroom(here('results/RISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.rds.gz'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
 folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_ic50.rds.gz'))
 
