@@ -10,6 +10,7 @@ library(ROCR)
 library(argparse)
 library(xgboost)
 set.seed(2222)
+
 tic()
 parser <- ArgumentParser(description='Process input paramters')
 parser$add_argument('--feature_num', default = 100, type="integer")
@@ -17,34 +18,26 @@ parser$add_argument('--feature_num', default = 100, type="integer")
 args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/', 
 								sprintf('xgboost/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
-								sprintf('xgboost/predictions')), 
-					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/results', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/xgboost/results', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/predictions', 
-												sprintf('%dfeat.rds.gz',args$feature_num))
+this_dataset = read_rds(here('results/RISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.rds.gz'))
+cors =  vroom(here('results/RISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
-this_dataset = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
-
-folds = read_rds(here('results/PRISM_LINCS_klaeger_folds.rds'))
+folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_ic50.rds.gz'))
 
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
 							-starts_with("exp_"),
 							-starts_with("ic50"),
-							ic50_binary,
 							new_role = "id variable") %>%
 	step_select(depmap_id,
 							ccle_name,
 							ic50,
-							ic50_binary,
 							broad_id,
 							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
@@ -75,8 +68,7 @@ results <- tune_grid(
 	grid = xgb_grid,
 	control = race_ctrl
 ) %>% 
+	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")
-
-write_rds(results$.predictions[[1]], pred_output_file)
 
 toc()

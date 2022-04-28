@@ -10,8 +10,8 @@ library(ROCR)
 library(argparse)
 library(keras)
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
 		select(any_of(feature_correlations$feature[1:num_features]),
@@ -26,18 +26,18 @@ for(i in 1:length(args$feature_num)) {
 tic()	
 print(sprintf('Features: %02d',args$feature_num[i]))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/', 
 								sprintf('NN/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/', 
 								sprintf('NN/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/NN/results', 
-												sprintf('%dfeat.rds',args$feature_num)[i])
+full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/NN/results', 
+												sprintf('%dfeat.rds.gz',args$feature_num)[i])
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/NN/predictions', 
-												sprintf('%dfeat.rds',args$feature_num)[i])
+pred_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/NN/predictions', 
+												sprintf('%dfeat.rds.gz',args$feature_num)[i])
 
 this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
 																											 num_features = args$feature_num[i],

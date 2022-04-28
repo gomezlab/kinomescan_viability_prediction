@@ -11,41 +11,29 @@ library(argparse)
 library(keras)
 
 args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
-data = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.csv'))
-cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_ic50.rds'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_ic50.csv'))
 
-build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
-	this_data_filtered = all_data %>%
-		select(any_of(feature_correlations$feature[1:num_features]),
-					 depmap_id,
-					 ccle_name,
-					 ic50,
-					 broad_id)
-}
+folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds_ic50.rds'))
+keras_grid = read_rds(here('results/hyperparameter_grids/keras_grid.rds'))
 
 
 for(i in 1:length(args$feature_num)) {
 tic()	
 print(sprintf('Features: %02d',args$feature_num[i]))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/', 
 								sprintf('NN/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/', 
 								sprintf('NN/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/results', 
-												sprintf('%dfeat.rds.gz',args$feature_num)[i])
+full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/NN/results', 
+												sprintf('%dfeat.rds.gz',args$feature_num[i]))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/NN/predictions', 
-												sprintf('%dfeat.rds.gz',args$feature_num)[i])
-
-this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
-																											 num_features = args$feature_num[i],
-																											 all_data = data)
-
-folds = vfold_cv(this_dataset, v = 10)
+pred_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/NN/predictions', 
+												sprintf('%dfeat.rds.gz',args$feature_num[i]))
 
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -55,7 +43,11 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							-starts_with("dep_"),
 							-starts_with("ic50"),
 							new_role = "id variable") %>%
-	step_BoxCox(all_predictors()) %>% 
+	step_select(depmap_id,
+							ccle_name,
+							ic50,
+							broad_id,
+							any_of(cors$feature[1:args$feature_num[i]])) %>% 
 	step_normalize(all_predictors())
 
 keras_spec <- mlp(
@@ -65,31 +57,25 @@ keras_spec <- mlp(
 	set_engine("keras", verbose = 0) %>% 
 	set_mode("regression")
 
-keras_param = keras_spec %>% 
-	parameters() %>% 
-	update(hidden_units = hidden_units(c(1, 27)))
-
 this_wflow <-
 	workflow() %>%
 	add_model(keras_spec) %>%
 	add_recipe(this_recipe) 
 
-keras_grid = keras_param %>% 
-	grid_max_entropy(size = 15)
-
-race_ctrl = control_race(
+race_ctrl = control_grid(
 	save_pred = TRUE,
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- tune_race_anova(
+set.seed(2222)
+results <- tune_grid(
 	this_wflow,
 	resamples = folds,
 	grid = keras_grid,
-	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
+	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")
 toc()
 }

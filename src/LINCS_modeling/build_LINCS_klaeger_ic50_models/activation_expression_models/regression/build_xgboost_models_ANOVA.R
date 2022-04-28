@@ -17,21 +17,21 @@ parser$add_argument('--feature_num', default = 100, type="integer")
 args = parser$parse_args()
 print(sprintf('Features: %02d',args$feature_num))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/', 
 								sprintf('xgboost/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/', 
 								sprintf('xgboost/predictions')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/results', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/xgboost/results', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models/activation_expression/regression/xgboost/predictions', 
+pred_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/xgboost/predictions', 
 												sprintf('%dfeat.rds',args$feature_num))
 
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
@@ -89,6 +89,7 @@ results <- tune_race_anova(
 	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
+	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")
 	
 write_rds(results$.predictions[[1]], pred_output_file)

@@ -17,17 +17,17 @@ args = parser$parse_args()
 
 print(sprintf('Features: %02d',args$feature_num))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/', 
 								sprintf('lr/results')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models/all_datasets/regression/lr/results', 
+full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/lr/results', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat.rds'))
-cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations.csv'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_ic50.rds'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_ic50.csv'))
 
-folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds.rds'))
+folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds_ic50.rds'))
 
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -36,12 +36,10 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							-starts_with("prot_"),
 							-starts_with("dep_"),
 							-starts_with("ic50"),
-							ic50_binary,
 							new_role = "id variable") %>%
 	step_select(depmap_id,
 							ccle_name,
 							ic50,
-							ic50_binary,
 							broad_id,
 							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
@@ -65,6 +63,7 @@ results <- fit_resamples(
 	resamples = folds,
 	control = race_ctrl
 ) %>% 
+	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")
 
 toc()

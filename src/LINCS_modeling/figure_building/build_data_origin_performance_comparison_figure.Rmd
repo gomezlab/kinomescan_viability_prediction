@@ -14,6 +14,7 @@ final_comparisons = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_
 
 ```{r}
 #reorder levels of model_type and build figure
+#title = "KINOMEscan R\u00B2 / \n Kinobeads R\u00B2",
 
 final_comparisons %>% 
 	mutate(model_type = as.factor(model_type)) %>% 
@@ -21,7 +22,7 @@ final_comparisons %>%
 	ggplot(aes(x = model_type, y = relative_rsq, shape = model_type, colour = model_type)) +
 	geom_point(alpha = 1.5, size = 3) +
 	geom_hline(aes(yintercept = 1), linetype = 3) + 
-	labs(title = "KINOMEscan R\u00B2 / \n Kinobeads R\u00B2",x = "Model Type", y = "Relative R\u00B2", colour = "Model Type", shape = "Model Type") +
+	labs(x = "Model Type", y = "Data Origin Relative R\u00B2", colour = "Model Type", shape = "Model Type") +
 		theme(
 		legend.position = "none",
 		legend.text = element_text(size = 9),
@@ -34,7 +35,7 @@ final_comparisons %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/data_origin_comparison_figure.png'), width = 7, height = 10.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/data_origin_comparison_figure.png'), width = 4, height = 10.5, units = "cm")
 ```
 
 

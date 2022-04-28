@@ -5,7 +5,7 @@ library(reticulate)
 library(vroom)
 library(DarkKinaseTools)
 #py_install("shap")
-py_install("matplotlib")
+#py_install("matplotlib")
 ```
 
 ```{r}
@@ -129,6 +129,11 @@ shap_values_processed = shap_values %>%
 			T ~ feature
 		)) %>% 
 	write_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values.csv'))
+```
+
+```{r}
+#separate by feature type and plot 
+shap_values_processed = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values.csv'))
 
 shap_inhibition = shap_values_processed %>% 
 	filter(feature_type == "Inhibition") %>% 
@@ -154,14 +159,14 @@ shap_inhibition %>%
 	theme(
 		legend.title = element_blank(),
 		legend.position = "bottom",
-		legend.direction = "vertical",
+		legend.direction = "horizontal",
 		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
 		panel.background = element_rect(fill = "transparent",colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 7, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
 
 shap_expression %>%
   slice(1:25) %>%
@@ -175,14 +180,14 @@ shap_expression %>%
 	theme(
 		legend.title = element_blank(),
 		legend.position = "bottom",
-		legend.direction = "vertical",
+		legend.direction = "horizontal",
 		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
 		panel.background = element_rect(fill = "transparent",colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/expression_shap_figure.png'), height = 10.5, width = 7, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/expression_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
 ```
 
 

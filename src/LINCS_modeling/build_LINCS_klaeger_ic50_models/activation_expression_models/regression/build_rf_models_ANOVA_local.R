@@ -10,8 +10,8 @@ library(ROCR)
 library(argparse)
 
 args = data.frame(feature_num = c(2000,3000,4000,5000))
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations.csv'))
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
 build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
 	this_data_filtered = all_data %>%
@@ -76,6 +76,7 @@ results <- tune_race_anova(
 	metrics = metric_set(rsq),
 	control = race_ctrl
 ) %>% 
+	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")
 
 toc()

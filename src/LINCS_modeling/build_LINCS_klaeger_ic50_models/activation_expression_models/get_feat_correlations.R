@@ -4,7 +4,7 @@ library(vroom)
 
 data = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_ic50.rds.gz'))
 
-find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
+find_feature_correlations <- function(row_indexes = NA, all_data) {
   if (is.na(row_indexes)) {
     row_indexes = 1:dim(all_data)[1]
   }
@@ -33,6 +33,6 @@ find_all_data_feature_correlations <- function(row_indexes = NA, all_data) {
   return(all_correlations)	
 }
 
-feat_cors = find_all_data_feature_correlations(all_data = data)
+feat_cors = find_feature_correlations(all_data = data)
 
-write_csv(feat_cors, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
+write_csv(feat_cors, here('results/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))

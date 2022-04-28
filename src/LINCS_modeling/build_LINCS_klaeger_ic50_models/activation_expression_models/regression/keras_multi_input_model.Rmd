@@ -1,0 +1,179 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-03-24'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(keras)
+library(vroom)
+library(tidymodels)
+library(tfdatasets)
+library(conflicted)
+conflict_prefer("fit", "keras")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("all_numeric", "tfdatasets")
+```
+
+```{r}
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+full_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.rds.gz'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
+args = data.frame(feature_num = 2000)
+```
+
+```{r}
+full_annotated_dataset = full_dataset %>% 
+	left_join(compound_match_list, by = 'broad_id') %>% 
+	mutate(origin = if_else(
+		is.na(klaeger_name),
+		"KINOMEscan",
+		"Kinobeads"
+	)) %>% 
+	select(-klaeger_name, -LINCS_name) %>% 
+	rename('ic50_target' = ic50) %>% 
+	select(depmap_id,
+					ic50_target,
+					ccle_name,
+					broad_id,
+				 origin,
+					any_of(cors$feature[1:args$feature_num])) %>% 
+	unique() %>% 
+	drop_na()
+	
+
+klaeger_only_data = full_annotated_dataset %>% 
+	filter(origin == "Kinobeads") %>% 
+		select(depmap_id,
+					 ic50_target,
+					 ccle_name,
+					 broad_id,
+					 starts_with("act_"))
+	
+kinomescan_only_data = full_annotated_dataset %>% 
+	filter(origin == "KINOMEscan") %>% 
+	select(depmap_id,
+				 ic50_target,
+				 ccle_name,
+				 broad_id,
+				 starts_with("act_"))
+
+exp_cors = cors %>% 
+	filter(feature_type == "Expression")
+	
+exp_data = full_annotated_dataset %>% 
+		select(depmap_id,
+					ic50_target,
+					ccle_name,
+					broad_id,
+					starts_with("exp_"),
+					any_of(exp_cors$feature[1:args$feature_num]))
+```
+
+```{r}
+#keras klaeger only model
+x_train = klaeger_only_data %>% 
+		select(ic50_target, starts_with("act")) 
+
+spec = feature_spec(x_train, ic50_target ~ .) %>%
+	step_numeric_column(all_numeric()) %>%
+	fit()
+
+# names(x_train) %>% as.data.frame() %>% view()
+# glimpse(x_train)
+
+input <- layer_input_from_dataset(x_train %>% select(-ic50_target))
+main_output = input %>% 
+	layer_dense_features(dense_features(spec)) %>%
+	layer_dense(units = 64, activation = 'relu') %>% 
+  layer_dense(units = 64, activation = 'relu') %>% 
+  layer_dense(units = 1, activation = 'linear')
+
+model = keras_model(
+	inputs = input,
+	outputs = main_output
+)
+
+model %>% 
+	compile(
+  optimizer = optimizer_adam(),
+  loss = 'mse',
+  metrics= metric_root_mean_squared_error())
+
+
+print_dot_callback <- callback_lambda(
+  on_epoch_end = function(epoch, logs) {
+    if (epoch %% 80 == 0) cat("\n")
+    cat(".")
+  }
+)  
+
+early_stop <- callback_early_stopping(monitor = "val_loss", patience = 20)
+
+history <- model %>% fit(
+  x = x_train %>% select(-ic50_target),
+  y = x_train$ic50_target,
+  epochs = 500,
+  validation_split = 0.2,
+  callbacks = list(early_stop)
+)
+
+write_rds(history, here('results/klaeger_only_keras_model_ic50.rds.gz'), compress = "gz")
+```
+
+```{r}
+#keras all data model
+split = initial_split(full_dataset)
+
+x_train = training(split) %>% 
+		select(ic50, starts_with(c("act", "exp_")))
+
+spec = feature_spec(x_train, ic50 ~ .) %>%
+	step_numeric_column(all_numeric()) %>%
+	fit()
+
+# names(x_train) %>% as.data.frame() %>% view()
+# glimpse(x_train)
+
+input <- layer_input_from_dataset(x_train %>% select(-ic50))
+main_output = input %>% 
+	layer_dense_features(dense_features(spec)) %>%
+	layer_dense(units = 2000, activation = 'relu') %>% 
+  layer_dense(units = 500, activation = 'relu') %>% 
+  layer_dense(units = 1, activation = 'linear')
+
+model = keras_model(
+	inputs = input,
+	outputs = main_output
+)
+
+model %>% 
+	compile(
+  optimizer = optimizer_adam(),
+  loss = 'mse',
+  metrics= metric_root_mean_squared_error())
+
+
+print_dot_callback <- callback_lambda(
+  on_epoch_end = function(epoch, logs) {
+    if (epoch %% 80 == 0) cat("\n")
+    cat(".")
+  }
+)  
+
+early_stop <- callback_early_stopping(monitor = "val_loss", patience = 20)
+
+history <- model %>% fit(
+  x = x_train %>% select(-ic50),
+  y = x_train$ic50,
+  epochs = 500,
+  validation_split = 0.2,
+  callbacks = list(early_stop)
+)
+
+plot(history)
+```
+
+

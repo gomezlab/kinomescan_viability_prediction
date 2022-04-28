@@ -84,7 +84,7 @@ results <- tune_race_anova(
 	this_wflow,
 	resamples = folds,
 	grid = rf_grid,
-	metrics = metric_set(roc_auc),
+	metrics = metric_set(roc_ic50),
 	control = race_ctrl
 ) %>% 
 	write_rds(full_output_file)
