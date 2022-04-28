@@ -23,10 +23,10 @@ dir.create(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression
 full_output_file = here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/rand_forest/results', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_ic50.rds'))
-cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_ic50.csv'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_ic50.rds.gz'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_ic50.csv'))
 
-folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds_ic50.rds'))
+folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_all_multiomic_data_folds_ic50.rds.gz'))
 
 this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
