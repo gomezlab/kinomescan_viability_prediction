@@ -3,11 +3,13 @@ library(tidyverse)
 library(patchwork)
 library(here)
 library(vroom)
+library(ggdendro)
 ```
 
 ```{r}
 # Load the data
-cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv'))
+cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv')) %>% 
+	rename(drug = Drug)
 LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 ```
 
@@ -16,8 +18,7 @@ LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.c
 cardio_toxicity_data_processed = cardio_toxicity_data %>% 
 	mutate(across(-Drug, ~case_when(. == 0 ~ "No Reported Event",
 																	. == 1 ~ "Reported Event",
-																	. == 2 ~ ">10% Event Incidence"))) %>% 
-	rename(drug = Drug)
+																	. == 2 ~ ">10% Event Incidence"))) 
 
 cardio_toxicity_data_long = cardio_toxicity_data_processed %>% 
 	pivot_longer(-drug, names_to = "cardiac_adverse_event", values_to = "Incidence")
@@ -130,4 +131,48 @@ top_10_kinases_per_disease %>%
 
 ggsave(here('figures/cardio_toxicity/kinase_inhibition_by_event_figure.png'), height = 20, width = 10, units = "cm")
 ```
+
+```{r}
+#drug heirarchichal clustering
+
+#scaling columns
+matrix_scaled <- cardio_toxicity_data
+matrix_scaled[, c(2:7)] <- scale(matrix_scaled[, 2:7])
+
+#clustering
+cluster_matrix <- as.matrix(matrix_scaled[, -c(1)])
+rownames(cluster_matrix) <- matrix_scaled$drug
+matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
+
+# Create dendro
+dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
+
+#heatmap plot
+drug_order <- order.dendrogram(matrix_dendro)
+cardio_toxicity_data_long$drug <- factor(x = cardio_toxicity_data_long$drug,
+                               levels = matrix_scaled$drug[drug_order], 
+                               ordered = TRUE)
+
+
+heatmap_plot = cardio_toxicity_data_long %>% 
+	ggplot(aes(x = cardiac_adverse_event, y = drug)) +
+	labs(y = "Clinical Kinase Inhibitors") +
+  geom_tile(aes(fill = Incidence)) +
+  scale_fill_viridis_d() +
+  theme(
+  	legend.position = "left",
+  	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  	axis.title.x = element_blank(),
+  	axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+
+#combine plots
+
+
+combined = heatmap_plot + dendro_plot + plot_layout(widths = c(1,2))
+
+ggsave(here('figures/cardio_toxicity/heatmap_hclust.png'))
+
+```
+
 

@@ -23,7 +23,7 @@ library(tidyverse)
 # 
 # }
 
-for (feature_num in c(200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+for (feature_num in c(300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 	job_name = sprintf('ixg%d',feature_num)
 
