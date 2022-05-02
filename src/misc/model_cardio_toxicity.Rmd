@@ -1,0 +1,311 @@
+```{r}
+library(tidyverse)
+library(here)
+library(vroom)
+library(tidymodels)
+library(finetune)
+library(tictoc)
+library(doParallel)
+library(patchwork)
+library(ROCR)
+library(brulee)
+```
+
+```{r}
+#read in data
+cardio_data = read_rds(here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml.rds.gz'))
+```
+
+```{r}
+#binarize response 
+model_data = cardio_data %>% 
+	mutate(across(c(QT_interval_prolongation,
+									LV_dysfuntion,
+									HF,
+									Arrhythmia,
+									Ischemia_or_MI,
+									Hypertension
+									),
+								~if_else(. != 0, 1, 0))) %>% 
+	mutate(across(c(QT_interval_prolongation,
+									LV_dysfuntion,
+									HF,
+									Arrhythmia,
+									Ischemia_or_MI,
+									Hypertension
+									),
+								~as.factor(.)))
+```
+
+```{r}
+#build cv folds
+set.seed(2222)
+QT_folds = vfold_cv(model_data, v = 10, strata = QT_interval_prolongation)
+
+set.seed(2222)
+LV_folds = vfold_cv(model_data, v = 10, strata = LV_dysfuntion)
+
+set.seed(2222)
+HF_folds = vfold_cv(model_data, v = 10, strata = HF)
+
+set.seed(2222)
+Arrhythmia_folds = vfold_cv(model_data, v = 10, strata = Arrhythmia)
+
+set.seed(2222)
+Ischemia_folds = vfold_cv(model_data, v = 10, strata = Ischemia_or_MI)
+
+set.seed(2222)
+Hypertension_folds = vfold_cv(model_data, v = 10, strata = Hypertension)
+```
+
+
+```{r}
+#model prep
+QT_recipe = recipe(QT_interval_prolongation ~ ., model_data) %>%
+		update_role(-starts_with("act_"),
+								-starts_with("QT_"),
+								new_role = "id variable") %>%
+		step_zv(all_predictors())
+
+LV_recipe = recipe(LV_dysfuntion ~ ., model_data) %>%
+		update_role(-starts_with("act_"),
+								-starts_with("LV_"),
+								new_role = "id variable") %>%
+		step_zv(all_predictors())
+
+HF_recipe = recipe(HF ~ ., model_data) %>%
+		update_role(-starts_with("act_"),
+								-starts_with("HF"),
+								new_role = "id variable") %>%
+		step_zv(all_predictors())
+
+Arrhythmia_recipe = recipe(Arrhythmia ~ ., model_data) %>%
+		update_role(-starts_with("act_"),
+								-starts_with("Arrhythmia"),
+								new_role = "id variable") %>%
+		step_zv(all_predictors())
+
+Ischemia_recipe = recipe(Ischemia_or_MI ~ ., model_data) %>%
+		update_role(-starts_with("act_"),
+								-starts_with("Ischemia_"),
+								new_role = "id variable") %>%
+		step_zv(all_predictors())
+
+Hypertension_recipe = recipe(Hypertension ~ ., model_data) %>%
+		update_role(-starts_with("act_"),
+								-starts_with("Hypertension"),
+								new_role = "id variable") %>%
+		step_zv(all_predictors())
+```
+
+```{r}
+#define models
+xgb_spec <- boost_tree(
+	trees = tune(), 
+	tree_depth = tune(),       
+	learn_rate = tune()                   
+) %>% 
+	set_engine("xgboost", nthreads = 16) %>% 
+	set_mode("classification")
+
+xgb_param = xgb_spec %>% 
+	parameters() %>% 
+	update(trees = trees(c(10, 500)),
+				 tree_depth = tree_depth(c(2, 20)))
+
+set.seed(2222)
+xgb_grid = xgb_param %>% 
+	grid_max_entropy(size = 15)
+
+rf_spec <- rand_forest(
+	trees = tune()
+) %>% set_engine("ranger") %>%
+	set_mode("classification")
+
+rf_param = rf_spec %>% 
+	parameters() %>% 
+	update(trees = trees(c(10, 500)))
+
+set.seed(2222)
+rf_grid = rf_param %>% 
+	grid_max_entropy(size = 15)
+
+lr_spec <- logistic_reg(penalty = tune(), mixture = 1) %>%
+	set_engine("glmnet")
+
+set.seed(2222)
+lr_grid = lr_spec %>% 
+	extract_parameter_set_dials() %>%  
+	grid_max_entropy(size = 10)
+```
+
+```{r}
+#initialize workflow
+QT_workflowset = workflow_set(
+	preproc = list(QT = QT_recipe),
+	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+	cross = TRUE
+) %>% 
+	option_add(grid = xgb_grid, id = "QT_xgb") %>%
+	option_add(grid = rf_grid, id = "QT_rf") %>%
+	option_add(grid = lr_grid, id = "QT_lr")
+
+
+LV_workflowset = workflow_set(
+	preproc = list(LV = LV_recipe),
+	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+	cross = TRUE
+) %>% 
+	option_add(grid = xgb_grid, id = "LV_xgb") %>%
+	option_add(grid = rf_grid, id = "LV_rf") %>%
+	option_add(grid = lr_grid, id = "LV_lr")
+
+HF_workflowset = workflow_set(
+	preproc = list(HF = HF_recipe),
+	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+	cross = TRUE
+) %>% 
+	option_add(grid = xgb_grid, id = "HF_xgb") %>%
+	option_add(grid = rf_grid, id = "HF_rf") %>%
+	option_add(grid = lr_grid, id = "HF_lr")
+
+Arrythmia_workflowset = workflow_set(
+	preproc = list(Arrythmia = Arrhythmia_recipe),
+	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+	cross = TRUE
+) %>% 
+	option_add(grid = xgb_grid, id = "Arrythmia_xgb") %>%
+	option_add(grid = rf_grid, id = "Arrythmia_rf") %>%
+	option_add(grid = lr_grid, id = "Arrythmia_lr")
+
+Ischemia_workflowset = workflow_set(
+	preproc = list(Ischemia = Ischemia_recipe),
+	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+	cross = TRUE
+) %>% 
+	option_add(grid = xgb_grid, id = "Ischemia_xgb") %>%
+	option_add(grid = rf_grid, id = "Ischemia_rf") %>%
+	option_add(grid = lr_grid, id = "Ischemia_lr")
+
+Hypertension_workflowset = workflow_set(
+	preproc = list(Hypertension = Hypertension_recipe),
+	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+	cross = TRUE
+) %>% 
+	option_add(grid = xgb_grid, id = "Hypertension_xgb") %>%
+	option_add(grid = rf_grid, id = "Hypertension_rf") %>%
+	option_add(grid = lr_grid, id = "Hypertension_lr")
+```
+
+
+```{r}
+# #initialize workflow
+# complete_workflowset = workflow_set(
+# 	preproc = list(QT = QT_recipe,
+# 								 LV = LV_recipe,
+# 								 HF = HF_recipe,
+# 								 Arrythmia = Arrhythmia_recipe,
+# 								 Ischemia = Ischemia_recipe,
+# 								 Hypertension = Hypertension_recipe),
+# 	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
+# 	cross = TRUE
+# )
+# 
+# complete_workflowset = complete_workflowset %>% 
+# 	option_add(grid = xgb_grid, id = "QT_xgb") %>%
+# 	option_add(grid = xgb_grid, id = "LV_xgb") %>%
+# 	option_add(grid = xgb_grid, id = "HF_xgb") %>%
+# 	option_add(grid = xgb_grid, id = "Arrythmia_xgb") %>%
+# 	option_add(grid = xgb_grid, id = "Ischemia_xgb") %>%
+# 	option_add(grid = xgb_grid, id = "Hypertension_xgb") %>%
+# 	option_add(grid = rf_grid, id = "QT_rf") %>%
+# 	option_add(grid = rf_grid, id = "LV_rf") %>%
+# 	option_add(grid = rf_grid, id = "HF_rf") %>%
+# 	option_add(grid = rf_grid, id = "Arrythmia_rf") %>%
+# 	option_add(grid = rf_grid, id = "Ischemia_rf") %>%
+# 	option_add(grid = rf_grid, id = "Hypertension_rf") %>%
+# 	option_add(grid = lr_grid, id = "QT_lr") %>%
+# 	option_add(grid = lr_grid, id = "LV_lr") %>%
+# 	option_add(grid = lr_grid, id = "HF_lr") %>%
+# 	option_add(grid = lr_grid, id = "Arrythmia_lr") %>%
+# 	option_add(grid = lr_grid, id = "Ischemia_lr") %>%
+# 	option_add(grid = lr_grid, id = "Hypertension_lr")
+```
+
+```{r}
+#run models
+race_ctrl = control_grid(
+	save_pred = TRUE, 
+	parallel_over = "everything",
+	verbose = TRUE
+)
+
+set.seed(2222)
+tic()
+QT_results = complete_workflowset %>% 
+	workflow_map(
+		"tune_grid",
+		seed = 2222,
+		resamples = QT_folds,
+		control = race_ctrl
+	)
+
+LV_results = complete_workflowset %>% 
+	workflow_map(
+		"tune_grid",
+		seed = 2222,
+		resamples = LV_folds,
+		control = race_ctrl
+	)
+
+HF_results = complete_workflowset %>% 
+	workflow_map(
+		"tune_grid",
+		seed = 2222,
+		resamples = HF_folds,
+		control = race_ctrl
+	)
+
+Arrythmia_results = complete_workflowset %>% 
+	workflow_map(
+		"tune_grid",
+		seed = 2222,
+		resamples = Arrythmia_folds,
+		control = race_ctrl
+	)
+
+Ischemia_results = complete_workflowset %>% 
+	workflow_map(
+		"tune_grid",
+		seed = 2222,
+		resamples = Ischemia_folds,
+		control = race_ctrl
+	)
+
+Hypertension_results = complete_workflowset %>% 
+	workflow_map(
+		"tune_grid",
+		seed = 2222,
+		resamples = Hypertension_folds,
+		control = race_ctrl
+	)
+toc()
+
+# temp = all_results$result
+#autoplot(all_results)
+
+cv_metrics = collect_metrics(QT_results) %>% 
+	mutate(target = "QT") %>% 
+	bind_rows(collect_metrics(LV_results) %>% 
+							mutate(target = "LV")) %>%
+	bind_rows(collect_metrics(HF_results) %>% 
+							mutate(target = "HF")) %>%
+	bind_rows(collect_metrics(Arrythmia_results) %>% 
+							mutate(target = "Arrythmia")) %>%
+	bind_rows(collect_metrics(Ischemia_results) %>% 
+							mutate(target = "Ischemia")) %>% 
+	bind_rows(collect_metrics(Hypertension_results) %>% 
+							mutate(target = "Hypertension")) 
+	
+```
+

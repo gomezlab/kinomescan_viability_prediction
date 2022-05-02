@@ -27,7 +27,7 @@ parser$add_argument('--feature_num', default = 100, type="integer")
 args = data.frame(feature_num = c(1000,1500,2000,3000,4000,5000)) 
 
 dropout = c(0.2,0.4,0.6)
-neurons = c(200,400,600,800,1000)
+neurons = c(200,600,1000)
 grid = data.frame(crossing(dropout, neurons))
 
 for(i in 1:length(args$feature_num)) {
