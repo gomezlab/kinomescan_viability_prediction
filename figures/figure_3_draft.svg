@@ -31,12 +31,12 @@
      inkscape:guide-bbox="true"
      height="210mm"
      inkscape:zoom="1"
-     inkscape:cx="185"
-     inkscape:cy="290.5"
+     inkscape:cx="383.5"
+     inkscape:cy="370"
      inkscape:window-width="1920"
-     inkscape:window-height="960"
-     inkscape:window-x="1920"
-     inkscape:window-y="27"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      fit-margin-top="0"
@@ -67,7 +67,7 @@
        x="139.60118"
        y="0.23767477" />
     <image
-       width="69.934669"
+       width="39.962663"
        height="104.98666"
        preserveAspectRatio="none"
        xlink:href="PRISM_LINCS_klaeger/data_origin_comparison_figure.png"
@@ -75,20 +75,20 @@
        x="-0.35282046"
        y="105.22433" />
     <image
-       width="69.934669"
+       width="84.920654"
        height="104.98666"
        preserveAspectRatio="none"
        xlink:href="PRISM_LINCS_klaeger/inhibition_shap_figure.png"
        id="image28"
-       x="69.666512"
+       x="39.60984"
        y="105.22433" />
     <image
-       width="69.934669"
+       width="84.920654"
        height="104.98666"
        preserveAspectRatio="none"
        xlink:href="PRISM_LINCS_klaeger/expression_shap_figure.png"
        id="image40"
-       x="139.60118"
+       x="124.53049"
        y="105.22433" />
   </g>
 </svg>

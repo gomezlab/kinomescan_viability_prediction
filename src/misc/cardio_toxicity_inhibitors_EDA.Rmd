@@ -11,19 +11,25 @@ library(ggdendro)
 cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv')) %>% 
 	rename(drug = Drug)
 LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+cardio_toxicity_data_full = read_rds(here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml.rds.gz'))
 ```
 
 ```{r}
 #pre-process data
 cardio_toxicity_data_processed = cardio_toxicity_data %>% 
-	mutate(across(-Drug, ~case_when(. == 0 ~ "No Reported Event",
+	mutate(across(-drug, ~case_when(. == 0 ~ "No Reported Event",
 																	. == 1 ~ "Reported Event",
-																	. == 2 ~ ">10% Event Incidence"))) 
+																	. == 2 ~ ">10% Incidence"))) 
 
 cardio_toxicity_data_long = cardio_toxicity_data_processed %>% 
 	pivot_longer(-drug, names_to = "cardiac_adverse_event", values_to = "Incidence")
-```
 
+cardio_toxicity_data_full_long = cardio_toxicity_data_full %>% 
+	pivot_longer(starts_with("act_"), names_to = "kinase", values_to = "relative_intensity") %>% 
+	separate(kinase, into = c('prefix', 'kinase'), sep = "_") %>% 
+	select(-prefix)
+	
+```
 
 ```{r}
 #generate promiscuity scores for drugs
@@ -42,7 +48,7 @@ drug_targets = LINCS_klaeger_data %>%
 cardio_promiscuity_data = cardio_toxicity_data_long %>% 
 	left_join(promiscuity_scores) %>% 
 	mutate(Incidence = as.factor(Incidence)) %>% 
-	mutate(Incidence = fct_relevel(Incidence, "No Reported Event", "Reported Event", ">10% Event Incidence"))
+	mutate(Incidence = fct_relevel(Incidence, "No Reported Event", "Reported Event", ">10% Incidence"))
 
 cardio_promiscuity_data %>% 
 	ggplot(aes(x = Incidence, y = promiscuity_score, fill = Incidence)) +
@@ -78,7 +84,7 @@ for(disease in primary_diseases) {
 		mutate(Incidence_score =  case_when(
 																	Incidence == "No Reported Event" ~ 0,
 																	Incidence == "Reported Event" ~ 1,
-																	Incidence == ">10% Event Incidence" ~ 2)) %>%
+																	Incidence == ">10% Incidence" ~ 2)) %>%
 		group_by(cardiac_adverse_event, drug) %>% 
 		summarise(mean_Incidence_score = mean(Incidence_score)) %>% 
 		arrange(mean_Incidence_score) %>% 
@@ -160,6 +166,7 @@ matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
 
 # Create dendro
 dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
+ggsave(here('figures/cardio_toxicity/dendro_plot.png'))
 
 #heatmap plot
 drug_order <- order.dendrogram(matrix_dendro)
@@ -167,25 +174,39 @@ cardio_toxicity_data_long$drug <- factor(x = cardio_toxicity_data_long$drug,
                                levels = matrix_scaled$drug[drug_order], 
                                ordered = TRUE)
 
+cardio_toxicity_data_full_long$drug <- factor(x = cardio_toxicity_data_full_long$drug,
+                               levels = matrix_scaled$drug[drug_order], 
+                               ordered = TRUE)
 
-heatmap_plot = cardio_toxicity_data_long %>% 
+event_heatmap_plot = cardio_toxicity_data_long %>% 
 	ggplot(aes(x = cardiac_adverse_event, y = drug)) +
 	labs(y = "Clinical Kinase Inhibitors") +
   geom_tile(aes(fill = Incidence)) +
   scale_fill_viridis_d() +
   theme(
-  	legend.position = "left",
+  	legend.position = "bottom",
+  	legend.direction = "vertical",
   	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
   	axis.title.x = element_blank(),
   	axis.text.y = element_blank(),
     axis.ticks.y = element_blank())
 
-#combine plots
+ggsave(here('figures/cardio_toxicity/event_heatmap.png'), width = 4, height = 21, units = "cm")
 
+target_heatmap_plot = cardio_toxicity_data_full_long %>%
+	ggplot(aes(x = kinase, y = drug)) +
+	labs(x = "Kinase") +
+  geom_tile(aes(fill = relative_intensity)) +
+  scale_fill_viridis_c() +
+  theme(
+  	legend.position = "bottom",
+  	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  	axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+  	axis.title.y = element_blank(),
+  	axis.text.y = element_blank())
 
-combined = heatmap_plot + dendro_plot + plot_layout(widths = c(1,2))
-
-ggsave(here('figures/cardio_toxicity/heatmap_hclust.png'))
+ggsave(here('figures/cardio_toxicity/target_heatmap.png'), width = 21, height = 18.93, units = "cm")
 ```
 
 
