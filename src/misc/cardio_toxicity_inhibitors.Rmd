@@ -147,6 +147,20 @@ matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
 # Create dendro
 dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
 
+#drug heirarchichal clustering
+
+#scaling columns
+matrix_scaled <- cardio_toxicity_data
+matrix_scaled[, c(2:7)] <- scale(matrix_scaled[, 2:7])
+
+#clustering
+cluster_matrix <- as.matrix(matrix_scaled[, -c(1)])
+rownames(cluster_matrix) <- matrix_scaled$drug
+matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
+
+# Create dendro
+dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
+
 #heatmap plot
 drug_order <- order.dendrogram(matrix_dendro)
 cardio_toxicity_data_long$drug <- factor(x = cardio_toxicity_data_long$drug,
@@ -172,7 +186,6 @@ heatmap_plot = cardio_toxicity_data_long %>%
 combined = heatmap_plot + dendro_plot + plot_layout(widths = c(1,2))
 
 ggsave(here('figures/cardio_toxicity/heatmap_hclust.png'))
-
 ```
 
 
