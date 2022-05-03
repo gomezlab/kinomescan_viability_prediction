@@ -24,7 +24,7 @@ parser <- ArgumentParser(description='Process input paramters')
 parser$add_argument('--feature_num', default = 100, type="integer")
 
 #args = parser$parse_args()
-args = data.frame(feature_num = c(4000,5000)) 
+args = data.frame(feature_num = c(5000)) 
 
 dropout = c(0.2,0.4,0.6)
 neurons = c(200,400,600,800,1000)

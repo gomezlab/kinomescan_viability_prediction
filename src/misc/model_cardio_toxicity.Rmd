@@ -169,14 +169,14 @@ HF_workflowset = workflow_set(
 	option_add(grid = rf_grid, id = "HF_rf") %>%
 	option_add(grid = lr_grid, id = "HF_lr")
 
-Arrythmia_workflowset = workflow_set(
-	preproc = list(Arrythmia = Arrhythmia_recipe),
+Arrhythmia_workflowset = workflow_set(
+	preproc = list(Arrhythmia = Arrhythmia_recipe),
 	models = list(rf = rf_spec, xgb = xgb_spec, lr = lr_spec),
 	cross = TRUE
 ) %>% 
-	option_add(grid = xgb_grid, id = "Arrythmia_xgb") %>%
-	option_add(grid = rf_grid, id = "Arrythmia_rf") %>%
-	option_add(grid = lr_grid, id = "Arrythmia_lr")
+	option_add(grid = xgb_grid, id = "Arrhythmia_xgb") %>%
+	option_add(grid = rf_grid, id = "Arrhythmia_rf") %>%
+	option_add(grid = lr_grid, id = "Arrhythmia_lr")
 
 Ischemia_workflowset = workflow_set(
 	preproc = list(Ischemia = Ischemia_recipe),
@@ -242,7 +242,7 @@ race_ctrl = control_grid(
 
 set.seed(2222)
 tic()
-QT_results = complete_workflowset %>% 
+QT_results = QT_workflowset %>% 
 	workflow_map(
 		"tune_grid",
 		seed = 2222,
@@ -250,7 +250,7 @@ QT_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-LV_results = complete_workflowset %>% 
+LV_results = LV_workflowset %>% 
 	workflow_map(
 		"tune_grid",
 		seed = 2222,
@@ -258,7 +258,7 @@ LV_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-HF_results = complete_workflowset %>% 
+HF_results = HF_workflowset %>% 
 	workflow_map(
 		"tune_grid",
 		seed = 2222,
@@ -266,15 +266,15 @@ HF_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-Arrythmia_results = complete_workflowset %>% 
+Arrhythmia_results = Arrhythmia_workflowset %>% 
 	workflow_map(
 		"tune_grid",
 		seed = 2222,
-		resamples = Arrythmia_folds,
+		resamples = Arrhythmia_folds,
 		control = race_ctrl
 	)
 
-Ischemia_results = complete_workflowset %>% 
+Ischemia_results = Ischemia_workflowset %>% 
 	workflow_map(
 		"tune_grid",
 		seed = 2222,
@@ -282,7 +282,7 @@ Ischemia_results = complete_workflowset %>%
 		control = race_ctrl
 	)
 
-Hypertension_results = complete_workflowset %>% 
+Hypertension_results = Hypertension_workflowset %>% 
 	workflow_map(
 		"tune_grid",
 		seed = 2222,
@@ -300,12 +300,14 @@ cv_metrics = collect_metrics(QT_results) %>%
 							mutate(target = "LV")) %>%
 	bind_rows(collect_metrics(HF_results) %>% 
 							mutate(target = "HF")) %>%
-	bind_rows(collect_metrics(Arrythmia_results) %>% 
-							mutate(target = "Arrythmia")) %>%
+	# bind_rows(collect_metrics(Arrythmia_results) %>%
+	# 						mutate(target = "Arrythmia")) %>%
 	bind_rows(collect_metrics(Ischemia_results) %>% 
 							mutate(target = "Ischemia")) %>% 
 	bind_rows(collect_metrics(Hypertension_results) %>% 
 							mutate(target = "Hypertension")) 
+
+write_csv(cv_metrics, here('results/cardio_toxicity_models/modelling_metrics.csv'))
 	
 ```
 

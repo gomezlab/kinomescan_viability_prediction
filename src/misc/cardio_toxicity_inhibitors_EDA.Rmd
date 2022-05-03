@@ -139,7 +139,7 @@ ggsave(here('figures/cardio_toxicity/kinase_inhibition_by_event_figure.png'), he
 ```
 
 ```{r}
-#drug heirarchichal clustering
+#event-based hierarchical clustering
 
 #scaling columns
 matrix_scaled <- cardio_toxicity_data
@@ -152,21 +152,7 @@ matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
 
 # Create dendro
 dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
-
-#drug heirarchichal clustering
-
-#scaling columns
-matrix_scaled <- cardio_toxicity_data
-matrix_scaled[, c(2:7)] <- scale(matrix_scaled[, 2:7])
-
-#clustering
-cluster_matrix <- as.matrix(matrix_scaled[, -c(1)])
-rownames(cluster_matrix) <- matrix_scaled$drug
-matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
-
-# Create dendro
-dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
-ggsave(here('figures/cardio_toxicity/dendro_plot.png'))
+ggsave(here('figures/cardio_toxicity/dendro_plot.png'), width = 4.5, height = 16.35, units = "cm")
 
 #heatmap plot
 drug_order <- order.dendrogram(matrix_dendro)
@@ -193,6 +179,69 @@ event_heatmap_plot = cardio_toxicity_data_long %>%
 
 ggsave(here('figures/cardio_toxicity/event_heatmap.png'), width = 4, height = 21, units = "cm")
 
+zv_kinases = cardio_toxicity_data_full_long %>% 
+	group_by(kinase) %>% 
+	summarise(var = var(relative_intensity)) %>% 
+	filter(var == 0)
+
+target_heatmap_plot = cardio_toxicity_data_full_long %>%
+	filter(!kinase %in% zv_kinases$kinase) %>% 
+	ggplot(aes(x = kinase, y = drug)) +
+	labs(x = "Kinase") +
+  geom_tile(aes(fill = relative_intensity)) +
+  scale_fill_viridis_c() +
+  theme(
+  	legend.position = "bottom",
+  	axis.text.x = element_blank(),
+  	axis.ticks.x = element_blank(),
+    axis.ticks.y = element_blank(),
+  	axis.title.y = element_blank(),
+  	axis.text.y = element_blank())
+
+ggsave(here('figures/cardio_toxicity/target_heatmap.png'), width = 21, height = 17.34, units = "cm")
+```
+
+```{r}
+#target-based heirarchichal clustering
+
+#scaling columns
+matrix_scaled <- cardio_toxicity_data_full
+matrix_scaled[, c(8:824)] <- scale(matrix_scaled[, 8:824])
+
+#clustering
+cluster_matrix <- as.matrix(matrix_scaled[, -c(1,2,3,4,5,6,7)])
+rownames(cluster_matrix) <- matrix_scaled$drug
+matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
+
+# Create dendro
+dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
+ggsave(here('figures/cardio_toxicity/target_dendro_plot.png'), width = 4.5, height = 16.35, units = "cm")
+
+#heatmap plot
+drug_order <- order.dendrogram(matrix_dendro)
+cardio_toxicity_data_long$drug <- factor(x = cardio_toxicity_data_long$drug,
+                               levels = matrix_scaled$drug[drug_order], 
+                               ordered = TRUE)
+
+cardio_toxicity_data_full_long$drug <- factor(x = cardio_toxicity_data_full_long$drug,
+                               levels = matrix_scaled$drug[drug_order], 
+                               ordered = TRUE)
+
+event_heatmap_plot = cardio_toxicity_data_long %>% 
+	ggplot(aes(x = cardiac_adverse_event, y = drug)) +
+	labs(y = "Clinical Kinase Inhibitors") +
+  geom_tile(aes(fill = Incidence)) +
+  scale_fill_viridis_d() +
+  theme(
+  	legend.position = "bottom",
+  	legend.direction = "vertical",
+  	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  	axis.title.x = element_blank(),
+  	axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+
+ggsave(here('figures/cardio_toxicity/target_event_heatmap.png'), width = 4, height = 21, units = "cm")
+
 target_heatmap_plot = cardio_toxicity_data_full_long %>%
 	ggplot(aes(x = kinase, y = drug)) +
 	labs(x = "Kinase") +
@@ -206,7 +255,5 @@ target_heatmap_plot = cardio_toxicity_data_full_long %>%
   	axis.title.y = element_blank(),
   	axis.text.y = element_blank())
 
-ggsave(here('figures/cardio_toxicity/target_heatmap.png'), width = 21, height = 18.93, units = "cm")
+ggsave(here('figures/cardio_toxicity/target_target_heatmap.png'), width = 21, height = 18.93, units = "cm")
 ```
-
-
