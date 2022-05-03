@@ -3,7 +3,7 @@ library(here)
 
 feature_num = 100
 
-writeLines(c("!/bin/bash",
+writeLines(c("#!/bin/bash",
 						 "#SBATCH -N 1",
 						 "#SBATCH -n 1",
 						 "#SBATCH -p volta-gpu",
@@ -16,4 +16,4 @@ writeLines(c("!/bin/bash",
 						 "module load gcc/9.1.0",
 						 "module load cuda/11.4",
 						 sprintf("Rscript src/LINCS_modeling/build_LINCS_klaeger_auc_models/activation_expression_models/regression/build_xgboost_models_ANOVA_GPU.R --feature_num %d", feature_num)
-						 ), here("results/output.sh"))
+						 ), here("src/output.sh"))
