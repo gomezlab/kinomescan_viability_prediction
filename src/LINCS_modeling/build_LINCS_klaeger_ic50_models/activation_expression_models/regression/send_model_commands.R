@@ -47,10 +47,10 @@ library(tidyverse)
 # 
 # }
 
+command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --constraint=rhel8 --mem=30G --time=120:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu --wrap=\"echo \' module ls \' | bash\"')
+# command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --constraint=rhel8 --mem=30G --time=120:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu   --wrap " echo \"module ls\" | bash"')
 	
-	command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --constraint=rhel8 --mem=30G --time=120:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu   --wrap " echo \"module ls\" | bash"')
-	
-	system(command)
+system(command)
 	
 
 # for (feature_num in c(3000,4000,5000)) {
