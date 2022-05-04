@@ -233,27 +233,33 @@ event_heatmap_plot = cardio_toxicity_data_long %>%
   geom_tile(aes(fill = Incidence)) +
   scale_fill_viridis_d() +
   theme(
-  	legend.position = "bottom",
+  	legend.position = "left",
   	legend.direction = "vertical",
   	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
   	axis.title.x = element_blank(),
   	axis.text.y = element_blank(),
     axis.ticks.y = element_blank())
 
-ggsave(here('figures/cardio_toxicity/target_event_heatmap.png'), width = 4, height = 21, units = "cm")
+ggsave(here('figures/cardio_toxicity/target_event_heatmap.png'), width = 7.5, height = 21, units = "cm")
+
+zv_kinases = cardio_toxicity_data_full_long %>% 
+	group_by(kinase) %>% 
+	summarise(var = var(relative_intensity)) %>% 
+	filter(var == 0)
 
 target_heatmap_plot = cardio_toxicity_data_full_long %>%
+	filter(!kinase %in% zv_kinases$kinase) %>% 
 	ggplot(aes(x = kinase, y = drug)) +
 	labs(x = "Kinase") +
   geom_tile(aes(fill = relative_intensity)) +
   scale_fill_viridis_c() +
   theme(
   	legend.position = "bottom",
-  	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  	axis.text.x = element_blank(),
   	axis.ticks.x = element_blank(),
     axis.ticks.y = element_blank(),
   	axis.title.y = element_blank(),
   	axis.text.y = element_blank())
 
-ggsave(here('figures/cardio_toxicity/target_target_heatmap.png'), width = 21, height = 18.93, units = "cm")
+ggsave(here('figures/cardio_toxicity/target_target_heatmap.png'), width = 17.7, height = 20.29, units = "cm")
 ```
