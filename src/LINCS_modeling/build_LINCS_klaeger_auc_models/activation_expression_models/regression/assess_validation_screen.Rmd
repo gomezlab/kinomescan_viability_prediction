@@ -2,12 +2,7 @@
 library(tidyverse)
 library(here)
 library(dr4pl)
-
-compute_auc <- function(l, u, ec50, h, md, MD) {
-  f1 = function(x) pmax(pmin((l + (u - l)/(1 + (2^x/ec50)^h)),1), 0 )
-  return(integrate(f1, log2(md),log2(MD))$value/(log2(MD/md)))
-}
-
+library(PharmacoGx)
 # compute_log_ic50 <- function(l, u, ec50, h, md, MD) {
 #   if((l >= 0.5) | (u <= 0.5)) {
 #     return(NA)
@@ -21,12 +16,26 @@ compute_auc <- function(l, u, ec50, h, md, MD) {
 
 ```{r}
 #read in data 
+sample_info = read_csv(here('data/CCLE_data/sample_info.csv')) %>% 
+	select(DepMap_ID, stripped_cell_line_name)
+
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
+	mutate(drug = if_else(is.na(klaeger_name),
+															LINCS_name, 
+															klaeger_name))
+
+response_curve_parameters = read_csv(here('data/PRISM/secondary/secondary-screen-dose-response-curve-parameters.csv')) %>% 
+	#Filter only to compounds that match the Klaeger list and to cell lines that
+	#passed STR profiling
+	filter(broad_id %in% compound_match_list$broad_id, passed_str_profiling, !is.na(ic50))
+
 first_validation = read_rds(here('results/validation_results/validation_screen.rds'))
 second_validation = read_rds(here('results/validation_results/double_negative_validation_screen.rds'))
+PRISM_replication = read_rds(here('results/validation_results/HCC_PRISM_replication_screen.rds'))
 validation_results = first_validation %>% 
 	bind_rows(second_validation) 
 
-#model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions.csv'))
+model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions.csv'))
 
 ```
 
@@ -40,27 +49,159 @@ validation_summaries = validation_results %>%
 						mean_via = mean(viability),
 						CV = sd/mean_via)
 
+replication_summaries = PRISM_replication %>% 
+	group_by(compound, concentration_M, cell_line) %>%
+	summarise(sd = sd(viability),
+						num_samples = n(),
+						mean_via = mean(viability),
+						CV = sd/mean_via)
+```
+
+```{r}
+#Analyzing PRISM Replication first 
 #generating AUC values from 4-parameter log-logistic model
 
-query_drug = "Sotrastaurin"
-query_cell_line = "BT-474"
+cell_line_drug_combos = replication_summaries %>%
+	ungroup() %>% 
+	select(compound, cell_line) %>% 
+	unique() %>% 
+	filter(!compound == "DMSO")
 
-this_data = validation_summaries %>% 
-	filter(compound == query_drug & cell_line == query_cell_line)
+all_replication_results = data.frame()
+for(i in 1:dim(cell_line_drug_combos)[1]) {
+query_drug = cell_line_drug_combos$compound[i]
+query_cell_line = cell_line_drug_combos$cell_line[i]
 
-this_results = dr4pl(dose = this_data$concentration_M, response = this_data$mean_via,
-                     method.init = "logistic", trend = "decreasing")
+this_data = replication_summaries %>% 
+	filter(compound == query_drug & cell_line == query_cell_line) %>% 
+	#convert dose to uM
+	mutate(concentration_M = concentration_M*10^6)
 
-param = summary(this_results)$coefficients$Estimate
+# this_results = dr4pl(dose = this_data$concentration_M, response = this_data$mean_via,
+#                      method.init = "logistic", trend = "decreasing")
+# 
+# param = summary(this_results)$coefficients$Estimate
+# 
+# E_inf = param[4]
+# u = param[1]
+# ec50 = param[2]
+# hill_slope = param[3]
+# md =  min(this_data$concentration_M)
+# MD =  max(this_data$concentration_M)
 
-    #R2 <- 1 - (sum(d$e)/(nrow(d) * var(d$LFC.cb)))
-    auc <- compute_auc(param[4], param[1], param[2], -param[3],
-                       min(this_data$concentration_M),max(this_data$concentration_M))
-    
-    # log2.ic50 <- compute_log_ic50(param[4], param[1], param[2], -param[3],
-    #                               min(this_data$concentration_M),max(this_data$concentration_M))
-    # 
+
+auc = 100 - computeAUC(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE,
+								 area.type = "Fitted")
+								 # Hill_fit = c(hill_slope, E_inf, ec50))
+
+ic50 = computeIC50(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE)
+								 # Hill_fit = c(hill_slope, E_inf, ec50)) 
+
+
+results_dataframe = data.frame(drug = query_drug, cell_line = query_cell_line, exp_auc = auc, exp_ic50 = ic50)
+
+all_replication_results = bind_rows(all_replication_results, results_dataframe)
+}
+
+cor(all_replication_results$exp_auc, all_replication_results$exp_ic50)
+
+# auc <- compute_auc(param[4], 
+# 									 param[1],
+# 									 param[2],
+# 									 -param[3],
+# 									 min(this_data$concentration_M),
+# 									 max(this_data$concentration_M))
+#     
+# 
+# compute_auc = function(l, u, ec50, h, md, MD) {
+#     f1 = function(x) pmax(pmin((l + (u - l)/(1 + (2^x/ec50)^h)),1),0)
+#     integrate(f1, log2(md),log2(MD))$value/(log2(MD/md))
+# }
    
 
+```
+
+```{r}
+replication_comparison = all_replication_results %>% 
+	left_join(compound_match_list %>% select(drug, PRISM_name, broad_id)) %>% 
+	mutate(stripped_cell_line_name = case_when(
+		cell_line == "HCC-1806" ~ "HCC1806",
+		T ~ cell_line
+	)) %>% 
+	left_join(sample_info) %>% 
+	left_join(response_curve_parameters %>% 
+							select(broad_id, depmap_id, auc, ic50),
+						by = c("broad_id", "DepMap_ID" = "depmap_id")) %>% 
+	filter(!is.na(auc))
+
+cor(replication_comparison$auc, replication_comparison$exp_auc)
+```
+
+```{r}
+#Analyzing Validation of Model Predictions 
+#generating AUC values from 4-parameter log-logistic model
+
+cell_line_drug_combos = validation_summaries %>%
+	ungroup() %>% 
+	select(compound, cell_line) %>% 
+	unique() %>% 
+	filter(!compound == "DMSO")
+
+all_validation_results = data.frame()
+for(i in 1:dim(cell_line_drug_combos)[1]) {
+query_drug = cell_line_drug_combos$compound[i]
+query_cell_line = cell_line_drug_combos$cell_line[i]
+
+this_data = validation_summaries %>% 
+	filter(compound == query_drug & cell_line == query_cell_line) %>% 
+	#convert dose to uM
+	mutate(concentration_M = concentration_M*10^6)
+
+auc = 100 - computeAUC(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE,
+								 area.type = "Fitted")
+								 # Hill_fit = c(hill_slope, E_inf, ec50))
+
+ic50 = computeIC50(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE)
+								 # Hill_fit = c(hill_slope, E_inf, ec50)) 
+
+
+results_dataframe = data.frame(drug = query_drug, cell_line = query_cell_line, exp_auc = auc, exp_ic50 = ic50)
+
+all_validation_results = bind_rows(all_validation_results, results_dataframe)
+}
+```
+
+```{r}
+validation_assessment = all_validation_results %>% 
+	mutate(stripped_cell_line_name = case_when(
+		cell_line == "BT-474" ~ "BT474",
+		cell_line == "SUM159" ~ "SUM159PT",
+		T ~ cell_line
+	)) %>% 
+	mutate(drug = ifelse(drug == "ONO-4059 (analog)","ONO-4059 analogue",drug)) %>% 
+	left_join(sample_info) %>% 
+	rename(DepMap_ID = "depmap_id") %>% 
+	left_join(model_predictions) %>% 
+	mutate(exp_auc = exp_auc/100) %>% 
+	filter(!is.na(predicted_auc))
+
+cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
+
+validation_assessment %>% 
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm")
 ```
 

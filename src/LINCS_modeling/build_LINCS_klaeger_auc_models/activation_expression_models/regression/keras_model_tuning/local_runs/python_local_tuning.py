@@ -1,53 +1,10 @@
----
-title: "Untitled"
-output: html_document
-date: '2022-05-05'
----
-
-```{r}
-library(tidyverse)
-library(here)
-library(patchwork)
-library(keras)
-library(vroom)
-library(tidymodels)
-library(tfdatasets)
-library(tictoc)
-library(Metrics)
-library(conflicted)
-library(reticulate)
-conflict_prefer("fit", "keras")
-conflict_prefer("filter", "dplyr")
-conflict_prefer("all_numeric", "tfdatasets")
-conflict_prefer("rmse", "Metrics")
-```
-
-```{r}
-#read in data
-data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-'results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/hps_keras_'
-```
-
-```{python}
-import numpy as np
-import pandas as pd
-from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from tensorflow import keras
-from sklearn.model_selection import StratifiedKFold, cross_val_score, GridSearchCV
-import gzip
-from scikeras.wrappers import KerasRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-```
-
-```{python}
 data = r.data
 feats = r.cors
-feat_counts = [200,300,400,500,1000,1500,2000,3000,4000,5000]
+
+feat_counts = [100,200,300,400,500,1000,1500,2000,3000,4000,5000]
 
 for f in feat_counts:
-    data = r.data
-    feats = r.cors
+
     feats_list = feats['feature'][:f].tolist()
     feats_list.append('auc')
     data = data[feats_list]
@@ -96,24 +53,21 @@ for f in feat_counts:
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 
-    rnd_search_cv = GridSearchCV(keras_clf, param_distribs, cv=5, verbose=1, scoring='r2', refit=True)
+    rnd_search_cv = GridSearchCV(keras_clf, param_distribs, cv=10, verbose=2, scoring='r2', refit=True)
     rnd_search_cv.fit(X_train, y_train, epochs=100, batch_size=512,
                     validation_data=(X_valid, y_valid),
                     callbacks=[keras.callbacks.EarlyStopping(patience=15, min_delta=1e-4, restore_best_weights=True)])
     
     best_model = rnd_search_cv.best_estimator_
-    r2score = (cross_val_score(best_model, X, y, cv=5, scoring='r2')).mean()
-    mse = (cross_val_score(best_model, X, y, cv=5, scoring='neg_mean_squared_error')).mean()
+    r2score = (cross_val_score(best_model, X, y, cv=10, scoring='r2')).mean()
+    mse = (cross_val_score(best_model, X, y, cv=10, scoring='neg_mean_squared_error')).mean()
     
     
     preds = best_model.predict(X_valid)
     r2score = r2_score(y_valid, preds)
     mse = mean_squared_error(y_valid, preds, squared=False)
     scores = pd.DataFrame({'r2': [r2score], 'mse': [mse]})
-    scores.to_csv('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/scores/hps_keras_' + str(f) + '.csv', index=False)
+    scores.to_csv('results/scores_keras_' + str(f) + '.csv', index=False)
 
     results = pd.DataFrame(rnd_search_cv.cv_results_)
-    results.sort_values(by='rank_test_score').to_csv('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/hps_keras_' + str(f) + '.csv')
-
-```
-
+  	results.sort_values(by='rank_test_score').to_csv('results/results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/hps_keras_' + str(f) + '.csv')
