@@ -26,7 +26,7 @@ conflict_prefer("rmse", "Metrics")
 #read in data
 data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-'results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/hps_keras_'
+
 ```
 
 ```{python}
