@@ -1,0 +1,66 @@
+```{r}
+library(tidyverse)
+library(here)
+library(dr4pl)
+
+compute_auc <- function(l, u, ec50, h, md, MD) {
+  f1 = function(x) pmax(pmin((l + (u - l)/(1 + (2^x/ec50)^h)),1), 0 )
+  return(integrate(f1, log2(md),log2(MD))$value/(log2(MD/md)))
+}
+
+# compute_log_ic50 <- function(l, u, ec50, h, md, MD) {
+#   if((l >= 0.5) | (u <= 0.5)) {
+#     return(NA)
+#   } else {
+#     f1 = function(x) (l + (u - l)/(1 + (2^x/ec50)^h) - 0.5)
+#     return(tuniroot(f1, c(log2(md), log2(MD)))$root)
+#   }
+# }
+
+```
+
+```{r}
+#read in data 
+first_validation = read_rds(here('results/validation_results/validation_screen.rds'))
+second_validation = read_rds(here('results/validation_results/double_negative_validation_screen.rds'))
+validation_results = first_validation %>% 
+	bind_rows(second_validation) 
+
+#model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions.csv'))
+
+```
+
+```{r}
+#summarising validation by replicate 
+
+validation_summaries = validation_results %>% 
+	group_by(compound, concentration_M, cell_line) %>%
+	summarise(sd = sd(viability),
+						num_samples = n(),
+						mean_via = mean(viability),
+						CV = sd/mean_via)
+
+#generating AUC values from 4-parameter log-logistic model
+
+query_drug = "Sotrastaurin"
+query_cell_line = "BT-474"
+
+this_data = validation_summaries %>% 
+	filter(compound == query_drug & cell_line == query_cell_line)
+
+this_results = dr4pl(dose = this_data$concentration_M, response = this_data$mean_via,
+                     method.init = "logistic", trend = "decreasing")
+
+param = summary(this_results)$coefficients$Estimate
+
+    #R2 <- 1 - (sum(d$e)/(nrow(d) * var(d$LFC.cb)))
+    auc <- compute_auc(param[4], param[1], param[2], -param[3],
+                       min(this_data$concentration_M),max(this_data$concentration_M))
+    
+    # log2.ic50 <- compute_log_ic50(param[4], param[1], param[2], -param[3],
+    #                               min(this_data$concentration_M),max(this_data$concentration_M))
+    # 
+   
+
+```
+
