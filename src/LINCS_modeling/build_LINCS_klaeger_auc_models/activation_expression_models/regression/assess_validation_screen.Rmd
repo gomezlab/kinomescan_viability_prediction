@@ -3,15 +3,10 @@ library(tidyverse)
 library(here)
 library(dr4pl)
 library(PharmacoGx)
-# compute_log_ic50 <- function(l, u, ec50, h, md, MD) {
-#   if((l >= 0.5) | (u <= 0.5)) {
-#     return(NA)
-#   } else {
-#     f1 = function(x) (l + (u - l)/(1 + (2^x/ec50)^h) - 0.5)
-#     return(tuniroot(f1, c(log2(md), log2(MD)))$root)
-#   }
-# }
-
+library(Metrics)
+library(conflicted)
+conflict_prefer("rmse", "Metrics")
+conflict_prefer("filter", "dplyr")
 ```
 
 ```{r}
@@ -138,9 +133,36 @@ replication_comparison = all_replication_results %>%
 	left_join(response_curve_parameters %>% 
 							select(broad_id, depmap_id, auc, ic50),
 						by = c("broad_id", "DepMap_ID" = "depmap_id")) %>% 
+	mutate(exp_auc = exp_auc/100) %>% 
 	filter(!is.na(auc))
 
-cor(replication_comparison$auc, replication_comparison$exp_auc)
+rsq = cor(replication_comparison$auc, replication_comparison$exp_auc)^2
+rmse = rmse(replication_comparison$auc, replication_comparison$exp_auc)
+
+replication_comparison %>% 
+	ggplot(aes(x = auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm") +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(title = 
+  paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	1),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	), 
+  x = "PRISM AUC",
+  y = "Replicated AUC") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png'))
 ```
 
 ```{r}
@@ -197,11 +219,33 @@ validation_assessment = all_validation_results %>%
 	mutate(exp_auc = exp_auc/100) %>% 
 	filter(!is.na(predicted_auc))
 
-cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
+rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
+
+rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
 
 validation_assessment %>% 
 	ggplot(aes(x = predicted_auc, y = exp_auc)) +
 	geom_point() +
-	geom_smooth(method = "lm")
+	geom_smooth(method = "lm") +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(title = 
+  paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	1),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	), 
+  x = "Predicted AUC",
+  y = "Actual AUC") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'))
 ```
 

@@ -24,9 +24,8 @@ conflict_prefer("rmse", "Metrics")
 
 ```{r}
 #read in data
-data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_ic50.rds.gz'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_ic50.csv'))
 ```
 
 ```{python}
@@ -49,11 +48,11 @@ for f in feat_counts:
     data = r.data
     feats = r.cors
     feats_list = feats['feature'][:f].tolist()
-    feats_list.append('auc')
+    feats_list.append('ic50')
     data = data[feats_list]
 
-    exclude = ['auc']
-    y = data['auc']
+    exclude = ['ic50']
+    y = data['ic50']
     X = data.drop(exclude, axis=1)
 
     X_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.8, test_size=0.2, random_state=0)
@@ -110,10 +109,10 @@ for f in feat_counts:
     r2score = r2_score(y_valid, preds)
     mse = mean_squared_error(y_valid, preds, squared=False)
     scores = pd.DataFrame({'r2': [r2score], 'mse': [mse]})
-    scores.to_csv('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/scores/hps_keras_' + str(f) + '.csv', index=False)
+    scores.to_csv('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/scores/hps_keras_' + str(f) + '.csv', index=False)
 
     results = pd.DataFrame(rnd_search_cv.cv_results_)
-    results.sort_values(by='rank_test_score').to_csv('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results/hps_keras_' + str(f) + '.csv')
+    results.sort_values(by='rank_test_score').to_csv('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results/hps_keras_' + str(f) + '.csv')
 
 ```
 

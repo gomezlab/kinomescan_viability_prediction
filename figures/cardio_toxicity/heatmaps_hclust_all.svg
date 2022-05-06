@@ -30,7 +30,7 @@
      width="297mm"
      inkscape:zoom="0.69977474"
      inkscape:cx="216.49824"
-     inkscape:cy="447.28679"
+     inkscape:cy="332.96429"
      inkscape:window-width="1920"
      inkscape:window-height="1043"
      inkscape:window-x="0"
@@ -44,7 +44,7 @@
      inkscape:groupmode="layer"
      id="layer1">
     <image
-       width="39.962666"
+       width="74.929998"
        height="209.97333"
        preserveAspectRatio="none"
        xlink:href="event_heatmap.png"
@@ -52,20 +52,20 @@
        x="0.65852511"
        y="0.30186483" />
     <image
-       width="209.97333"
-       height="174.39267"
+       width="176.95332"
+       height="205.99399"
        preserveAspectRatio="none"
        xlink:href="target_heatmap.png"
-       id="image213"
-       x="40.621189"
+       id="image97"
+       x="75.588524"
        y="0.30186483" />
     <image
        width="44.958"
-       height="168.50577"
+       height="203.79267"
        preserveAspectRatio="none"
        xlink:href="dendro_plot.png"
-       id="image317"
-       x="250.59451"
-       y="-4.3071799" />
+       id="image189"
+       x="251.24448"
+       y="-5.8786573" />
   </g>
 </svg>

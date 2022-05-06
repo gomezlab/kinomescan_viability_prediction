@@ -24,7 +24,7 @@ conflict_prefer("vi", "vip")
 conflict_prefer("rmse", "Metrics")
 ```
 
-#Kevin's Keras Tuning Assessment
+#Keras Tuning Assessment
 
 ```{r}
 
