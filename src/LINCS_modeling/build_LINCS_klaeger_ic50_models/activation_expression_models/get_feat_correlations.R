@@ -35,4 +35,4 @@ find_feature_correlations <- function(row_indexes = NA, all_data) {
 
 feat_cors = find_feature_correlations(all_data = data)
 
-write_csv(feat_cors, here('results/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
+write_csv(feat_cors, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))

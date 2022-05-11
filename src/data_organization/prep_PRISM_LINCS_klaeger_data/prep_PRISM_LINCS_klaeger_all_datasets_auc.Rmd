@@ -13,7 +13,7 @@ library(vroom)
 #read in data 
 compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
 
-LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
 
 PRISM_auc = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_auc_for_ml.csv'))
 
@@ -32,14 +32,6 @@ depmap_data = read_rds(here('data/full_depmap_for_ML.rds'))
 
 ```{r}
 #variable renaming
-LINCS_klaeger_data_long_processed = LINCS_klaeger_data_long %>% 
-	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
-	mutate(kinase = if_else(
-		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
-		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
-		kinase
-	))
-
 CCLE_processed = CCLE %>% 
 	rename_with(~ str_replace(.x, "[-;]", "_"))
 
@@ -55,6 +47,19 @@ depmap_data_processed = depmap_data %>%
 ```
 
 ```{r}
+#prefering klaeger names for matching
+compound_match_list_processed = compound_match_list %>% 
+	mutate(drug = if_else(is.na(klaeger_name), 
+												LINCS_name, 
+												klaeger_name)) %>% 
+	select(drug, broad_id) %>% 
+	unique()
+
+duplicate_broad_ids = compound_match_list_processed %>% 
+	count(drug)
+```
+
+```{r}
 PRISM_auc_binarized = PRISM_auc %>% 
 	mutate(auc_binary = if_else(
 		auc <= median(PRISM_auc$auc),
@@ -62,45 +67,17 @@ PRISM_auc_binarized = PRISM_auc %>%
 		0
 	))
 
-LINCS_klaeger_data_for_model = LINCS_klaeger_data_long %>% 
-	mutate(act_gene_name = paste0('act_', kinase)) %>% 
-	select(-kinase, -binary_hit) %>% 
-	left_join(compound_match_list,
-		by = c('drug' = 'klaeger_name')
-	) %>% 
-	select(-LINCS_name) %>% 
-	rename('PRISM_name_klaeger' = PRISM_name, 'broad_id_klaeger' = broad_id) %>%
-	left_join(compound_match_list,
-		by = c('drug' = 'LINCS_name')
-	) %>% 
-	select(-klaeger_name) %>% 
-	rename('PRISM_name_LINCS' = PRISM_name, 'broad_id_LINCS' = broad_id) %>% 
-	mutate(
-		PRISM_name = if_else(
-		is.na(PRISM_name_klaeger),
-		PRISM_name_LINCS,
-		PRISM_name_klaeger
-		),
-		broad_id = if_else(
-			is.na(broad_id_klaeger),
-			broad_id_LINCS,
-			broad_id_klaeger
-		)
-	) %>% 
-	select(-PRISM_name_klaeger, -broad_id_klaeger, -PRISM_name_LINCS, -broad_id_LINCS) %>% 
-	filter(!is.na(broad_id)) %>% 
-	unique() %>% 
-	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
-	mutate_all(~replace(., is.na(.), 1))
+LINCS_klaeger_data_for_model = LINCS_klaeger_data_wide %>% 
+	left_join(compound_match_list_processed) %>% 
+	filter(!is.na(broad_id)) 
 
 all_model_data = PRISM_auc_binarized %>% 
 	filter(depmap_id %in% depmap_data_processed$DepMap_ID) %>%
-	filter(depmap_id %in% CCLE$depmap_id) %>%
+	filter(depmap_id %in% CCLE_processed$depmap_id) %>%
 	filter(depmap_id %in% CNV_processed$DepMap_ID) %>%
 	filter(depmap_id %in% proteomics_data_processed$DepMap_ID) %>%
-	left_join(CCLE, by = 'depmap_id') %>% 
+	left_join(CCLE_processed, by = 'depmap_id') %>% 
 	left_join(LINCS_klaeger_data_for_model, by = c('broad_id')) %>% 
-	select(-name, -PRISM_name) %>%
 	mutate(auc_binary = as.factor(auc_binary)) %>%
 	left_join(depmap_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
 	left_join(CNV_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
@@ -124,69 +101,5 @@ all_data_filtered %>%
 	geom_histogram()
 
 write_rds(all_data_filtered, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_auc.rds.gz'), compress = "gz")
-```
-
-```{r}
-PRISM_auc_binarized = PRISM_auc %>% 
-	mutate(auc_binary = if_else(
-		auc <= median(PRISM_auc$auc),
-		1,
-		0
-	))
-
-LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long %>% 
-	mutate(act_gene_name = paste0('act_', kinase)) %>% 
-	select(-kinase, -relative_intensity) %>% 
-		left_join(compound_match_list,
-		by = c('drug' = 'klaeger_name')
-	) %>% 
-	select(-LINCS_name) %>% 
-	rename('PRISM_name_klaeger' = PRISM_name, 'broad_id_klaeger' = broad_id) %>%
-	left_join(compound_match_list,
-		by = c('drug' = 'LINCS_name')
-	) %>% 
-	select(-klaeger_name) %>% 
-	rename('PRISM_name_LINCS' = PRISM_name, 'broad_id_LINCS' = broad_id) %>% 
-	mutate(
-		PRISM_name = if_else(
-		is.na(PRISM_name_klaeger),
-		PRISM_name_LINCS,
-		PRISM_name_klaeger
-		),
-		broad_id = if_else(
-			is.na(broad_id_klaeger),
-			broad_id_LINCS,
-			broad_id_klaeger
-		)
-	) %>% 
-	select(-PRISM_name_klaeger, -broad_id_klaeger, -PRISM_name_LINCS, -broad_id_LINCS) %>% 
-	filter(!is.na(broad_id)) %>% 
-	unique() %>%
-	pivot_wider(names_from = act_gene_name, values_from = binary_hit) %>% 
-	mutate_all(~replace(., is.na(.), 0))
-
-all_binary_model_data = PRISM_auc_binarized %>% 
-	filter(depmap_id %in% depmap_data_processed$DepMap_ID) %>%
-	filter(depmap_id %in% CCLE$depmap_id) %>%
-	filter(depmap_id %in% CNV_processed$DepMap_ID) %>%
-	filter(depmap_id %in% proteomics_data_processed$DepMap_ID) %>%
-	left_join(CCLE, by = 'depmap_id') %>% 
-	left_join(LINCS_klaeger_data_for_model_binary_hit, by = c('broad_id')) %>% 
-	select(-name, -PRISM_name) %>%
-	mutate(auc_binary = as.factor(auc_binary)) %>%
-	left_join(depmap_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
-	left_join(CNV_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
-	left_join(proteomics_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
-	drop_na()
-
-all_binary_data_filtered = all_binary_model_data %>%
-	filter(auc <= 1) %>% 
-	mutate(across(starts_with(c('act','auc_binary')), ~ as.factor(.)))
-
-all_binary_data_filtered %>% 
-	ggplot(aes(x = auc)) +
-	geom_histogram()
-
-write_rds(all_binary_data_filtered, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_binary_all_multiomic_data_for_ml_auc.rds.gz'), compress = "gz")
 ```
 

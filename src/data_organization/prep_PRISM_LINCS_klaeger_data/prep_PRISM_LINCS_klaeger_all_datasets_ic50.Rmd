@@ -13,9 +13,9 @@ library(vroom)
 #read in data 
 compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
 
-LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
 
-PRISM_ic50 = read_csv(here('results/PRISM_ic50_for_ml.csv'))
+PRISM_ic50 = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_ic50_for_ml.csv'))
 
 CCLE = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
 	rename('depmap_id' = DepMap_ID) %>% 
@@ -31,15 +31,20 @@ depmap_data = read_rds(here('data/full_depmap_for_ML.rds'))
 ```
 
 ```{r}
-#variable renaming
-LINCS_klaeger_data_long_processed = LINCS_klaeger_data_long %>% 
-	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
-	mutate(kinase = if_else(
-		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
-		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
-		kinase
-	))
+#prefering klaeger names for matching
+compound_match_list_processed = compound_match_list %>% 
+	mutate(drug = if_else(is.na(klaeger_name), 
+												LINCS_name, 
+												klaeger_name)) %>% 
+	select(drug, broad_id) %>% 
+	unique()
 
+duplicate_broad_ids = compound_match_list_processed %>% 
+	count(drug)
+```
+
+```{r}
+#variable renaming
 CCLE_processed = CCLE %>% 
 	rename_with(~ str_replace(.x, "[-;]", "_"))
 
@@ -51,6 +56,7 @@ proteomics_data_processed = proteomics_data %>%
 
 depmap_data_processed = depmap_data %>% 
 	rename_with(~ str_replace(.x, "[-;]", "_"))
+
 ```
 
 ```{r}
@@ -61,36 +67,9 @@ PRISM_ic50_binarized = PRISM_ic50 %>%
 		0
 	))
 
-LINCS_klaeger_data_for_model = LINCS_klaeger_data_long_processed %>% 
-	mutate(act_gene_name = paste0('act_', kinase)) %>% 
-	select(-kinase, -binary_hit) %>% 
-	left_join(compound_match_list,
-		by = c('drug' = 'klaeger_name')
-	) %>% 
-	select(-LINCS_name) %>% 
-	rename('PRISM_name_klaeger' = PRISM_name, 'broad_id_klaeger' = broad_id) %>%
-	left_join(compound_match_list,
-		by = c('drug' = 'LINCS_name')
-	) %>% 
-	select(-klaeger_name) %>% 
-	rename('PRISM_name_LINCS' = PRISM_name, 'broad_id_LINCS' = broad_id) %>% 
-	mutate(
-		PRISM_name = if_else(
-		is.na(PRISM_name_klaeger),
-		PRISM_name_LINCS,
-		PRISM_name_klaeger
-		),
-		broad_id = if_else(
-			is.na(broad_id_klaeger),
-			broad_id_LINCS,
-			broad_id_klaeger
-		)
-	) %>% 
-	select(-PRISM_name_klaeger, -broad_id_klaeger, -PRISM_name_LINCS, -broad_id_LINCS) %>% 
-	filter(!is.na(broad_id)) %>% 
-	unique() %>% 
-	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
-	mutate_all(~replace(., is.na(.), 1))
+LINCS_klaeger_data_for_model = LINCS_klaeger_data_wide %>% 
+	left_join(compound_match_list_processed) %>% 
+	filter(!is.na(broad_id))
 
 all_model_data = PRISM_ic50_binarized %>% 
 	filter(depmap_id %in% depmap_data_processed$DepMap_ID) %>%
@@ -99,20 +78,26 @@ all_model_data = PRISM_ic50_binarized %>%
 	filter(depmap_id %in% proteomics_data_processed$DepMap_ID) %>%
 	left_join(CCLE_processed, by = 'depmap_id') %>% 
 	left_join(LINCS_klaeger_data_for_model, by = c('broad_id')) %>% 
-	select(-name, -PRISM_name) %>%
 	mutate(ic50_binary = as.factor(ic50_binary)) %>%
 	left_join(depmap_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
 	left_join(CNV_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
 	left_join(proteomics_data_processed, by=c('depmap_id' = 'DepMap_ID')) %>%
 	drop_na()
 
-#excluding wild ic50 values
-
+#excluding ic50 values below 1 nM and over 30 uM
 all_data_filtered = all_model_data %>% 
-	filter(ic50 < 10) %>%
-	filter(ic50 > 0.001) %>% 
-	mutate(ic50 = log10(ic50)) %>% 
+	filter(ic50 <= 30 & ic50 >= 0.001) %>% 
 	mutate(across(starts_with(c('ic50_binary')), ~ as.factor(.)))
+
+all_data_filtered %>% 
+	ggplot(aes(x = log(ic50))) +
+	geom_histogram()
+
+#Need a log transform
+
+all_data_filtered_transformed = all_data_filtered %>% 
+	mutate(ic50 = log(ic50))
 
 write_rds(all_data_filtered, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_ic50.rds.gz'), compress = "gz")
 ```
+

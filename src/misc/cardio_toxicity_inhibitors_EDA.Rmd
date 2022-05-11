@@ -17,8 +17,8 @@ cardio_toxicity_data_full = read_rds(here('results/cardio_toxicity_models/cardio
 ```{r}
 #pre-process data
 cardio_toxicity_data_processed = cardio_toxicity_data %>% 
-	mutate(across(-drug, ~case_when(. == 0 ~ "No Reported Event",
-																	. == 1 ~ "Reported Event",
+	mutate(across(-drug, ~case_when(. == 1 ~ "No Reported Event",
+																	. == 0 ~ "Reported Event",
 																	. == 2 ~ ">10% Incidence"))) 
 
 cardio_toxicity_data_long = cardio_toxicity_data_processed %>% 
@@ -120,7 +120,7 @@ top_10_kinases_per_disease$kinase = factor(top_10_kinases_per_disease$kinase, le
 top_10_kinases_per_disease %>% 
 	ggplot(aes(x = kinase, y = cardiac_adverse_event, size = target_score, colour = kinase)) +
 	geom_point(alpha = 0.7) +
-	labs(x = "Kinase", y = " ", title = "Kinase Inhibition Frequency\nby Cardiac Toxicity", size = "Number of Toxicity-Causing Drugs\nThat Inhibit the Given Kinase") +
+	labs(x = "Kinase", y = " ", title = "Kinase Inhibition Frequency by Cardiac Toxicity", size = "Number of Toxicity-Causing Drugs\nThat Inhibit the Given Kinase") +
 		theme(
 		legend.position = "bottom",
 		legend.text = element_text(size = 9),
@@ -203,7 +203,7 @@ ggsave(here('figures/cardio_toxicity/target_heatmap.png'), width = 17.7, height 
 ```
 
 ```{r}
-#target-based heirarchichal clustering
+#target-based hierarchical clustering
 
 #scaling columns
 matrix_scaled <- cardio_toxicity_data_full
@@ -216,7 +216,7 @@ matrix_dendro <- as.dendrogram(hclust(d = dist(x = cluster_matrix)))
 
 # Create dendro
 dendro_plot <- ggdendrogram(data = matrix_dendro, rotate = TRUE)
-ggsave(here('figures/cardio_toxicity/target_dendro_plot.png'), width = 4.5, height = 16.35, units = "cm")
+ggsave(here('figures/cardio_toxicity/target_dendro_plot.png'), width = 4.03, height = 20.41, units = "cm")
 
 #heatmap plot
 drug_order <- order.dendrogram(matrix_dendro)

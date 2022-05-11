@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="297mm"
+   height="210mm"
+   viewBox="0 0 297 210"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
+   sodipodi:docname="heatmaps_hclust_by_target.svg"
+   inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/cardio_toxicity/heatmaps_hclust_by_target.png"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.70199214"
+     inkscape:cx="544.16563"
+     inkscape:cy="333.33706"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <image
+       width="74.93"
+       height="209.97333"
+       preserveAspectRatio="none"
+       xlink:href="target_event_heatmap.png"
+       id="image17"
+       x="0.47182295"
+       y="0.107753" />
+    <image
+       width="182.03549"
+       height="207.04201"
+       preserveAspectRatio="none"
+       xlink:href="target_target_heatmap.png"
+       id="image29"
+       x="75.401825"
+       y="0.107753" />
+    <image
+       width="40.328724"
+       height="204.61521"
+       preserveAspectRatio="none"
+       xlink:href="target_dendro_plot.png"
+       id="image41"
+       x="255.63516"
+       y="-6.4199352" />
+  </g>
+</svg>

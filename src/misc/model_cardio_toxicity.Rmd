@@ -9,16 +9,43 @@ library(doParallel)
 library(patchwork)
 library(ROCR)
 library(brulee)
+library(conflicted)
+library(DarkKinaseTools)
+library(vip)
+conflict_prefer("vi", "vip")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("slice", "dplyr")
 ```
 
 ```{r}
 #read in data
 cardio_data = read_rds(here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml.rds.gz'))
+
+gene_classifications = read_csv(here('data/KlaegerScience2017/manual_gene_labels.csv')) %>%
+	bind_rows(all_kinases %>% select(symbol,class) %>% rename(gene_name = symbol)) %>% 
+	#adding extra label for abbreviated activation name
+	bind_rows(data.frame(gene_name = "CSNK2A(1/3)", class = "Light")) %>%
+	distinct() %>% 
+	mutate(gene_name = str_replace(gene_name, "[-;]", "_")) %>% 
+	mutate(gene_name = if_else(
+		gene_name == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		gene_name
+	))
 ```
 
 ```{r}
 #binarize response 
-model_data = cardio_data %>% 
+model_data = cardio_data %>%
+	#correct annotation (0's should be 1s)
+	mutate(across(c(QT_interval_prolongation,
+									LV_dysfuntion,
+									HF,
+									Arrhythmia,
+									Ischemia_or_MI,
+									Hypertension
+									),
+								~if_else(. == 0, 1, 0))) %>%
 	mutate(across(c(QT_interval_prolongation,
 									LV_dysfuntion,
 									HF,
@@ -47,9 +74,6 @@ LV_folds = vfold_cv(model_data, v = 10, strata = LV_dysfuntion)
 
 set.seed(2222)
 HF_folds = vfold_cv(model_data, v = 10, strata = HF)
-
-set.seed(2222)
-Arrhythmia_folds = vfold_cv(model_data, v = 10, strata = Arrhythmia)
 
 set.seed(2222)
 Ischemia_folds = vfold_cv(model_data, v = 10, strata = Ischemia_or_MI)
@@ -309,5 +333,127 @@ cv_metrics = collect_metrics(QT_results) %>%
 
 write_csv(cv_metrics, here('results/cardio_toxicity_models/modelling_metrics.csv'))
 	
+```
+
+```{r}
+cv_metrics = read_csv(here('results/cardio_toxicity_models/modelling_metrics.csv'))
+
+QT_best_model = cv_metrics %>% 
+	filter(target == "QT") %>% 
+	arrange(desc(mean)) %>% 
+	slice(1)
+
+
+LV_best_model = cv_metrics %>% 
+	filter(target == "LV") %>% 
+	arrange(desc(mean)) %>% 
+	slice(1)
+
+
+
+HF_best_model = cv_metrics %>% 
+	filter(target == "HF") %>% 
+	arrange(desc(mean)) %>% 
+	slice(1)
+
+
+
+Ischemia_best_model = cv_metrics %>% 
+	filter(target == "Ischemia") %>% 
+	arrange(desc(mean)) %>% 
+	slice(1)
+
+
+
+Hypertension_best_model = cv_metrics %>% 
+	filter(target == "Hypertension") %>% 
+	arrange(desc(mean)) %>% 
+	slice(1)
+
+
+best_models = QT_best_model %>% 
+	bind_rows(LV_best_model) %>% 
+	bind_rows(HF_best_model) %>% 
+	bind_rows(Ischemia_best_model) %>% 
+	bind_rows(Hypertension_best_model) %>% 
+	arrange(desc(mean)) %>% 
+	mutate(target = case_when(
+		target == "HF" ~ "Heart Failure", 
+		target == "LV" ~ "Left-Ventricular Dysfunction",
+		target == "QT" ~ "QT Interval prolongation",
+		T ~ target
+	)) %>%
+	mutate(target = fct_inorder(target))
+	
+best_models %>% 
+	ggplot(aes(x = target, y = mean)) +
+	geom_point(aes(colour = target, shape = target)) +
+	geom_errorbar(aes(x = target, ymin = mean - std_err, ymax = mean + std_err, colour = target)) +
+	coord_cartesian(ylim = c(0.5,1)) +
+	labs(y = "Prediction Accuracy", colour = "Cardiac Adverse Event", shape = "Cardiac Adverse Event")+
+	theme(
+  	axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  	axis.title.x = element_blank(),
+  	panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA))
+
+ggsave(here('figures/cardio_toxicity/modelling_summary.png'))
+```
+
+
+```{r}
+#fit best HF model on all data 
+
+this_wflow <-
+	workflow() %>%
+	add_model(lr_spec) %>%
+	add_recipe(HF_recipe) 
+
+set.seed(2222)
+results = this_wflow %>% 
+	fit(data = model_data) %>% 
+	write_rds(here('results/cardio_toxicity_models/final_HF_model.rds'))
+```
+
+```{r}
+#Variable Importance
+results = read_rds(here('results/cardio_toxicity_models/final_HF_model.rds'))
+
+all_importance = vi(results %>% extract_fit_parsnip()) %>%
+		mutate(feature_type = case_when(
+			str_detect(Variable, "^act_") ~ "Inhibition")) %>% 
+	separate(Variable, into = c('prefix', 'Variable'), sep = "_") %>% 
+	select(-prefix) %>% 
+	arrange(Importance) %>%
+	mutate(Variable = fct_inorder(Variable))
+
+inhibition_importance = all_importance %>% 
+	arrange(desc(Importance)) %>% 
+	slice(1:20) %>% 
+	filter(feature_type == "Inhibition") %>% 
+	left_join(gene_classifications, by=c('Variable'='gene_name')) %>%
+	mutate(class = ifelse(is.na(class), "Non-kinase",class)) %>% 
+	mutate(class = if_else(!is.na(CJ_class), CJ_class, class)) %>% 
+	arrange(Importance) %>%
+	mutate(Variable = fct_inorder(Variable))
+
+ggplot(inhibition_importance %>% 
+			 	slice_tail(n = 20) %>%
+			 	filter(!Variable %in% c("AP2A1", "DDX3X", "CDK4")), 
+			 aes(x=Importance,y=Variable, fill = class)) + 
+	geom_col() +
+	labs(title = "Heart Failure Model Importances",y='',x='Feature Importance', fill = "") +
+	theme(legend.justification = c(1, 0), legend.position = c(1, 0)) +
+	scale_fill_brewer(type='qual', palette = "Dark2")  +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/cardio_toxicity/HF_top_20_VIP.png'),width=5,height=3.75) 
 ```
 
