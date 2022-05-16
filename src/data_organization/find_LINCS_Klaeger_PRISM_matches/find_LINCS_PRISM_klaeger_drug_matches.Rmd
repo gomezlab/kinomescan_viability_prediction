@@ -11,55 +11,103 @@ library(webchem)
 
 ```{r}
 #read in data
+LINCS_cids = read_csv(here('results/matching/all_LINCS_cids.csv'))
 
-LINCS_klaeger_cids = read_csv(here('results/LINCS_klaeger_cids.csv')) %>% 
-	mutate(cid = as.character(cid))
+klaeger_cids = read_csv(here('results/matching/klaeger_cids.csv')) 
 
 PRISM = read_csv(here('data/PRISM/secondary/secondary-screen-replicate-treatment-info.csv'))
 
+LINCS_PRISM_manual_matchlist = read_csv(here('results/matching/LINCS_PRISM_match_list_percent_updated.csv')) %>% 
+	select(LINCS_name, PRISM_name, broad_id)
+
+klaeger_PRISM_manual_matchlist = read_csv(here('results/matching/klaeger_PRISM_match_list_updated_v2.csv')) %>% 
+	select(klaeger_name, PRISM_name, broad_id)
 ```
 
 ```{r}
-#compound matching
+#preprocessing
+
+LINCS_klaeger_cids = LINCS_cids %>% 
+	mutate(origin = "KINOMEscan") %>% 
+	rename(drug = LINCS_name) %>% 
+	bind_rows(klaeger_cids %>% 
+							mutate(origin = "Kinobeads") %>% 
+							rename(drug = klaeger_name))
+```
+
+
+```{r}
+#Get PRISM cids from SMILES
 
 PRISM_smiles = PRISM %>% 
 	select(name, smiles, broad_id) %>% 
+	unique() %>% 
 	filter(!is.na(smiles)) %>% 
-	unique()
+	separate(smiles, 
+					 into = c("smiles1",
+														"smiles2",
+														"smiles3",
+														"smiles4",
+														"smiles5",
+														"smiles6",
+														"smiles7"),
+					 sep = ", ") %>% 
+	pivot_longer(starts_with("smiles"), names_to = "smiles_number", values_to = "smiles") %>% 
+	filter(!is.na(smiles)) %>% 
+	write_csv(here('results/PRISM_smiles.csv'))
 
-write_csv(PRISM_smiles, here('results/PRISM_smiles.csv'))
+PRISM_cids = get_cid(unique(PRISM_smiles$smiles), from = "smiles", domain = "compound", match = "all", verbose = T)
 
-PRISM_cids = read_tsv(here('results/PRISM_smiles_to_cids.txt'), col_names = F) %>% 
-	rename('smiles' = X1, 'cid' = X2) %>% 
-	left_join(PRISM_smiles, by = c('smiles')) %>% 
-	filter(!is.na(name))
+PRISM_cids_named = PRISM_cids %>%
+	rename(smiles = query) %>% 
+	left_join(PRISM_smiles)
 
-PRISM_missing_cids = PRISM_cids %>% 
+PRISM_missing_cids = PRISM_cids_named %>% 
 	filter(is.na(cid))
 
 second_try_PRISM_cids = get_cid(unique(PRISM_missing_cids$name), from = "name", domain = "compound", match = "all", verbose = T) %>% 
-	rename("PRISM_name" = query, "cid_2" = cid)
+	rename("name" = query, "cid_2" = cid)
 
-PRISM_cids_all = PRISM_cids %>% 
-	left_join(second_try_PRISM_cids, by = c('name' = 'PRISM_name')) %>% 
+PRISM_cids_all = PRISM_cids_named %>% 
+	left_join(second_try_PRISM_cids) %>% 
 	mutate(cid = if_else(
 		is.na(cid),
 		as.character(cid_2),
 		as.character(cid)
 	)) %>% 
-	select(-cid_2) 
+	select(-cid_2) %>% 
+	write_csv(here('results/matching/all_PRISM_cids.csv'))
+```
+
+```{r}
+PRISM_cids_all = read_csv(here('results/matching/all_PRISM_cids.csv'))
 	
 drug_matches = LINCS_klaeger_cids %>% 
-	left_join(PRISM_cids_all, by = 'cid') %>% 
-	filter(!is.na(name))
+	left_join(PRISM_cids_all
+						,by = 'cid') %>% 
+	filter(!is.na(name)) %>% 
+	select(-smiles, -smiles_number) %>% 
+	unique()
+
+manual_matches = LINCS_PRISM_manual_matchlist %>% 
+	mutate(origin = "KINOMEscan") %>% 
+	left_join(LINCS_cids) %>% 
+	rename(drug = LINCS_name) %>% 
+	bind_rows(klaeger_PRISM_manual_matchlist %>% 
+							mutate(origin = "Kinobeads") %>% 
+							left_join(klaeger_cids) %>% 
+							rename(drug = klaeger_name))
+
+all_matches = drug_matches %>% 
+	rename(PRISM_name = name) %>% 
+	bind_rows(manual_matches) %>% 
+	unique()
 
 LINCS_klaeger_no_drug_matches = LINCS_klaeger_cids %>% 
-	filter(!cid %in% drug_matches$cid)
+	filter(!cid %in% all_matches$cid)
 
 PRISM_no_drug_matches = PRISM_cids_all %>%
-	filter(!cid %in% drug_matches$cid)
+	filter(!cid %in% all_matches$cid)
 
-write_csv(drug_matches, here('results/PRISM_LINCS_klaeger_drug_matches.csv'))
-
-write_csv(PRISM_cids_all, here('results/all_PRISM_cids.csv'))
+write_csv(all_matches, here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 ```

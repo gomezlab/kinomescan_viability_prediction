@@ -96,9 +96,9 @@ for f in feat_counts:
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
 
     rnd_search_cv = GridSearchCV(keras_clf, param_distribs, cv=5, verbose=1, scoring='r2', refit=True)
-    rnd_search_cv.fit(X_train, y_train, epochs=100, batch_size=512,
+    rnd_search_cv.fit(X_train, y_train, epochs=500, batch_size=512,
                     validation_data=(X_valid, y_valid),
-                    callbacks=[keras.callbacks.EarlyStopping(patience=15, min_delta=1e-4, restore_best_weights=True)])
+                    callbacks=[keras.callbacks.EarlyStopping(patience=20, min_delta=1e-5, restore_best_weights=True)])
     
     best_model = rnd_search_cv.best_estimator_
     r2score = (cross_val_score(best_model, X, y, cv=5, scoring='r2')).mean()
