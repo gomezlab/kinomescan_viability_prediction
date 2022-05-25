@@ -19,8 +19,11 @@ final_comparisons = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_
 final_comparisons %>% 
 	mutate(model_type = as.factor(model_type)) %>% 
 	mutate(model_type = fct_relevel(model_type, "lasso", "xgboost", "random_forest", "4-layer NN")) %>% 
-	ggplot(aes(x = model_type, y = relative_rsq, shape = model_type, colour = model_type)) +
+	ggplot(aes(x = model_type, y = relative_rsq, shape = model_type, colour = model_type , fill = model_type)) +
 	geom_point(alpha = 1.5, size = 3) +
+	scale_shape_manual(values=c(16, 3, 15, 17)) +
+	scale_color_manual(values=c('#F8766D', '#C77CFF', '#00BFC4', '#7CAE00')) +
+	# scale_fill_manual(values=c('orange', 'purple', 'blue', 'green')) +
 	geom_hline(aes(yintercept = 1), linetype = 3) + 
 	labs(x = "Model Type", y = "Data Origin Relative R\u00B2", colour = "Model Type", shape = "Model Type") +
 		theme(

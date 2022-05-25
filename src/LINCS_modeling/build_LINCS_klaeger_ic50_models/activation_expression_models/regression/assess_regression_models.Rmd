@@ -34,11 +34,11 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/rand_forest/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
-	this_model_metrics = this_model_results %>% 
+	this_model_metrics = this_model_results %>%
+		filter(.metric == "rsq") %>% 
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
-	
 	all_rf_metrics = bind_rows(all_rf_metrics, this_model_metrics)
 }
 
@@ -49,6 +49,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
 	this_model_metrics = this_model_results %>%
+		filter(.metric == "rsq") %>% 
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
@@ -56,15 +57,32 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 }
 
 all_lr_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/lr/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
 	this_model_metrics = this_model_results %>%
 		filter(.metric == "rsq") %>% 
+		arrange(desc(mean)) %>%
+		slice(1) %>%
 		mutate(num_features = feature_number)
 	all_lr_metrics = bind_rows(all_lr_metrics, this_model_metrics)
+}
+
+
+all_keras_metrics = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+	this_keras_scores = read_csv(
+		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/results',
+				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
+		mutate(num_features = feature_number) %>% 
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score) %>% 
+		arrange(desc(mean_rsq)) %>% 
+		slice(1)
+	all_keras_metrics = bind_rows(all_keras_metrics, this_keras_scores)
 }
 
 all_model_metrics = all_rf_metrics %>% 
@@ -77,21 +95,59 @@ all_model_metrics = all_rf_metrics %>%
 	) %>%
 	bind_rows(
 		all_lr_metrics %>%
-			mutate(model_type = 'lasso', hyperparameter = "NA", value = 0)
+			pivot_longer(penalty, names_to = 'hyperparameter', values_to = 'value') %>% 
+			mutate(model_type = 'lasso')
 	) %>% 
+	bind_rows(
+		all_keras_metrics %>%
+			pivot_longer(starts_with("param_"), names_to = "hyperparameter", values_to = "value") %>% 
+			mutate(model_type = "Neural Network",
+				 data_type = "inhibition_expression",
+				 .metric = "rsq", 
+				 n = 5) %>%
+			rename(mean = mean_rsq)
+	) %>%
 	mutate(.config = paste0(.config, '_',model_type)) %>% 
 	rename('model_id' = .config) %>% 
 	mutate(data_type = "inhibition_expression")
 
 write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/all_model_metrics.csv'))
-
+toc()
 ```
 
 
 #All data models assessment 
 ```{r}
+tic()
+all_data_all_rf_metrics = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/rand_forest/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
 
-all_lr_all_data_metrics = data.frame()
+	this_model_metrics = this_model_results %>%
+		filter(.metric == "rsq") %>% 
+		arrange(desc(mean)) %>%
+		slice(1) %>%
+		mutate(num_features = feature_number)
+	all_data_all_rf_metrics = bind_rows(all_data_all_rf_metrics, this_model_metrics)
+}
+
+all_data_all_xgb_metrics = data.frame()
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+	this_model_results = read_rds(
+		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/xgboost/results',
+				 sprintf('%dfeat.rds.gz',feature_number)))
+
+	this_model_metrics = this_model_results %>%
+		filter(.metric == "rsq") %>% 
+		arrange(desc(mean)) %>%
+		slice(1) %>%
+		mutate(num_features = feature_number)
+	all_data_all_xgb_metrics = bind_rows(all_data_all_xgb_metrics, this_model_metrics)
+}
+
+all_data_all_lr_metrics = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/lr/results',
@@ -99,166 +155,64 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 	this_model_metrics = this_model_results %>%
 		filter(.metric == "rsq") %>% 
-		mutate(num_features = feature_number)
-	all_lr_all_data_metrics = bind_rows(all_lr_all_data_metrics, this_model_metrics)
-}
-
-all_rf_all_data_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/rand_forest/results',
-				 sprintf('%dfeat.rds.gz',feature_number)))
-
-		this_model_metrics = this_model_results %>%
-		filter(.metric == "rsq") %>% 	
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
-	all_rf_all_data_metrics = bind_rows(all_rf_all_data_metrics, this_model_metrics)
+	all_data_all_lr_metrics = bind_rows(all_data_all_lr_metrics, this_model_metrics)
 }
 
-all_xgb_all_data_metrics = data.frame()
+
+all_data_all_keras_metrics = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/xgboost/results',
-				 sprintf('%dfeat.rds.gz',feature_number)))
-	
-		this_model_metrics = this_model_results %>%
-		arrange(desc(mean)) %>% 
-		slice(1) %>% 
-		mutate(num_features = feature_number)
-	all_xgb_all_data_metrics = bind_rows(all_xgb_all_data_metrics, this_model_metrics)
+	this_keras_scores = read_csv(
+		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results',
+				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
+		mutate(num_features = feature_number) %>% 
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score) %>% 
+		arrange(desc(mean_rsq)) %>% 
+		slice(1)
+	all_data_all_keras_metrics = bind_rows(all_data_all_keras_metrics, this_keras_scores)
 }
 
-all_model_all_data_metrics = all_rf_all_data_metrics %>% 
-	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>% 
-	mutate(model_type = 'random_forest') %>% 
+all_data_all_model_metrics = all_data_all_rf_metrics %>% 
+	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>%
+	mutate(model_type = 'random_forest') %>%
 	bind_rows(
-		all_xgb_all_data_metrics %>% 
-			pivot_longer(c(trees, tree_depth), names_to = 'hyperparameter', values_to = 'value') %>% 
+		all_data_all_xgb_metrics %>%
+			pivot_longer(c(trees, tree_depth), names_to = 'hyperparameter', values_to = 'value') %>%
 			mutate(model_type = 'xgboost')
+	) %>%
+	bind_rows(
+		all_data_all_lr_metrics %>%
+			pivot_longer(penalty, names_to = 'hyperparameter', values_to = 'value') %>% 
+			mutate(model_type = 'lasso')
 	) %>% 
 	bind_rows(
-		all_lr_all_data_metrics %>%
-			mutate(hyperparameter = NA, value = 0) %>%
-			mutate(model_type = 'lasso')
+		all_data_all_keras_metrics %>%
+			pivot_longer(starts_with("param_"), names_to = "hyperparameter", values_to = "value") %>% 
+			mutate(model_type = "Neural Network",
+				 .metric = "rsq", 
+				 n = 5) %>%
+			rename(mean = mean_rsq)
 	) %>%
 	mutate(.config = paste0(.config, '_',model_type)) %>% 
 	rename('model_id' = .config) %>% 
 	mutate(data_type = "all_datasets")
 
-write_csv(all_model_all_data_metrics, here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/all_model_metrics.csv'))
+write_csv(all_data_all_model_metrics, here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/all_model_metrics.csv'))
+toc()
 ```
-
-```{r}
-#add in high feature xgboost runs
-all_xgb_high_feature_metrics = data.frame()
-for (feature_number in c(6000,7000,8000,9000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/xgboost/results',
-				 sprintf('%dfeat.rds',feature_number)))
-
-	this_model_metrics = collect_metrics(this_model_results) %>%
-		arrange(desc(mean)) %>%
-		slice(1) %>%
-		mutate(num_features = feature_number)
-	all_xgb_high_feature_metrics = bind_rows(all_xgb_high_feature_metrics, this_model_metrics)
-}
-```
-
-```{r}
-#add in keras NN metrics
-keras_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/results/best_hyperparameter_search_metrics.csv')) %>%
-	mutate(
-		layers = case_when(
-		layers == "one_layer" ~ '1',
-		layers == "two_layer" ~ '2', 
-		layers == "four_layer" ~ '4',
-		layers == "six_layer" ~ '6', 
-		T ~ layers
-					)
-	) %>%
-	mutate(layers = as.numeric(layers)) %>% 
-	pivot_longer(c(dropout, neurons, layers, mean_epochs), names_to = "hyperparameter", values_to = "value") %>% 
-	mutate(model_type = "4-layer NN",
-				 data_type = "inhibition_expression",
-				 .metric = "rsq", 
-				 n = 5) %>%
-	rename("mean" = mean_rsq, 
-				 "std_err" = sd_rsq)
-
-keras_all_data_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results/best_hyperparameter_search_metrics.csv')) %>%
-	mutate(
-		layers = case_when(
-		layers == "one_layer" ~ '1',
-		layers == "two_layer" ~ '2', 
-		layers == "four_layer" ~ '4',
-		layers == "six_layer" ~ '6', 
-		T ~ layers
-					)
-	) %>%
-	mutate(layers = as.numeric(layers)) %>% 
-	pivot_longer(c(dropout, neurons, layers, mean_epochs), names_to = "hyperparameter", values_to = "value") %>% 
-	mutate(model_type = "4-layer NN",
-				 data_type = "all_datasets",
-				 .metric = "rsq", 
-				 n = 5) %>%
-	rename("mean" = mean_rsq, 
-				 "std_err" = sd_rsq)
-```
-
-```{r}
-#add in missing lasso results
-missing_lr_metrics = data.frame()
-for (feature_number in c(3000,4000,5000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/lr/results',
-				 sprintf('%dfeat.rds.gz',feature_number)))
-
-	this_model_metrics = show_best(this_model_results, metric = "rsq") %>% 
-		mutate(num_features = feature_number)
-	missing_lr_metrics = bind_rows(missing_lr_metrics, this_model_metrics)
-}
-
-missing_lr_metrics = missing_lr_metrics %>% 
-	mutate(hyperparameter = NA, value = 0) %>%
-	mutate(model_type = 'lasso',
-				 data_type = "inhibition_expression") 
-
-missing_lr_all_data_metrics = data.frame()
-for (feature_number in c(4000,5000)) {
-	this_model_results = read_rds(
-		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/lr/results',
-				 sprintf('%dfeat.rds.gz',feature_number)))
-
-	this_model_metrics = show_best(this_model_results, metric = "rsq") %>%
-		mutate(num_features = feature_number)
-	missing_lr_all_data_metrics = bind_rows(missing_lr_all_data_metrics, this_model_metrics)
-}
-
-missing_lr_all_data_metrics = missing_lr_all_data_metrics %>% 
-	mutate(hyperparameter = NA, value = 0) %>%
-	mutate(model_type = 'lasso',
-				 data_type = "all_datasets")
-
-all_missing_lr_metrics = missing_lr_metrics %>% 
-	bind_rows(missing_lr_all_data_metrics)
-
-```
-
 
 ```{r}
 all_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/all_model_metrics.csv'))
-all_model_all_data_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/all_model_metrics.csv'))
+all_data_all_model_metrics = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/all_model_metrics.csv'))
 	
-model_metrics_combined = all_model_all_data_metrics %>% 
+model_metrics_combined = all_data_all_model_metrics %>% 
 	bind_rows(all_model_metrics) %>% 
-	filter(!model_type == "NN") %>% 
-	bind_rows(keras_metrics) %>% 
-	bind_rows(keras_all_data_metrics) %>% 
-	bind_rows(all_missing_lr_metrics) %>% 
-	select(-mean_rmse, -sd_rmse, -mean_loss, -sd_loss, -.estimator) %>% 
-	mutate(target = "AUC")
+	select(-.estimator) %>% 
+	mutate(target = "IC50")
 
 write_csv(model_metrics_combined, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_models_ic50_regression_metrics.csv'))
 ```
@@ -270,9 +224,9 @@ model_metrics_combined %>%
 	geom_point() + 
   # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
   #                position=position_dodge(.9)) +
-	coord_cartesian(ylim= c(0.35,0.7)) +
+	coord_cartesian(ylim= c(0.43,0.7)) +
 	facet_wrap(vars(target, data_type), scales = "free_x") +
-	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+	labs(title = "IC50 Models", x = "number of features", y = "R-squared") +
 		theme(
 		legend.position = "right",
 		legend.text = element_text(size = 9),
@@ -292,7 +246,7 @@ ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_models_ic50_metrics.png'
 #   geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
 #                  position=position_dodge(.9)) +
 # 	coord_cartesian(ylim= c(0.2,0.68)) +
-# 	labs(title = "AUC Models", x = "number of features", y = "R-squared") +
+# 	labs(title = "ic50 Models", x = "number of features", y = "R-squared") +
 # 	facet_wrap(vars(model_type)) +
 # 		theme(
 # 		legend.position = "top",
@@ -390,8 +344,8 @@ final_predictions %>%
 			 				 	final_metrics$mean[1],
 			 				 	2)
 			 	),
-			 x = "Predicted AUC",
-			 y = "Actual AUC") +
+			 x = "Predicted ic50",
+			 y = "Actual ic50") +
 	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
 	geom_smooth(colour = "red") +
 	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +

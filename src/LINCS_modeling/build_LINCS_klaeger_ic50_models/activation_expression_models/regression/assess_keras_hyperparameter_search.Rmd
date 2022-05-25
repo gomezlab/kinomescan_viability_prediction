@@ -24,11 +24,10 @@ conflict_prefer("vi", "vip")
 conflict_prefer("rmse", "Metrics")
 ```
 
-#Keras Activation Expression Tuning Assessment
+#Keras Inhibition Expression Tuning Assessment
 
 ```{r}
-
-#read in hyperparameter search files
+#all tuning metrics per feature count
 
 all_keras_scores = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
@@ -36,8 +35,9 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score)
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score)
 	all_keras_scores = bind_rows(all_keras_scores, this_keras_scores)
 }
 
@@ -45,15 +45,18 @@ write_csv(all_keras_scores, here('results/PRISM_LINCS_klaeger_models_ic50/activa
 ```
 
 ```{r}
+#best metrics per feature count
+
 best_keras_scores = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_keras_scores = read_csv(
 		here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score) %>% 
-		arrange(desc(rsq)) %>% 
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score) %>% 
+		arrange(desc(mean_rsq)) %>% 
 		slice(1)
 	
 	best_keras_scores = bind_rows(best_keras_scores, this_keras_scores)
@@ -81,66 +84,49 @@ best_keras_scores %>%
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-```
 
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+```
 
 #Keras All Datasets Tuning Assessment
 
 ```{r}
+#all tuning metrics per feature count
 
-#read in hyperparameter search files
-
-all_data_keras_scores = data.frame()
+all_data_all_keras_scores = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_keras_scores = read_csv(
 		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score)
-	all_data_keras_scores = bind_rows(all_data_keras_scores, this_keras_scores)
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score)
+	all_data_all_keras_scores = bind_rows(all_data_all_keras_scores, this_keras_scores)
 }
 
-write_csv(all_data_keras_scores, here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results/hyperparameter_search_metrics.csv'))
+write_csv(all_keras_scores, here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results/hyperparameter_search_metrics.csv'))
 ```
 
 ```{r}
+#best metrics per feature count
+
 all_data_best_keras_scores = data.frame()
 for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_keras_scores = read_csv(
 		here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score) %>% 
-		arrange(desc(rsq)) %>% 
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score) %>% 
+		arrange(desc(mean_rsq)) %>% 
 		slice(1)
 	
 	all_data_best_keras_scores = bind_rows(all_data_best_keras_scores, this_keras_scores)
 }
 
-write_csv(all_data_best_keras_scores, here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results/best_hyperparameter_search_metrics.csv'))
-```
-
-
-```{r}
-best_keras_scores %>%
-	ggplot(aes(x = num_features, y = rsq)) +
-	geom_point() +
-#  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
-#                position=position_dodge(.9)) +
-	coord_cartesian(ylim= c(0.2,0.68)) +
-	labs(title = "Keras Hyperparameter Search", x = "number of features", y = "R-squared") +
-#	facet_wrap(vars(model_type)) +
-		theme(
-		legend.position = "top",
-		legend.text = element_text(size = 9),
-		legend.background = element_rect(fill = "transparent",colour = NA),
-		panel.background = element_rect(fill = "transparent",colour = NA),
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_blank(),
-    plot.background = element_rect(fill = "transparent",colour = NA)
-      )
+write_csv(best_keras_scores, here('results/PRISM_LINCS_klaeger_models_ic50/all_datasets/regression/keras/results/best_hyperparameter_search_metrics.csv'))
 ```
 
 Combine Inhibition Expression and All Datasets results
@@ -151,15 +137,17 @@ all_combined_best_scores = best_keras_scores %>%
 	bind_rows(all_data_best_keras_scores %>% 
 							mutate(data_type = "all_datasets"))
 
-all_combined_all_scores = combined_all_keras_scores %>% 
-	bind_rows(all_data_combined_all_keras_scores)
+all_combined_all_scores = all_keras_scores %>% 
+	mutate(data_type = "inhibition_expression") %>% 
+	bind_rows(all_data_keras_scores %>% 
+							mutate(data_type = "all_datasets"))
 ```
 
 
 ```{r}
 # best per feature plot
 all_combined_best_scores %>%
-	ggplot(aes(x = num_features, y = mean_rsq, colour = data_type, shape = data_type)) +
+	ggplot(aes(x = num_features, y = rsq, colour = data_type, shape = data_type)) +
 	geom_point() +
 #  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
 #                position=position_dodge(.9)) +

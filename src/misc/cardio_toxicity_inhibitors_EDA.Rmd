@@ -17,9 +17,17 @@ cardio_toxicity_data_full = read_rds(here('results/cardio_toxicity_models/cardio
 ```{r}
 #pre-process data
 cardio_toxicity_data_processed = cardio_toxicity_data %>% 
+		bind_rows(data.frame(drug = c("Erlotinib"),
+												 QT_interval_prolongation = 1,
+												 LV_dysfuntion = 1,
+												 HF = 1,
+												 Arrhythmia = 1,
+												 Ischemia_or_MI = 1, Hypertension = 1
+											 )) %>% 
 	mutate(across(-drug, ~case_when(. == 1 ~ "No Reported Event",
 																	. == 0 ~ "Reported Event",
-																	. == 2 ~ ">10% Incidence"))) 
+																	. == 2 ~ ">10% Incidence")))
+
 
 cardio_toxicity_data_long = cardio_toxicity_data_processed %>% 
 	pivot_longer(-drug, names_to = "cardiac_adverse_event", values_to = "Incidence")

@@ -35,8 +35,9 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score)
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score)
 	all_keras_scores = bind_rows(all_keras_scores, this_keras_scores)
 }
 
@@ -52,9 +53,10 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score) %>% 
-		arrange(desc(rsq)) %>% 
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score) %>% 
+		arrange(desc(mean_rsq)) %>% 
 		slice(1)
 	
 	best_keras_scores = bind_rows(best_keras_scores, this_keras_scores)
@@ -97,8 +99,9 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score)
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score)
 	all_data_all_keras_scores = bind_rows(all_data_all_keras_scores, this_keras_scores)
 }
 
@@ -114,9 +117,10 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
 		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score) %>%
-		rename(rsq = mean_test_score) %>% 
-		arrange(desc(rsq)) %>% 
+		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
+		rename(mean_rsq = mean_test_score,
+					 std_err = std_test_score) %>% 
+		arrange(desc(mean_rsq)) %>% 
 		slice(1)
 	
 	all_data_best_keras_scores = bind_rows(all_data_best_keras_scores, this_keras_scores)

@@ -5,8 +5,10 @@ library(dr4pl)
 library(PharmacoGx)
 library(Metrics)
 library(conflicted)
+library(wesanderson)
 conflict_prefer("rmse", "Metrics")
 conflict_prefer("filter", "dplyr")
+conflict_prefer("rename", "dplyr")
 ```
 
 ```{r}
@@ -142,7 +144,7 @@ rmse = rmse(replication_comparison$auc, replication_comparison$exp_auc)
 replication_comparison %>% 
 	ggplot(aes(x = auc, y = exp_auc)) +
 	geom_point() +
-	geom_smooth(method = "lm") +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(title = 
   paste0('R\u00B2 = ',
@@ -162,7 +164,7 @@ replication_comparison %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png'))
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
 
 ```{r}
@@ -214,7 +216,7 @@ validation_assessment = all_validation_results %>%
 	)) %>% 
 	mutate(drug = ifelse(drug == "ONO-4059 (analog)","ONO-4059 analogue",drug)) %>% 
 	left_join(sample_info) %>% 
-	rename(DepMap_ID = "depmap_id") %>% 
+	rename(depmap_id = DepMap_ID) %>% 
 	left_join(model_predictions) %>% 
 	mutate(exp_auc = exp_auc/100) %>% 
 	filter(!is.na(predicted_auc))
@@ -226,7 +228,7 @@ rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
 validation_assessment %>% 
 	ggplot(aes(x = predicted_auc, y = exp_auc)) +
 	geom_point() +
-	geom_smooth(method = "lm") +
+	geom_smooth(color = wes_palettes$GrandBudapest1[2]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(title = 
   paste0('R\u00B2 = ',
@@ -246,6 +248,6 @@ validation_assessment %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'))
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
 

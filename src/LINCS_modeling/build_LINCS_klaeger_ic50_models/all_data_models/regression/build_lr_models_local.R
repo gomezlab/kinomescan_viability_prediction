@@ -15,6 +15,7 @@ this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINC
 cors = vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_ic50.csv'))
 
 folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_all_multiomic_data_folds_ic50.rds.gz'))
+lr_grid = read_rds(here('results/hyperparameter_grids/lr_grid.rds'))
 
 for(i in 1:length(args$feature_num)) { 
 	
@@ -45,7 +46,8 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							any_of(cors$feature[1:args$feature_num[i]])) %>% 
 	step_normalize(all_predictors())
 
-lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+lr_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
+	set_engine("glmnet") %>% 
 	set_mode("regression")
 
 this_wflow <-
@@ -53,16 +55,17 @@ this_wflow <-
 	add_model(lr_spec) %>%
 	add_recipe(this_recipe) 
 
-race_ctrl = control_resamples(
+race_ctrl = control_grid(
 	save_pred = TRUE, 
 	parallel_over = "everything",
 	verbose = TRUE
 )
 
-results <- fit_resamples(
+results <- tune_grid(
 	this_wflow,
 	resamples = folds,
-	control = race_ctrl
+	control = race_ctrl,
+	grid = lr_grid
 ) %>% 
 	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")

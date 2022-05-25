@@ -30,7 +30,7 @@ exp_interactor_type = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/expr
 	mutate(Variable = paste0(type,"_",hgnc)) %>%
 	mutate(interaction = case_when(
 		direct_count >= 1 ~ "Inhibition\nInteractor",
-		T ~ "Noninterator"
+		T ~ "Noninteractor"
 	))
 ```
 
@@ -155,7 +155,7 @@ shap_inhibition %>%
 	mutate(gene = fct_inorder(gene)) %>% 
 	ggplot(aes(x = shap_value, y = gene, fill = class)) +
 	geom_col() +
-	labs(y='',fill='',x='Feature Importance') +
+	labs(y='',fill='',x='Inhibition State Importance') +
 	theme(
 		legend.title = element_blank(),
 		legend.position = "bottom",
@@ -175,7 +175,7 @@ shap_expression %>%
 	mutate(gene = fct_inorder(gene)) %>% 
 	ggplot(aes(x = shap_value, y = gene, fill = interaction)) +
 	geom_col() +
-	labs(y='',fill='',x='Feature Importance') +
+	labs(y='',fill='',x='Gene Expression Importance') +
 	scale_x_continuous(breaks = c(0, 5e-4,1e-3)) +
 	theme(
 		legend.title = element_blank(),

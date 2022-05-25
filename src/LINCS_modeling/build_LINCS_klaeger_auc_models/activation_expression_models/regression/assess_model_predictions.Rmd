@@ -4,6 +4,7 @@ library(tidyverse)
 library(patchwork)
 library(here)
 library(vroom)
+library(cowplot)
 ```
 
 ```{r}
@@ -28,7 +29,10 @@ promiscuity_scores = LINCS_klaeger_data %>%
 drug_targets = LINCS_klaeger_data %>%
 	filter(binary_hit == 1) %>% 
 	select(-relative_intensity)
-	
+
+drug_origins = LINCS_klaeger_data %>%
+	select(drug, origin) %>% 
+	unique()
 ```
 
 ```{r}
@@ -43,7 +47,8 @@ full_predictions <- predictions %>%
     ),
   by = c("depmap_id")
   ) %>% 
-	left_join(promiscuity_scores)
+	left_join(promiscuity_scores) %>% 
+	left_join(drug_origins)
 
 promiscuity_summary = full_predictions %>% 
 	group_by(promiscuity_score) %>% 
@@ -167,8 +172,11 @@ BC_predictions = full_predictions  %>%
 ```{r}
 get_interesting_pred_plots <- function(this_cell_line_name = "BT474", these_prediction_results = BC_predictions) {
 	
+	
+#### Get Kinobeads Plots	#####################################################################################
 	these_predictions = these_prediction_results %>% 
-		filter(stripped_cell_line_name == this_cell_line_name)
+		filter(stripped_cell_line_name == this_cell_line_name) %>% 
+		filter(origin == "Kinobeads")
 	
 	these_summary = these_predictions %>%
 		group_by(drug) %>%
@@ -198,7 +206,7 @@ get_interesting_pred_plots <- function(this_cell_line_name = "BT474", these_pred
 		geom_line() + 
 		labs(x="Drug", 
 				 y="Predicted AUC") +
-		coord_cartesian(y = c(0.5,1)) +
+		coord_cartesian(y = c(0.4,1)) +
 		theme(
 		legend.position = "bottom",
 		legend.text = element_text(size = 9),
@@ -210,7 +218,7 @@ get_interesting_pred_plots <- function(this_cell_line_name = "BT474", these_pred
     plot.background = element_rect(fill = "transparent",colour = NA)
       ) +
 		scale_fill_discrete(guide = "none") +
-		facet_wrap(vars(effect))
+		facet_wrap(vars(effect, origin))
 	
 		null_eff_plot = ggplot(null_eff_set, aes(x=drug, y=predicted_auc)) +
 		geom_col() +
@@ -229,11 +237,154 @@ get_interesting_pred_plots <- function(this_cell_line_name = "BT474", these_pred
     plot.background = element_rect(fill = "transparent",colour = NA)
       ) +
 		scale_fill_discrete(guide = "none") +
-		facet_wrap(vars(effect))
+		facet_wrap(vars(effect, origin))
 	
 	
-full_plot = high_eff_plot + null_eff_plot + 
-	plot_annotation(title = "Model Predictions", subtitle = paste0(line_name_extended))
+full_kinobeads_plot = plot_grid(high_eff_plot, null_eff_plot)
+
+#### Get KINOMEscan Plots	#####################################################################################
+
+	these_predictions = these_prediction_results %>% 
+		filter(stripped_cell_line_name == this_cell_line_name) %>% 
+		filter(origin == "KINOMEscan")
+	
+	these_summary = these_predictions %>%
+		group_by(drug) %>%
+		summarise(predicted_auc = predicted_auc, 
+							null_prox = abs(mean(predicted_auc - 1))) %>%
+		arrange(predicted_auc)
+	
+	line_name_extended = unique(these_predictions$cell_line_name_extra)
+
+	deadly_pred_set = these_predictions %>%
+		mutate(drug = fct_relevel(drug,as.character(these_summary$drug))) %>%
+		filter(drug %in% these_summary$drug[1:10]) %>% 
+		mutate(effect = "High Effect")
+	
+	null_sort = these_summary %>%
+		arrange(null_prox)
+	
+	null_eff_set = these_predictions %>%
+		mutate(drug = fct_relevel(drug,as.character(null_sort$drug))) %>%
+		filter(drug %in% null_sort$drug[1:10]) %>% 
+		mutate(effect = "Low Effect")
+	
+	combined_set = bind_rows(deadly_pred_set, null_eff_set)
+	
+	high_eff_plot = ggplot(deadly_pred_set, aes(x=drug, y=predicted_auc)) +
+		geom_col() +
+		geom_line() + 
+		labs(x="Drug", 
+				 y="Predicted AUC") +
+		coord_cartesian(y = c(0.4,1)) +
+		theme(
+		legend.position = "bottom",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      ) +
+		scale_fill_discrete(guide = "none") +
+		facet_wrap(vars(effect, origin))
+	
+		null_eff_plot = ggplot(null_eff_set, aes(x=drug, y=predicted_auc)) +
+		geom_col() +
+		geom_line() + 
+		labs(x="Drug", 
+				 y="Predicted AUC") +
+		coord_cartesian(y = c(0.5,1)) +
+		theme(
+		legend.position = "bottom",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      ) +
+		scale_fill_discrete(guide = "none") +
+		facet_wrap(vars(effect, origin))
+	
+	
+full_kinomescan_plot = plot_grid(high_eff_plot , null_eff_plot) 
+
+#### Get Overlap Plots	#####################################################################################
+
+	these_predictions = these_prediction_results %>% 
+		filter(stripped_cell_line_name == this_cell_line_name) %>% 
+		filter(origin == "overlap")
+	
+	these_summary = these_predictions %>%
+		group_by(drug) %>%
+		summarise(predicted_auc = predicted_auc, 
+							null_prox = abs(mean(predicted_auc - 1))) %>%
+		arrange(predicted_auc)
+	
+	line_name_extended = unique(these_predictions$cell_line_name_extra)
+
+	deadly_pred_set = these_predictions %>%
+		mutate(drug = fct_relevel(drug,as.character(these_summary$drug))) %>%
+		filter(drug %in% these_summary$drug[1:10]) %>% 
+		mutate(effect = "High Effect")
+	
+	null_sort = these_summary %>%
+		arrange(null_prox)
+	
+	null_eff_set = these_predictions %>%
+		mutate(drug = fct_relevel(drug,as.character(null_sort$drug))) %>%
+		filter(drug %in% null_sort$drug[1:10]) %>% 
+		mutate(effect = "Low Effect")
+	
+	combined_set = bind_rows(deadly_pred_set, null_eff_set)
+	
+	high_eff_plot = ggplot(deadly_pred_set, aes(x=drug, y=predicted_auc)) +
+		geom_col() +
+		geom_line() + 
+		labs(x="Drug", 
+				 y="Predicted AUC") +
+		coord_cartesian(y = c(0.4,1)) +
+		theme(
+		legend.position = "bottom",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      ) +
+		scale_fill_discrete(guide = "none") +
+		facet_wrap(vars(effect, origin))
+	
+		null_eff_plot = ggplot(null_eff_set, aes(x=drug, y=predicted_auc)) +
+		geom_col() +
+		geom_line() + 
+		labs(x="Drug", 
+				 y="Predicted AUC") +
+		coord_cartesian(y = c(0.5,1)) +
+		theme(
+		legend.position = "bottom",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      ) +
+		scale_fill_discrete(guide = "none") +
+		facet_wrap(vars(effect, origin))
+	
+	
+full_overlap_plot = plot_grid(high_eff_plot, null_eff_plot) 
+
+full_plot = plot_grid(full_kinobeads_plot, full_kinomescan_plot , full_overlap_plot, ncol = 2) 
+
+full_final_plot = full_plot + plot_annotation(title = "Model Predictions", subtitle = paste0(line_name_extended))
 
 return(full_plot)
 }
@@ -241,6 +392,6 @@ return(full_plot)
 dir.create(here('figures/PRISM_LINCS_klaeger/final_keras_model//BC_lines_predictions/'), showWarnings = F)
 for (this_line in unique(BC_predictions$stripped_cell_line_name)) {
 	this_plot = get_interesting_pred_plots(this_line)
-	ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_model//BC_lines_predictions/',paste0(this_line,".png")), this_plot, width=8,height=5)
+	ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_model//BC_lines_predictions/',paste0(this_line,".png")), this_plot, width=16,height=10)
 }
 ```

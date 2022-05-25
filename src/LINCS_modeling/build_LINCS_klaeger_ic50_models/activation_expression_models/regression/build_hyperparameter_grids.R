@@ -6,6 +6,17 @@ library(tidymodels)
 library(finetune)
 
 set.seed(2222)
+#build Lasso grid
+lr_spec <- linear_reg(penalty = tune(), mixture = 1) %>%
+	set_engine("glmnet") %>% 
+	set_mode("regression")
+
+lr_param = lr_spec %>% 
+	extract_parameter_set_dials()
+
+lr_grid = lr_param %>% 
+	grid_max_entropy(size = 15)
+
 #build RF grid
 rf_spec <- rand_forest(
 	trees = tune()
@@ -75,3 +86,4 @@ write_rds(rf_grid, here('results/hyperparameter_grids/rf_grid.rds'))
 write_rds(xgb_grid, here('results/hyperparameter_grids/xgb_grid.rds'))
 write_rds(keras_grid, here('results/hyperparameter_grids/keras_grid.rds'))
 write_rds(tabnet_grid, here('results/hyperparameter_grids/tabnet_grid.rds'))
+write_rds(lr_grid, here('results/hyperparameter_grids/lr_grid.rds'))
