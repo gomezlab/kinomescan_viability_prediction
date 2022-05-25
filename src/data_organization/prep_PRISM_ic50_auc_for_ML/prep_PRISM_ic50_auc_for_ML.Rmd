@@ -27,21 +27,23 @@ response_curve_parameters = read_csv(here('data/PRISM/secondary/secondary-screen
 PRISM_ic50_for_ml = response_curve_parameters %>% 
 	select(depmap_id, ccle_name, ic50, name, broad_id) 
 	
-write_csv(PRISM_ic50_for_ml, here('results/PRISM_ic50_for_ml.csv'))
+write_csv(PRISM_ic50_for_ml, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_ic50_for_ml.csv'))
 
 PRISM_ic50_auc_for_ml = response_curve_parameters %>% 
-	select(depmap_id, ccle_name, ic50, auc, name, broad_id) %>% 
-	filter(ic50 < 10) %>%
-	filter(ic50 > 0.001) %>% 
-	mutate(ic50 = log10(ic50))
+	select(depmap_id, ccle_name, ic50, auc, name, broad_id)
 
-write_csv(PRISM_ic50_auc_for_ml, here('results/PRISM_auc_for_ml.csv'))
-
+write_csv(PRISM_ic50_auc_for_ml, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_auc_for_ml.csv'))
 ```
 
 ```{r}
 #ic50 auc correlation
-PRISM_ic50_auc_for_ml %>%
+plot_data = PRISM_ic50_auc_for_ml %>% 
+	filter(ic50 < 10) %>%
+	filter(ic50 > 0.001) %>% 
+	mutate(ic50 = log10(ic50)) %>% 
+	filter(ic50 != 0)
+
+plot_data %>%
 	ggplot(aes(x = ic50, y = auc)) +
 	geom_hex() +
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
@@ -50,8 +52,8 @@ PRISM_ic50_auc_for_ml %>%
 			 	paste0('IC50/AUC R = ',
 			 				 round(
 			 				 	cor(
-			 				 		PRISM_ic50_auc_for_ml$ic50,
-			 				 		PRISM_ic50_auc_for_ml$auc),
+			 				 		plot_data$ic50,
+			 				 		plot_data$auc),
 			 				 	3)
 			 				 ),
 			 x = "IC50 (log10[\u00B5M])",

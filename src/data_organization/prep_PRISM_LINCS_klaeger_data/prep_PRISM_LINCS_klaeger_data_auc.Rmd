@@ -59,7 +59,6 @@ all_model_data = PRISM_auc_binarized %>%
 	mutate(auc_binary = as.factor(auc_binary)) %>% 
 	drop_na() 
 
-
 # LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long_processed %>% 
 # 	mutate(act_gene_name = paste0('act_', kinase)) %>% 
 # 	select(-kinase, -relative_intensity) %>% 

@@ -15,7 +15,7 @@ LINCS_cids = read_csv(here('results/matching/all_LINCS_cids.csv'))
 
 klaeger_cids = read_csv(here('results/matching/klaeger_cids.csv')) 
 
-PRISM = read_csv(here('data/PRISM/secondary/secondary-screen-replicate-treatment-info.csv'))
+#PRISM = read_csv(here('data/PRISM/secondary/secondary-screen-replicate-treatment-info.csv'))
 
 LINCS_PRISM_manual_matchlist = read_csv(here('results/matching/LINCS_PRISM_match_list_percent_updated.csv')) %>% 
 	select(LINCS_name, PRISM_name, broad_id)
