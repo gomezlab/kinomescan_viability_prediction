@@ -11,7 +11,7 @@ library(vroom)
 
 ```{r}
 #read in data 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 
 LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
 
@@ -33,9 +33,6 @@ depmap_data = read_rds(here('data/full_depmap_for_ML.rds'))
 ```{r}
 #prefering klaeger names for matching
 compound_match_list_processed = compound_match_list %>% 
-	mutate(drug = if_else(is.na(klaeger_name), 
-												LINCS_name, 
-												klaeger_name)) %>% 
 	select(drug, broad_id) %>% 
 	unique()
 

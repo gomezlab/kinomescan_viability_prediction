@@ -11,10 +11,10 @@ find_feature_correlations <- function(row_indexes = NA, all_data) {
   
   all_cor = cor(
     all_data %>% 
-      pull(ic50),
+      pull(auc),
     
     all_data %>% 
-      select(starts_with(c('act','exp')))
+      select(starts_with(c('act_','exp_')))
   ) %>%
     as.data.frame() %>%
     pivot_longer(everything(), names_to = "feature",values_to = "cor")
