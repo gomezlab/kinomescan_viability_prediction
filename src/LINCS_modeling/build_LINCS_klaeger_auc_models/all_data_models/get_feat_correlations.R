@@ -16,7 +16,7 @@ find_all_data_feature_correlations <- function(row_indexes = NA, all_data, query
 		all_data %>% 
 			
 			
-			pull(ic50),
+			pull(auc),
 		
 		all_data %>% 
 			select(starts_with(query))

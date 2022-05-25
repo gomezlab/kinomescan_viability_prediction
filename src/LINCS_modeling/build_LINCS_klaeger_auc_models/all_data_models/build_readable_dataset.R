@@ -16,13 +16,5 @@ feat5000_data = data %>%
 
 write_rds(feat5000_data, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.rds.gz'), compress = "gz")
 
-feat10000_data = data %>% 
-	select(any_of(cors$feature[1:10010]),
-				 depmap_id,
-				 ccle_name,
-				 auc,
-				 broad_id,
-				 auc_binary)
 
-write_rds(feat10000_data, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_10000feat_auc.rds.gz'), compress = "gz")
 	
