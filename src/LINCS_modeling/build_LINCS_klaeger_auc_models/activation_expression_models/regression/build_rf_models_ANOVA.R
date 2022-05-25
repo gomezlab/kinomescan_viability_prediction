@@ -23,7 +23,7 @@ dir.create(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/re
 full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/rand_forest/results', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
 folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_auc.rds'))
