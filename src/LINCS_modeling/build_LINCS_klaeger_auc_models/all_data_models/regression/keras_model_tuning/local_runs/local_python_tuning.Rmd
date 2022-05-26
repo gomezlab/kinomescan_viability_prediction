@@ -42,7 +42,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 ```{python}
 data = r.data
 feats = r.cors
-feat_counts = [400,500,1000,1500,2000,3000,4000,5000]
+feat_counts = [100,200,300,400,500,1000,1500,2000,3000,4000,5000]
 
 for f in feat_counts:
     data = r.data
@@ -98,7 +98,7 @@ for f in feat_counts:
     rnd_search_cv = GridSearchCV(keras_clf, param_distribs, cv=5, verbose=1, scoring='r2', refit=True)
     rnd_search_cv.fit(X_train, y_train, epochs=500, batch_size=512,
                     validation_data=(X_valid, y_valid),
-                    callbacks=[keras.callbacks.EarlyStopping(patience=20, min_delta = 0.0001, restore_best_weights=True)])
+                    callbacks=[keras.callbacks.EarlyStopping(patience=20, min_delta = 0.00001, restore_best_weights=True)])
     
     best_model = rnd_search_cv.best_estimator_
     r2score = (cross_val_score(best_model, X, y, cv=5, scoring='r2')).mean()
