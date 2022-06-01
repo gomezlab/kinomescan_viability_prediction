@@ -32,7 +32,8 @@ LINCS_klaeger_cids = LINCS_cids %>%
 	rename(drug = LINCS_name) %>% 
 	bind_rows(klaeger_cids %>% 
 							mutate(origin = "Kinobeads") %>% 
-							rename(drug = klaeger_name))
+							rename(drug = klaeger_name)) %>% 
+	write_csv(here('results/matching/kinomescan_klaeger_cids.csv'))
 ```
 
 

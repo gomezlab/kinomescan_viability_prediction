@@ -42,7 +42,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 ```{python}
 data = r.data
 feats = r.cors
-feat_counts = [400,500,1000,1500,2000,3000,4000,5000]
+feat_counts = [100,200,300,400,500,1000,1500,2000,3000,4000,5000]
 
 for f in feat_counts:
     data = r.data
