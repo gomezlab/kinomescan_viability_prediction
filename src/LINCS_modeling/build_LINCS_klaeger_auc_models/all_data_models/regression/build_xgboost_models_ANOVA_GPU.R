@@ -20,20 +20,14 @@ print(sprintf('Features: %02d',args$feature_num))
 dir.create(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/', 
 								sprintf('xgboost/results')), 
 					 showWarnings = F, recursive = T)
-dir.create(here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/', 
-								sprintf('xgboost/predictions')), 
-					 showWarnings = F, recursive = T)
 
 full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/xgboost/results', 
 												sprintf('%dfeat.rds.gz',args$feature_num))
 
-pred_output_file = here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/xgboost/predictions', 
-												sprintf('%dfeat.rds.gz',args$feature_num))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.rds.gz'))
+cors = vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
 
-this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_for_ml_5000feat_auc.rds'))
-cors = vroom(here('results/PRISM_LINCS_klaeger_all_multiomic_data_feature_correlations_auc.csv'))
-
-folds = read_rds(here('results/PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds'))
+folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_all_multiomic_data_folds_auc.rds.gz'))
 
 this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),
@@ -76,8 +70,7 @@ results <- tune_grid(
 	grid = xgb_grid,
 	control = race_ctrl
 ) %>% 
+	collect_metrics() %>% 
 	write_rds(full_output_file, compress = "gz")
-
-write_rds(results$.predictions[[1]], pred_output_file)
 
 toc()
