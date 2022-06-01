@@ -28,7 +28,7 @@ for (feature_num in c(1500,2000,3000,4000,5000)) {
 	job_name = sprintf('iaxg%d',feature_num)
 
 	#command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --constraint="rhel7" --job-name=%s --mem=50G --time=48:00:00 --qos gpu_access --gres=gpu:1 --wrap "Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/all_data_models/regression/build_xgboost_models_ANOVA_GPU.R --feature_num %d"', job_name, feature_num)
-  command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --constraint=rhel8 --mem=50G --time=48:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu --wrap=\"echo \' module load r/4.1.0; module load cuda/11.4; module load gcc/9.1.0; Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/all_data_models/regression/build_xgboost_models_ANOVA_GPU.R --feature_num %d \' | bash\"', job_name, feature_num)
+  command = sprintf('sbatch -N 1 -n 1 -p volta-gpu --constraint=rhel8 --job-name=%s --mem=50G --time=48:00:00 --qos gpu_access --gres=gpu:1 --mail-user=cujoisa@live.unc.edu --wrap=\"echo \' module load r/4.1.0; module load cuda/11.4; module load gcc/9.1.0; Rscript src/LINCS_modeling/build_LINCS_klaeger_ic50_models/all_data_models/regression/build_xgboost_models_ANOVA_GPU.R --feature_num %d \' | bash\"', job_name, feature_num)
 	# print(command)
 	system(command)
 
