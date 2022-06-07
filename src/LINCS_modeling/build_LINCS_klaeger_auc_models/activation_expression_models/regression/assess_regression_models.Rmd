@@ -70,7 +70,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 
 all_keras_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000,6000,7000,8000)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000)) {
 	this_keras_scores = read_csv(
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
