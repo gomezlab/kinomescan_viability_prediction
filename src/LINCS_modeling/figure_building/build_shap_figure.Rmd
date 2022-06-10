@@ -10,9 +10,9 @@ library(DarkKinaseTools)
 
 ```{r}
 #read in data 
-data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_for_ml_5000feat_ic50.rds.gz'))
 
-cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
 gene_classifications = read_csv(here('data/KlaegerScience2017/manual_gene_labels.csv')) %>%
 	bind_rows(all_kinases %>% select(symbol,class) %>% rename(gene_name = symbol)) %>% 
@@ -26,12 +26,12 @@ gene_classifications = read_csv(here('data/KlaegerScience2017/manual_gene_labels
 		gene_name
 	))
 
-exp_interactor_type = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/expression_feature_interactors.rds')) %>%
+exp_interactor_type = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/expression_feature_interactors.rds')) %>%
 	mutate(Variable = paste0(type,"_",hgnc)) %>%
 	mutate(interaction = case_when(
 		direct_count >= 1 ~ "Inhibition\nInteractor",
 		T ~ "Noninteractor"
-	))
+	)) 
 ```
 
 ```{python}
@@ -41,9 +41,6 @@ from sklearn.metrics import average_precision_score, precision_recall_curve, roc
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 from math import sqrt
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from xgboost.sklearn import XGBClassifier
 import csv
 #shap requires this setting and tf.keras instead of keras to work
 tf.compat.v1.disable_v2_behavior()
@@ -53,14 +50,14 @@ tf.compat.v1.disable_v2_behavior()
 #data preprocessing
 data = r.data
 feats = r.cors
-feats_list = feats['feature'][:2000].tolist()
-feats_list.append('auc')
-ids = ['broad_id','ccle_name','depmap_id','auc_binary']
+feats_list = feats['feature'][:5000].tolist()
+feats_list.append('ic50')
+ids = ['broad_id','ccle_name','depmap_id','ic50_binary']
 #add ids to feats_list
 feats_list.extend(ids)
 data = data[feats_list]
-exclude = ['auc','broad_id','ccle_name','depmap_id','auc_binary']
-y = data['auc']
+exclude = ['ic50','broad_id','ccle_name','depmap_id','ic50_binary']
+y = data['ic50']
 X = data.drop(exclude, axis=1)
 ```
 
@@ -73,7 +70,7 @@ model = tf.keras.models.Sequential()
     for layer in range(4):
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(200))
-        model.add(tf.keras.layers.Dropout(0.2))
+        model.add(tf.keras.layers.Dropout(0.6))
         model.add(tf.keras.layers.Activation("relu"))
     model.add(tf.keras.layers.Dropout(0.2))
     model.add(tf.keras.layers.Dense(1, activation='linear'))
@@ -83,14 +80,14 @@ model = tf.keras.models.Sequential()
     model.compile(loss="mean_squared_error", metrics=['RootMeanSquaredError'], optimizer=optimizer)
     
 early_stopping = tf.keras.callbacks.EarlyStopping(
-    patience=25,
-    min_delta=0.001,
+    patience=20,
+    min_delta=0.00001,
     restore_best_weights=True,)
 
 history = model.fit(
     X, y,
     batch_size=512,
-    epochs=200)
+    epochs=75)
 ```
 
 ```{python}
@@ -128,12 +125,12 @@ shap_values_processed = shap_values %>%
 			str_detect(feature, "^prot_") ~ "Proteomics",
 			T ~ feature
 		)) %>% 
-	write_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values.csv'))
+	write_csv(here('results/PRISM_LINCS_klaeger_models_ic50/all_feature_shap_values.csv'))
 ```
 
 ```{r}
 #separate by feature type and plot 
-shap_values_processed = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values.csv'))
+shap_values_processed = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/all_feature_shap_values.csv'))
 
 shap_inhibition = shap_values_processed %>% 
 	filter(feature_type == "Inhibition") %>% 
@@ -169,6 +166,9 @@ shap_inhibition %>%
 ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
 
 shap_expression %>%
+	mutate(interaction = if_else(gene == "DRB1",
+															 "Noninteractor",
+															 interaction)) %>% 
   slice(1:25) %>%
 	arrange(shap_value) %>% 
 	unique() %>% 
@@ -176,7 +176,7 @@ shap_expression %>%
 	ggplot(aes(x = shap_value, y = gene, fill = interaction)) +
 	geom_col() +
 	labs(y='',fill='',x='Gene Expression Importance') +
-	scale_x_continuous(breaks = c(0, 5e-4,1e-3)) +
+	#scale_x_continuous(breaks = c(0, 5e-4,1e-3)) +
 	theme(
 		legend.title = element_blank(),
 		legend.position = "bottom",

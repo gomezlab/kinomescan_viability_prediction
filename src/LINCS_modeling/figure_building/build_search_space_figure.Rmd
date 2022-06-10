@@ -15,7 +15,7 @@ knitr::opts_knit$set(root.dir = here())
 ```
 
 ```{r}
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv'))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 
 PRISM_auc = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_auc_for_ml.csv'))
 
@@ -27,12 +27,7 @@ full_CCLE_expression_set_for_ML = read_rds(here('data/full_CCLE_expression_set_f
 
 ```{r}
 #preparing to compare PRISM drug names to klaeger+kinomescan
-compound_match_list_processed = compound_match_list %>% 
-	mutate(drug = if_else(is.na(klaeger_name), 
-												LINCS_name, 
-												klaeger_name)) %>% 
-	select(drug, broad_id) %>% 
-	unique()
+compound_match_list_processed = compound_match_list
 
 PRISM_auc_processed = PRISM_auc %>% 
 	left_join(compound_match_list_processed) %>% 

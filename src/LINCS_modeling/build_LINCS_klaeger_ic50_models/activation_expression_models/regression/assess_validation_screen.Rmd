@@ -1,0 +1,253 @@
+```{r}
+library(tidyverse)
+library(here)
+library(dr4pl)
+library(PharmacoGx)
+library(Metrics)
+library(conflicted)
+library(wesanderson)
+conflict_prefer("rmse", "Metrics")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("rename", "dplyr")
+```
+
+```{r}
+#read in data 
+sample_info = read_csv(here('data/CCLE_data/sample_info.csv')) %>% 
+	select(DepMap_ID, stripped_cell_line_name)
+
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
+	mutate(drug = if_else(is.na(klaeger_name),
+															LINCS_name, 
+															klaeger_name))
+
+response_curve_parameters = read_csv(here('data/PRISM/secondary/secondary-screen-dose-response-curve-parameters.csv')) %>% 
+	#Filter only to compounds that match the Klaeger list and to cell lines that
+	#passed STR profiling
+	filter(broad_id %in% compound_match_list$broad_id, passed_str_profiling, !is.na(ic50))
+
+first_validation = read_rds(here('results/validation_results/validation_screen.rds'))
+second_validation = read_rds(here('results/validation_results/double_negative_validation_screen.rds'))
+PRISM_replication = read_rds(here('results/validation_results/HCC_PRISM_replication_screen.rds'))
+validation_results = first_validation %>% 
+	bind_rows(second_validation) 
+
+model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions.csv'))
+
+```
+
+```{r}
+#summarising validation by replicate 
+
+validation_summaries = validation_results %>% 
+	group_by(compound, concentration_M, cell_line) %>%
+	summarise(sd = sd(viability),
+						num_samples = n(),
+						mean_via = mean(viability),
+						CV = sd/mean_via)
+
+replication_summaries = PRISM_replication %>% 
+	group_by(compound, concentration_M, cell_line) %>%
+	summarise(sd = sd(viability),
+						num_samples = n(),
+						mean_via = mean(viability),
+						CV = sd/mean_via)
+```
+
+```{r}
+#Analyzing PRISM Replication first 
+#generating ic50 values from 4-parameter log-logistic model
+
+cell_line_drug_combos = replication_summaries %>%
+	ungroup() %>% 
+	select(compound, cell_line) %>% 
+	unique() %>% 
+	filter(!compound == "DMSO")
+
+all_replication_results = data.frame()
+for(i in 1:dim(cell_line_drug_combos)[1]) {
+query_drug = cell_line_drug_combos$compound[i]
+query_cell_line = cell_line_drug_combos$cell_line[i]
+
+this_data = replication_summaries %>% 
+	filter(compound == query_drug & cell_line == query_cell_line) %>% 
+	#convert dose to uM
+	mutate(concentration_M = concentration_M*10^6)
+
+# this_results = dr4pl(dose = this_data$concentration_M, response = this_data$mean_via,
+#                      method.init = "logistic", trend = "decreasing")
+# 
+# param = summary(this_results)$coefficients$Estimate
+# 
+# E_inf = param[4]
+# u = param[1]
+# ec50 = param[2]
+# hill_slope = param[3]
+# md =  min(this_data$concentration_M)
+# MD =  max(this_data$concentration_M)
+
+
+auc = 100 - computeAUC(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE,
+								 area.type = "Fitted")
+								 # Hill_fit = c(hill_slope, E_inf, ec50))
+
+ic50 = computeIC50(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE)
+								 # Hill_fit = c(hill_slope, E_inf, ec50)) 
+
+
+results_dataframe = data.frame(drug = query_drug, cell_line = query_cell_line, exp_auc = auc, exp_ic50 = ic50) %>% 
+	mutate(exp_ic50 = log(exp_ic50))
+
+all_replication_results = bind_rows(all_replication_results, results_dataframe) 
+}
+
+cor(all_replication_results$exp_auc, all_replication_results$exp_ic50)
+
+# auc <- compute_auc(param[4], 
+# 									 param[1],
+# 									 param[2],
+# 									 -param[3],
+# 									 min(this_data$concentration_M),
+# 									 max(this_data$concentration_M))
+#     
+# 
+# compute_auc = function(l, u, ec50, h, md, MD) {
+#     f1 = function(x) pmax(pmin((l + (u - l)/(1 + (2^x/ec50)^h)),1),0)
+#     integrate(f1, log2(md),log2(MD))$value/(log2(MD/md))
+# }
+   
+
+```
+
+```{r}
+replication_comparison = all_replication_results %>% 
+	left_join(compound_match_list %>% select(drug, PRISM_name, broad_id)) %>% 
+	mutate(stripped_cell_line_name = case_when(
+		cell_line == "HCC-1806" ~ "HCC1806",
+		T ~ cell_line
+	)) %>% 
+	left_join(sample_info) %>% 
+	left_join(response_curve_parameters %>% 
+							select(broad_id, depmap_id, auc, ic50),
+						by = c("broad_id", "DepMap_ID" = "depmap_id")) %>% 
+	filter(!is.na(ic50))
+
+rsq = cor(replication_comparison$ic50, replication_comparison$exp_ic50)^2
+rmse = rmse(replication_comparison$ic50, replication_comparison$exp_ic50)
+
+replication_comparison %>% 
+	ggplot(aes(x = ic50, y = exp_ic50)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(title = 
+  paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	1),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	), 
+  x = "PRISM AUC",
+  y = "Replicated AUC") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png'), height = 10, width = 9.5, units = "cm")
+```
+
+```{r}
+#Analyzing Validation of Model Predictions 
+#generating AUC values from 4-parameter log-logistic model
+
+cell_line_drug_combos = validation_summaries %>%
+	ungroup() %>% 
+	select(compound, cell_line) %>% 
+	unique() %>% 
+	filter(!compound == "DMSO")
+
+all_validation_results = data.frame()
+for(i in 1:dim(cell_line_drug_combos)[1]) {
+query_drug = cell_line_drug_combos$compound[i]
+query_cell_line = cell_line_drug_combos$cell_line[i]
+
+this_data = validation_summaries %>% 
+	filter(compound == query_drug & cell_line == query_cell_line) %>% 
+	#convert dose to uM
+	mutate(concentration_M = concentration_M*10^6)
+
+auc = 100 - computeAUC(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE,
+								 area.type = "Fitted")
+								 # Hill_fit = c(hill_slope, E_inf, ec50))
+
+ic50 = computeIC50(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE)
+								 # Hill_fit = c(hill_slope, E_inf, ec50)) 
+
+
+results_dataframe = data.frame(drug = query_drug, cell_line = query_cell_line, exp_auc = auc, exp_ic50 = ic50)
+
+all_validation_results = bind_rows(all_validation_results, results_dataframe)
+}
+```
+
+```{r}
+validation_assessment = all_validation_results %>% 
+	mutate(stripped_cell_line_name = case_when(
+		cell_line == "BT-474" ~ "BT474",
+		cell_line == "SUM159" ~ "SUM159PT",
+		T ~ cell_line
+	)) %>% 
+	mutate(drug = ifelse(drug == "ONO-4059 (analog)","ONO-4059 analogue",drug)) %>% 
+	left_join(sample_info) %>% 
+	rename(depmap_id = DepMap_ID) %>% 
+	left_join(model_predictions) %>% 
+	mutate(exp_auc = exp_auc/100) %>% 
+	filter(!is.na(predicted_auc))
+
+rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
+
+rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
+
+validation_assessment %>% 
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(title = 
+  paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	1),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	), 
+  x = "Predicted AUC",
+  y = "Actual AUC") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+```
+

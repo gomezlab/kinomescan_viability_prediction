@@ -31,8 +31,8 @@
      inkscape:guide-bbox="true"
      height="210mm"
      inkscape:zoom="1"
-     inkscape:cx="384"
-     inkscape:cy="49.5"
+     inkscape:cx="384.5"
+     inkscape:cy="129.5"
      inkscape:window-width="1920"
      inkscape:window-height="960"
      inkscape:window-x="1920"
@@ -57,14 +57,6 @@
        xlink:href="PRISM_LINCS_klaeger/all_regression_model_metrics.png"
        id="image350"
        x="-0.35282046"
-       y="0.23767477" />
-    <image
-       width="69.934669"
-       height="104.98666"
-       preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/final_keras_CV_results.png"
-       id="image994"
-       x="139.60118"
        y="0.23767477" />
     <image
        width="39.962663"
@@ -150,5 +142,13 @@
          style="stroke-width:0.313678"
          x="121.37041"
          y="115.35986">e</tspan></text>
+    <image
+       width="69.934669"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/final_keras_CV_results_ic50.png"
+       id="image109"
+       x="139.60118"
+       y="0.23767477" />
   </g>
 </svg>

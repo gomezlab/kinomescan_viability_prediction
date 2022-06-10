@@ -29,8 +29,8 @@ data = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaege
 
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
-#set feature number to 2000
-feature_num = 2000
+#set feature number to 5000
+feature_num = 5000
 
 LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 
@@ -59,18 +59,11 @@ CCLE_data = CCLE_data %>%
 	pivot_longer(-depmap_id, names_to = "gene", values_to = "value") %>% 
 	mutate(gene = str_replace(gene, "[-;]", "_")) %>% 
 	pivot_wider(names_from = gene, values_from = 'value')
-
-compound_match_list = compound_match_list %>% 
-	mutate(drug = if_else(
-		is.na(klaeger_name),
-		LINCS_name, 
-		klaeger_name
-	)) 
 ```
 
 
 ```{r}
-# run final 2000 feature model 
+# run final 5000 feature model 
 tic()	
 
 this_dataset = data %>% 
@@ -78,9 +71,7 @@ this_dataset = data %>%
 				 ic50,
 				 ccle_name,
 				 broad_id,
-				 any_of(cors$feature[1:feature_num])) %>% 
-	unique() %>% 
-	drop_na()
+				 any_of(cors$feature[1:feature_num]))
 
 spec = feature_spec(this_dataset %>% 
 											select(ic50, starts_with(c("act", "exp_"))),
@@ -100,13 +91,13 @@ spec = feature_spec(this_dataset %>%
 		layer_dense_features(dense_features(spec)) %>%
 		layer_batch_normalization() %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.2) %>% 
+		layer_dropout(rate = 0.6) %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.2) %>% 
+		layer_dropout(rate = 0.6) %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.2) %>% 
+		layer_dropout(rate = 0.6) %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.2) %>% 
+		layer_dropout(rate = 0.6) %>% 
 		layer_dense(units = 1, activation = 'linear')
 	
 	model = keras_model(
@@ -125,10 +116,11 @@ set.seed(2222)
 	history <- model %>% fit(
 		x = X,
 		y = y$ic50,
-		epochs = 85,
+		epochs = 75,
 		batch_size = 512
-	) %>% 
-		write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/final_keras_model.rds.gz'), compress = "gz")
+	)
+		
+save_model_hdf5(model, here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/final_keras_model.h5'))
 	
 #k_clear_session()
 ```
@@ -160,7 +152,9 @@ not_tested_data = non_tested_combos %>%
 	left_join(CCLE_data %>% 
 							select(depmap_id,
 										 any_of(names(X))),
-						by = 'depmap_id')
+						by = 'depmap_id') %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/not_tested_data.rds.gz'), compress = "gz")
+	
 
 # names_non_tested = names(not_tested_data) %>%
 # 	as.data.frame() %>% 
@@ -174,13 +168,77 @@ not_tested_data = non_tested_combos %>%
 
 ```{r}
 #make model predictions
+model = load_model_hdf5(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/keras/final_keras_model.h5'))
+
+not_tested_data = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/activation_expression/regression/not_tested_data.rds.gz'))
+
+# n = 10
+# splits = split(not_tested_data, factor(sort(rank(row.names(not_tested_data))%%n)))
+
 tic()
-predictions <- model %>% predict(not_tested_data %>% select(starts_with(c("act_", "exp_"))))
+predictions_1 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(1:135522)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_1.rds'))
+
+predictions_2 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(135523:271045)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_2.rds'))
+
+predictions_3 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(271046:406568)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_3.rds'))
+
+predictions_4 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(406569:542091)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_4.rds'))
+
+predictions_5 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(542092:677614)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_5.rds'))
+
+predictions_6 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(677615:813137)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_6.rds'))
+
+predictions_7 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(813138:948660)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_7.rds'))
+
+predictions_8 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(948661:1084183)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_8.rds'))
+
+predictions_9 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(1084184:1219706)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_9.rds'))
+
+predictions_10 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(1219707:1355226)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions_10.rds'))
 toc()
 
 ids = not_tested_data %>% select(-starts_with(c("act_", "exp_")))
 
-full_predictions = data.frame(predicted_ic50 = predictions) %>% 
+full_predictions = data.frame(predicted_ic50 = predictions_1) %>% 
+	bind_rows(data.frame(predicted_ic50 = predictions_2)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_3)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_4)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_5)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_6)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_7)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_8)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_9)) %>%
+	bind_rows(data.frame(predicted_ic50 = predictions_10)) %>% 
 	bind_cols(ids) %>% 
 	write_csv(here('results/PRISM_LINCS_klaeger_models_ic50/final_model_predictions.csv'))
 ```

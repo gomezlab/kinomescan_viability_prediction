@@ -31,12 +31,13 @@ this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINC
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_feature_correlations_ic50.csv'))
 
 folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_ic50.rds.gz'))
+
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_models_ic50_regression_metrics.csv'))
 ```
 
 
 ```{r}
 #extract best inhibition expression models per model type
-model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_models_ic50_regression_metrics.csv')) 
 
 best_xgboost_model = model_metrics_combined %>% 
 	filter(data_type == "inhibition_expression" & model_type == "xgboost") %>% 
@@ -45,7 +46,7 @@ best_xgboost_model = model_metrics_combined %>%
 	pivot_wider(names_from = hyperparameter, values_from = value)
 
 best_rand_forest_model = model_metrics_combined %>% 
-	filter(data_type == "inhibition_expression" &model_type == "random_forest") %>% 
+	filter(data_type == "inhibition_expression" &model_type == "random forest") %>% 
 	arrange(desc(mean)) %>% 
 	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
 	pivot_wider(names_from = hyperparameter, values_from = value)
@@ -53,7 +54,8 @@ best_rand_forest_model = model_metrics_combined %>%
 best_lasso_model = model_metrics_combined %>% 
 	filter(data_type == "inhibition_expression" &model_type == "lasso") %>% 
 	arrange(desc(mean)) %>% 
-	filter(model_id == model_id[1] & num_features == num_features[1]) 
+	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
+	pivot_wider(names_from = hyperparameter, values_from = value)
 
 keras_predictions = read_rds(
 	here(
@@ -104,7 +106,6 @@ tic()
 xgboost_results <- fit_resamples(
 	this_wflow,
 	resamples = folds,
-	grid = xgb_grid,
 	control = race_ctrl
 ) %>% 
 	write_rds(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_tuned_xgboost_regression_model_ic50.rds.gz'),
@@ -114,6 +115,8 @@ toc()
 
 xgboost_predictions = collect_predictions(xgboost_results) %>% 
 	rename("predicted_ic50" = .pred)
+
+write_rds(xgboost_predictions, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_tuned_xgboost_regression_model_ic50_predictions.rds.gz'), compress = "gz")
 ```
 
 ```{r}
@@ -165,6 +168,8 @@ toc()
 
 rand_forest_predictions = collect_predictions(rand_forest_results) %>% 
 	rename("predicted_ic50" = .pred)
+
+write_rds(rand_forest_predictions, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_tuned_random_forest_regression_model_ic50_predictions.rds.gz'), compress = "gz")
 ```
 
 ```{r}
@@ -188,7 +193,8 @@ this_recipe = recipe(ic50 ~ ., this_dataset) %>%
 							any_of(cors$feature[1:args$feature_num])) %>% 
 	step_normalize(all_predictors())
 
-lr_spec <- linear_reg(penalty = 0.1, mixture = 1) %>%
+lr_spec <- linear_reg(penalty = best_lasso_model$penalty, mixture = 1) %>%
+	set_engine("glmnet") %>% 
 	set_mode("regression")
 
 this_wflow <-
@@ -214,22 +220,18 @@ toc()
 
 lasso_predictions = collect_predictions(lasso_results) %>% 
 	rename("predicted_ic50" = .pred)
+
+write_rds(lasso_predictions, here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_tuned_lasso_regression_model_ic50_predictions.rds.gz'), compress = "gz")
 ```
 
 ```{r}
 # make dataset with rownumbers and drug origin labelled 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 
 dataset_with_rownumbers = this_dataset %>% 
 	rownames_to_column(var = "rownumber") %>% 
 	select(rownumber,broad_id, depmap_id, ic50, ccle_name) %>% 
-	left_join(compound_match_list, by = 'broad_id') %>% 
-	mutate(origin = if_else(
-		is.na(klaeger_name),
-		"KINOMEscan",
-		"Kinobeads"
-	)) %>% 
-	select(-klaeger_name, -LINCS_name, -ic50) 
+	left_join(compound_match_list, by = 'broad_id')
 ```
 
 
@@ -238,6 +240,7 @@ dataset_with_rownumbers = this_dataset %>%
 
 get_kinomescan_klaeger_comparison = function(final_predictions, model_type) {
 final_full_predictions = final_predictions %>%
+	select(-ic50) %>% 
 	rename("rownumber" = .row) %>% 
 	mutate(rownumber = as.character(rownumber)) %>% 
 	left_join(dataset_with_rownumbers, by = 'rownumber')
@@ -291,7 +294,7 @@ comparison_metrics = data.frame(model_type = model_type,
 lasso_comparison = get_kinomescan_klaeger_comparison(final_predictions = lasso_predictions,
 																										model_type = "lasso")
 rand_forest_comparison = get_kinomescan_klaeger_comparison(final_predictions = rand_forest_predictions,
-																										model_type = "random_forest")
+																										model_type = "random forest")
 xgboost_comparison = get_kinomescan_klaeger_comparison(final_predictions = xgboost_predictions,
 																										model_type = "xgboost")	
 
@@ -302,13 +305,7 @@ all_comparisons = bind_rows(lasso_comparison, rand_forest_comparison, xgboost_co
 # adding in keras NN kinomescan vs klaeger results 
 
 final_full_predictions = keras_predictions %>% 
-	left_join(compound_match_list, by = 'broad_id') %>% 
-	mutate(origin = if_else(
-		is.na(klaeger_name),
-		"KINOMEscan",
-		"Kinobeads"
-	)) %>% 
-	select(-klaeger_name, -LINCS_name) 
+	left_join(compound_match_list, by = 'broad_id')
 
 kinomescan_rsq = cor(
 	final_full_predictions %>% 
@@ -348,7 +345,7 @@ klaeger_rmse = rmse(
 
 relative_rsq = kinomescan_rsq/klaeger_rsq
 
-keras_comparison_metrics = data.frame(model_type = "4-layer NN",
+keras_comparison_metrics = data.frame(model_type = "4-layer Neural Network",
 																kinomescan_rsq = kinomescan_rsq,
 																klaeger_rsq = klaeger_rsq,
 																kinomescan_rmse = kinomescan_rmse,

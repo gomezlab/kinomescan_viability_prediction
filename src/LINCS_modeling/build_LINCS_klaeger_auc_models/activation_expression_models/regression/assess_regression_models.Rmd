@@ -34,7 +34,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/rand_forest/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
-	this_model_metrics = collect_metrics(this_model_results) %>%
+	this_model_metrics = this_model_results %>%
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
@@ -47,7 +47,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
-	this_model_metrics = collect_metrics(this_model_results) %>%
+	this_model_metrics = this_model_results %>%
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
@@ -70,7 +70,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 
 all_keras_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000,6000,7000,8000,9000)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	this_keras_scores = read_csv(
 		here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/results',
 				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
@@ -85,7 +85,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000,6000,
 
 all_model_metrics = all_rf_metrics %>% 
 	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>%
-	mutate(model_type = 'random_forest') %>%
+	mutate(model_type = 'random forest') %>%
 	bind_rows(
 		all_xgb_metrics %>%
 			pivot_longer(c(trees, tree_depth), names_to = 'hyperparameter', values_to = 'value') %>%
@@ -124,7 +124,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/rand_forest/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
-	this_model_metrics = collect_metrics(this_model_results) %>%
+	this_model_metrics = this_model_results %>%
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
@@ -137,7 +137,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 		here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/xgboost/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
 
-	this_model_metrics = collect_metrics(this_model_results) %>%
+	this_model_metrics = this_model_results %>%
 		arrange(desc(mean)) %>%
 		slice(1) %>%
 		mutate(num_features = feature_number)
@@ -175,7 +175,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 
 all_data_all_model_metrics = all_data_all_rf_metrics %>% 
 	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>%
-	mutate(model_type = 'random_forest') %>%
+	mutate(model_type = 'random forest') %>%
 	bind_rows(
 		all_data_all_xgb_metrics %>%
 			pivot_longer(c(trees, tree_depth), names_to = 'hyperparameter', values_to = 'value') %>%

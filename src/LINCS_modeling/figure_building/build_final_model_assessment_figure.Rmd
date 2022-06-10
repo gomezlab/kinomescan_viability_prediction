@@ -41,11 +41,11 @@ combined_metrics %>%
 	mutate(
 		data_type = if_else(
 		data_type == "inhibition_expression",
-		"Inhibition and Expression only",
-		"All Multi-Omics"
+		"Inhibition States and Expression only",
+		"Inhibition States and All Multi-Omics data"
 	),
 		model_type = case_when(
-			model_type == "random_forest" ~ "Random Forest",
+			model_type == "random forest" ~ "Random Forest",
 			model_type == "lasso" ~ "Lasso",
 			model_type == "xgboost" ~ "XGBoost",
 			T ~ model_type)) %>% 

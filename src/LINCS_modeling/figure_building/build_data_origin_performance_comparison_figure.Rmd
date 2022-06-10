@@ -9,7 +9,7 @@ library(vroom)
 
 ```{r}
 #read in data
-final_comparisons = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_origin_comparison_metrics_auc.csv'))
+final_comparisons = read_csv(here('results/PRISM_LINCS_klaeger_models_ic50/PRISM_LINCS_klaeger_data_origin_comparison_metrics_ic50.csv'))
 ```
 
 ```{r}
@@ -17,15 +17,21 @@ final_comparisons = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_
 #title = "KINOMEscan R\u00B2 / \n Kinobeads R\u00B2",
 
 final_comparisons %>% 
+	mutate(model_type = case_when(
+			model_type == "random forest" ~ "Random Forest",
+			model_type == "lasso" ~ "Lasso",
+			model_type == "xgboost" ~ "XGBoost",
+			T ~ model_type)) %>% 
 	mutate(model_type = as.factor(model_type)) %>% 
-	mutate(model_type = fct_relevel(model_type, "lasso", "xgboost", "random_forest", "4-layer NN")) %>% 
+	mutate(model_type = fct_relevel(model_type, "Random Forest", "XGBoost", "Lasso", "4-layer Neural Network")) %>% 
 	ggplot(aes(x = model_type, y = relative_rsq, shape = model_type, colour = model_type , fill = model_type)) +
 	geom_point(alpha = 1.5, size = 3) +
+	coord_cartesian(ylim = c(0.6, 1)) +
 	scale_shape_manual(values=c(16, 3, 15, 17)) +
 	scale_color_manual(values=c('#F8766D', '#C77CFF', '#00BFC4', '#7CAE00')) +
 	# scale_fill_manual(values=c('orange', 'purple', 'blue', 'green')) +
 	geom_hline(aes(yintercept = 1), linetype = 3) + 
-	labs(x = "Model Type", y = "Data Origin Relative R\u00B2", colour = "Model Type", shape = "Model Type") +
+	labs(x = "Model Type", y = "Relative Performance of Models\non KINOMEscan vs Kinobeads", colour = "Model Type", shape = "Model Type") +
 		theme(
 		legend.position = "none",
 		legend.text = element_text(size = 9),

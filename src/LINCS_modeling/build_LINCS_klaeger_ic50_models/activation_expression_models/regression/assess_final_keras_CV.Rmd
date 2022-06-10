@@ -31,7 +31,7 @@ median_epochs = median(all_metrics$epochs)
 all_predictions %>%
  ggplot(aes(x = predicted_ic50, y = ic50)) +
  geom_hex() +
- scale_fill_viridis_c(guide = guide_colorbar(title = "Number of\nAUC values")) +
+ scale_fill_viridis_c(guide = guide_colorbar(title = "Number of\nIC50 values")) +
  labs(title = 
   paste0('R\u00B2 = ',
 			 				 round(
@@ -42,11 +42,11 @@ all_predictions %>%
 			 				 	mean_rmse,
 			 				 	2)
 			 	), 
-  x = "Predicted AUC",
-  y = "Actual AUC") +
+  x = "Predicted IC50",
+  y = "Actual IC50") +
 	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
 	geom_smooth(colour = "red") +
-	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	#coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
 	theme(
 		legend.position = "bottom",
 		panel.background = element_rect(fill = "transparent",colour = NA),
@@ -54,21 +54,15 @@ all_predictions %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results.png'), width = 7, height = 10.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results_ic50.png'), width = 7, height = 10.5, units = "cm")
 ```
 
 ```{r}
 # comparing kinomescan vs klaeger results 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 
 final_full_predictions = all_predictions %>% 
-	left_join(compound_match_list, by = 'broad_id') %>% 
-	mutate(origin = if_else(
-		is.na(klaeger_name),
-		"KINOMEscan",
-		"Kinobeads"
-	)) %>% 
-	select(-klaeger_name, -LINCS_name) 
+	left_join(compound_match_list, by = 'broad_id')
 
 kinomescan_rsq = cor(
 	final_full_predictions %>% 
@@ -125,7 +119,7 @@ a = final_full_predictions %>%
 			 y = "Actual AUC") +
 	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
 	geom_smooth(colour = "red") +
-	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	#coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
 	theme(
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
@@ -152,7 +146,7 @@ b = final_full_predictions %>%
 			 y = "Actual AUC") +
 	geom_abline(intercept = 0, slope = 1, size = 0.3, colour = 'black', linetype = 3) +
 	geom_smooth(colour = "red") +
-	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
+	#coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
 	theme(
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
