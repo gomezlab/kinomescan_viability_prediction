@@ -54,21 +54,15 @@ all_predictions %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results.png'), width = 7, height = 10.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results_auc.png'), width = 7, height = 10.5, units = "cm")
 ```
 
 ```{r}
 # comparing kinomescan vs klaeger results 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_no_overlap.csv'))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 
 final_full_predictions = all_predictions %>% 
-	left_join(compound_match_list, by = 'broad_id') %>% 
-	mutate(origin = if_else(
-		is.na(klaeger_name),
-		"KINOMEscan",
-		"Kinobeads"
-	)) %>% 
-	select(-klaeger_name, -LINCS_name) 
+	left_join(compound_match_list, by = 'broad_id') 
 
 kinomescan_rsq = cor(
 	final_full_predictions %>% 

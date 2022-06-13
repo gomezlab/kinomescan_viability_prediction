@@ -1,0 +1,186 @@
+---
+title: "find LINCS klaeger PRISM compound matches"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(webchem)
+library(umap)
+library(conflicted)
+conflict_prefer("everything", "dplyr")
+conflict_prefer("filter", "dplyr")
+```
+
+```{r}
+#read in data
+AML_data = read_csv(here("data/AML_data/AML_cell_AUCs.csv"))
+
+kinomescan_klaeger_cids = read_csv(here('results/matching/kinomescan_klaeger_cids.csv')) %>% 
+	mutate(cid = as.character(cid))
+
+LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
+LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+
+matched_kinases = read_csv(here('results/matching/LINCS_klaeger_kinase_matches.csv'))
+```
+
+```{r}
+#preprocessing
+
+AML_data_processed = AML_data %>% 
+	select(-`53 drugs`) %>% 
+	rename(AML_drug_name = UID) %>% 
+	pivot_longer(-AML_drug_name, names_to = "AML_cell_line", values_to = "auc") %>% 
+	write_rds(here('results/misc/AML/AML_auc_data_long.rds'))
+```
+
+
+```{r}
+#Get AML cids from their names
+AML_cids = get_cid(unique(AML_data_processed$AML_drug_name), from = "name", domain = "compound", match = "all", verbose = T) %>% 
+	rename("AML_drug_name" = query)
+```
+
+```{r}
+	
+drug_matches = kinomescan_klaeger_cids %>% 
+	left_join(AML_cids
+						,by = 'cid') %>% 
+	filter(!is.na(AML_drug_name)) %>% 
+	unique()
+
+no_matches_kinomescan_klaeger = kinomescan_klaeger_cids %>% 
+	filter(!drug %in% drug_matches$drug)
+
+no_matches_AML = AML_cids %>% 
+	filter(!AML_drug_name %in% drug_matches$AML_drug_name)
+
+all_drug_matches = kinomescan_klaeger_cids %>% 
+	left_join(AML_cids
+						,by = 'cid') %>% 
+	unique() %>% 
+	mutate(AML_drug_name = case_when(
+		drug == "Erlotinib" ~"Erlotinib HCl",
+		drug == "NVP-TAE684" ~"NVP-TAE-684",
+		T ~ AML_drug_name
+	)) %>% 
+	filter(!is.na(AML_drug_name))
+
+write_csv(all_drug_matches, here('results/matching/AML_kinomescan_klaeger_drug_matches.csv'))
+```
+
+```{r}
+#make matched drug data 
+
+AML_matched_viability_data = AML_data_processed %>% 
+	left_join(all_drug_matches) %>% 
+	filter(!is.na(drug)) %>% 
+	select(-AML_drug_name) %>% 
+	select(drug, AML_cell_line, auc)
+```
+
+#UMAP Embedding - Both Kinobeads and KINOMEscan drugs with only matched kinases
+
+```{r}
+#data pre-processing
+kinases_in_both_datasets = matched_kinases %>% 
+	select(klaeger_name) %>% 
+	mutate(kinase = paste0("act_", klaeger_name)) %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_"))
+
+kinomescan_klaeger = LINCS_klaeger_data %>% 
+	select(-starts_with("exp")) %>% 
+	select(drug, origin, starts_with("act_")) %>%
+	select(drug, origin, any_of(kinases_in_both_datasets$kinase)) %>% 
+	mutate(id = row_number())
+
+kinomescan_klaeger_meta = kinomescan_klaeger %>% 
+	select(id, drug, origin)
+
+zv_kinases = kinomescan_klaeger %>% 
+	select(starts_with("act_")) %>% 
+	pivot_longer(everything(), names_to = "kinase", values_to = "relative_intensity") %>% 
+	group_by(kinase) %>% 
+	summarise(var = var(relative_intensity)) %>% 
+	filter(var == 0)
+```
+
+```{r}
+set.seed(2222)
+umap_fit <- kinomescan_klaeger %>%
+  select(id, starts_with("act_")) %>%
+  column_to_rownames("id") %>% 
+	select(-any_of(zv_kinases$kinase)) %>% 
+	scale() %>% 
+	as.data.frame() %>% 
+	drop_na() %>% 
+	as.matrix() %>% 
+	umap()
+
+umap_df <- umap_fit$layout %>%
+  as.data.frame()%>%
+  rename(UMAP1="V1",
+         UMAP2="V2") %>%
+  mutate(id=row_number())%>%
+  inner_join(kinomescan_klaeger_meta, by="id")
+```
+
+```{r}
+#adding in outcomes
+mean_aucs = AML_matched_viability_data %>% 
+	group_by(drug) %>% 
+	summarise(mean_auc = mean(auc))
+
+umap_with_outcome = umap_df %>% 
+	left_join(mean_aucs) %>% 
+	filter(!is.na(mean_auc))
+
+umap_with_outcome %>%
+  ggplot(aes(x = UMAP1, 
+             y = UMAP2, 
+             colour = mean_auc, 
+  					 shape = origin)) +
+	geom_point() +
+	scale_colour_viridis_c() +
+	#facet_wrap(vars(origin)) +
+  labs(x = "UMAP1",
+       y = "UMAP2",
+  		 colour = "Mean Area\nUnder Dose-Response\nCurve",
+  		 shape = "Kinome Profiling\nData Origin",
+       title = "Kinobeads + KINOMEscan UMAP by AML outcome") +
+			theme(
+		legend.position = "bottom",
+		legend.direction = "horizontal",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+	ggsave(here("figures/clustering/AML_klaeger_kinomescan_UMAP_by_outcome_matched_kinases_only.png"), width = 20, height = 10, units = "cm")
+	
+	umap_with_outcome %>%
+  ggplot(aes(x = UMAP1, 
+             y = UMAP2, 
+             colour = mean_auc)) +
+	geom_point() +
+	scale_colour_viridis_c() +
+	#facet_wrap(vars(origin)) +
+  labs(x = "UMAP1",
+       y = "UMAP2",
+  		 colour = "Mean Area\nUnder Dose-Response\nCurve",
+  		 #shape = "Kinome Profiling\nData Origin",
+       title = "Kinobeads + KINOMEscan UMAP by AML cell line response") +
+			theme(
+		legend.position = "bottom",
+		legend.direction = "horizontal",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+	ggsave(here("figures/clustering/no_origin_AML_klaeger_kinomescan_UMAP_by_outcome_matched_kinases_only.png"))
+```

@@ -26,9 +26,7 @@ this_dataset = data %>%
 				 auc_target,
 				 ccle_name,
 				 broad_id,
-				 any_of(cors$feature[1:args$feature_num[i]])) %>% 
-	unique() %>% 
-	drop_na()
+				 any_of(cors$feature[1:args$feature_num[i]]))
 
 spec = feature_spec(this_dataset %>% 
 											select(auc_target, starts_with(c("act", "exp_"))),

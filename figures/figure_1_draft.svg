@@ -31,12 +31,12 @@
      inkscape:guide-bbox="true"
      height="200mm"
      inkscape:zoom="1.5004828"
-     inkscape:cx="290.57314"
-     inkscape:cy="202.26823"
+     inkscape:cx="290.90637"
+     inkscape:cy="469.18232"
      inkscape:window-width="1920"
-     inkscape:window-height="960"
-     inkscape:window-x="1920"
-     inkscape:window-y="27"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1" />
   <defs
@@ -94,17 +94,6 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:7.98212px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.199553"
-       x="2.7510231"
-       y="99.099335"
-       id="text3437-3-3-3"><tspan
-         sodipodi:role="line"
-         id="tspan3435-6-56-6"
-         style="stroke-width:0.199553"
-         x="2.7510231"
-         y="99.099335">c</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:7.98212px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.199553"
        x="65.6698"
        y="146.51369"
        id="text3437-3-2"><tspan
@@ -151,14 +140,6 @@
        id="image513"
        x="155.00618"
        y="83.57206" />
-    <image
-       width="154.19801"
-       height="52.609486"
-       preserveAspectRatio="none"
-       xlink:href="klaeger_LINCS_heatmap.png"
-       id="image193"
-       x="0.8081665"
-       y="83.57206" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.98213px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
@@ -181,5 +162,13 @@
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.98213px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
          x="2.0364401"
          y="92.382668">b</tspan></text>
+    <image
+       width="148.082"
+       height="52.577999"
+       preserveAspectRatio="none"
+       xlink:href="clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"
+       id="image288"
+       x="6.9241791"
+       y="83.57206" />
   </g>
 </svg>

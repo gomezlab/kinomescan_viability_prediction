@@ -163,18 +163,17 @@ umap_df %>%
 	scale_colour_brewer(type = "qual") +
   labs(x = "UMAP1",
        y = "UMAP2",
-  		 colour = "Kinome Profiling\nData Origin",
-      title = "Kinobeads + KINOMEscan UMAP") +
+  		 colour = "Kinome Profiling\nData Origin") +
 		theme(
-		legend.position = "bottom",
-		legend.direction = "horizontal",
+		legend.position = "right",
+		legend.direction = "vertical",
 		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
 		panel.background = element_rect(fill = "transparent",colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"))
+	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"), width = 14.816, height = 5.258, units = "cm")
 ```
 
 ```{r}
