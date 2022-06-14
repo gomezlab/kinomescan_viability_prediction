@@ -32,7 +32,9 @@ PRISM_replication = read_rds(here('results/validation_results/HCC_PRISM_replicat
 validation_results = first_validation %>% 
 	bind_rows(second_validation) 
 
-model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions.csv'))
+model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_xgboost.csv')) %>% 
+	rename(predicted_auc = pred_auc) %>% 
+	select(-broad_id)
 
 ```
 
