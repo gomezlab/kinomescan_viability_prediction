@@ -228,7 +228,7 @@ rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
 validation_assessment %>% 
 	ggplot(aes(x = predicted_auc, y = exp_auc)) +
 	geom_point() +
-	geom_smooth(color = wes_palettes$GrandBudapest1[2]) +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(title = 
   paste0('R\u00B2 = ',

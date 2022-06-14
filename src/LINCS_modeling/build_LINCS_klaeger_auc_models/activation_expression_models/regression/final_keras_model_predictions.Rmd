@@ -86,13 +86,13 @@ spec = feature_spec(this_dataset %>%
 		layer_dense_features(dense_features(spec)) %>%
 		layer_batch_normalization() %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.6) %>% 
+		layer_dropout(rate = 0.4) %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.6) %>% 
+		layer_dropout(rate = 0.4) %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.6) %>% 
+		layer_dropout(rate = 0.4) %>% 
 		layer_dense(units = 200, activation = 'relu') %>% 
-		layer_dropout(rate = 0.6) %>% 
+		layer_dropout(rate = 0.4) %>% 
 		layer_dense(units = 1, activation = 'linear')
 	
 	model = keras_model(
@@ -218,7 +218,7 @@ predictions_9 <- model %>% predict(not_tested_data %>%
 
 predictions_10 <- model %>% predict(not_tested_data %>% 
 																	 	select(starts_with(c("act_", "exp_"))) %>% 
-																	 	slice(1219707:1355226)) %>% 
+																	 	slice(1219707:1355594)) %>% 
 	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_10.rds'))
 toc()
 

@@ -27,38 +27,41 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 #read in data
-data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.csv'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
+
+CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds'))
 
 PRISM_auc = read_csv(here('results/PRISM_auc_for_ml.csv'))
 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
-	mutate(drug = if_else(
-		is.na(klaeger_name),
-		LINCS_name, 
-		klaeger_name
-	)) 
-
-LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv')) %>% 
-	select(-binary_hit) %>% 
-	mutate(kinase = paste0("act_",kinase)) %>% 
-	pivot_wider(names_from = kinase, values_from = relative_intensity) %>% 
-	mutate_all(~replace(., is.na(.), 1)) 
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))  
 
 CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
 	rename('depmap_id' = DepMap_ID)
 ```
 
 ```{r}
+#data preprocessing
+
+CCLE_data = CCLE_data %>% 
+	pivot_longer(-depmap_id, names_to = "gene", values_to = "value") %>% 
+	mutate(gene = str_replace(gene, "[-;]", "_")) %>% 
+	pivot_wider(names_from = gene, values_from = 'value')
+```
+
+```{r}
 #extract best act-exp model
-model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv')) %>% 
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_models_auc_regression_metrics.csv')) %>% 
 	mutate(data_type = if_else(
 		data_type == "activation_expression",
 		"inhibition_expression",
 		data_type))
 
 best_act_exp_model = model_metrics_combined %>% 
-	dplyr::filter(data_type == "inhibition_expression") %>% 
+	filter(data_type == "inhibition_expression" & model_type == "xgboost") %>% 
 	arrange(desc(mean)) %>% 
 	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
 	pivot_wider(names_from = hyperparameter, values_from = value)
@@ -86,12 +89,11 @@ this_recipe = recipe(auc ~ ., this_dataset) %>%
 							-starts_with("exp_"),
 							-starts_with("auc"),
 							new_role = "id variable") %>%
-	step_normalize(all_predictors())
+	step_zv(all_predictors()) 
 
 xgb_spec <- boost_tree(
 	trees = best_act_exp_model$trees, 
-	tree_depth = best_act_exp_model$tree_depth,       
-	learn_rate = best_act_exp_model$learn_rate                   
+	tree_depth = best_act_exp_model$tree_depth                  
 ) %>% 
 	set_engine("xgboost", tree_method = "gpu_hist", nthreads = 16, importance_type = "gain") %>% 
 	set_mode("regression")
@@ -103,7 +105,7 @@ this_wflow <-
 
 results = this_wflow %>% 
 	fit(data = this_dataset) %>% 
-	write_rds(here('results/final_tuned_PRISM_LINCS_klaeger_auc_regression_model.rds'))
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'), compress = "gz")
 ```
 
 ```{r}
@@ -173,14 +175,16 @@ not_tested_data = non_tested_combos %>%
 	left_join(LINCS_klaeger_data_wide %>% 
 							select(drug,
 										 any_of(names(this_dataset))),
-																								 by = c('drug')) 
+																								 by = c('drug')) %>% 
 	left_join(CCLE_data %>% 
 							select(depmap_id,
 										 any_of(names(this_dataset))),
-						by = 'depmap_id')
+						by = 'depmap_id') %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/not_tested_data_xgboost.rds.gz'), compress = "gz")
 
 model_predictions = augment(results, not_tested_data %>% 
-																					mutate(ccle_name = NA)) %>% 
+																					mutate(ccle_name = NA,
+																								 broad_id = NA)) %>% 
 	select(-starts_with("act_"), -starts_with("exp_"))
 	
 sample_info = read_csv(here('data/CCLE_data/sample_info.csv.gz')) %>%
@@ -191,5 +195,5 @@ model_predictions_tidy = model_predictions %>%
 	left_join(sample_info %>% select(DepMap_ID, stripped_cell_line_name),
 						by=c('depmap_id'='DepMap_ID')) %>% 
 	select(-ccle_name, -.pred) %>% 
-	write_rds(here('results/final_auc_regression_model_predictions.rds'), compress = 'gz')
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_xgboost.csv'), compress = 'gz')
 ```
