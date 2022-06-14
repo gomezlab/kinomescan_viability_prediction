@@ -1,6 +1,9 @@
 library(tidyverse)
 library(here)
 library(keras)
+library(conflicted)
+conflict_prefer("fit", "keras")
+conflict_prefer("filter", "dplyr")
 
 model = load_model_hdf5(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_model.h5'))
 
