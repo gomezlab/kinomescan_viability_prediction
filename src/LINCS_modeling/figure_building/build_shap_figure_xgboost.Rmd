@@ -1,0 +1,307 @@
+```{r}
+library(tidyverse)
+library(here)
+library(reticulate)
+library(vroom)
+library(DarkKinaseTools)
+library(fastshap)
+library(conflicted)
+conflict_prefer("rename", "dplyr")
+conflict_prefer("filter", "dplyr")
+#py_install("shap")
+#py_install("matplotlib")
+matplotlib <- import("matplotlib")
+matplotlib$use("Agg", force = TRUE)
+```
+
+```{r}
+#read in data 
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+gene_classifications = read_csv(here('data/KlaegerScience2017/manual_gene_labels.csv')) %>%
+	bind_rows(all_kinases %>% select(symbol,class) %>% rename(gene_name = symbol)) %>% 
+	#adding extra label for abbreviated activation name
+	bind_rows(data.frame(gene_name = "CSNK2A(1/3)", class = "Light")) %>%
+	distinct() %>% 
+	mutate(gene_name = str_replace(gene_name, "[-;]", "_")) %>% 
+	mutate(gene_name = if_else(
+		gene_name == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		gene_name
+	))
+
+exp_interactor_type = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/expression_feature_interactors.rds')) %>%
+	mutate(Variable = paste0(type,"_",hgnc)) %>%
+	mutate(interaction = case_when(
+		direct_count >= 1 ~ "Inhibition\nInteractor",
+		T ~ "Noninteractor"
+	)) 
+```
+
+```{python}
+import numpy as np
+import pandas as pd
+import xgboost as xgb
+import shap
+import matplotlib
+from math import sqrt
+import csv
+```
+
+```{python}
+#data preprocessing
+data = r.data
+feats = r.cors
+feats_list = feats['feature'][:5000].tolist()
+feats_list.append('auc')
+ids = ['broad_id','ccle_name','depmap_id','auc_binary']
+#add ids to feats_list
+feats_list.extend(ids)
+data = data[feats_list]
+exclude = ['auc','broad_id','ccle_name','depmap_id','auc_binary']
+y = data['auc']
+X = data.drop(exclude, axis=1)
+```
+
+```{python}
+
+#define model
+model_xgb = xgb.XGBRegressor(max_depth=4, 
+                             n_estimators=786,
+                             objective='reg:squarederror',
+                             eval_metric = 'rmse', 
+                             random_state =2222,
+                            )
+                            
+model_xgb.fit(X, y)
+```
+
+```{python}
+#calculate shap values
+X_sampled = X.sample(n=4000, random_state = 2222)
+shap.initjs()
+explainer = shap.TreeExplainer(model_xgb, X_sampled)
+shap_values = explainer.shap_values(X_sampled)
+expected_value = explainer.expected_value
+```
+
+```{r}
+feature_names = py$X_sampled %>% 
+	names() %>% 
+	as.data.frame() %>% 
+	rename(Variable = 1) %>% 
+	mutate(Variable_number = paste0("V",row_number()))
+
+feature_values = py$X_sampled %>% 
+	mutate(row_number = row_number()) %>%  
+	pivot_longer(-row_number, names_to = "col_name", values_to = "feature_value")
+
+shap_values = py$shap_values %>% 
+	as.data.frame() %>%
+	pivot_longer(everything(), names_to = "Variable_number", values_to = "shap_value") %>% 
+	group_by(Variable_number) %>% 
+	summarise(shap_value = mean(abs(shap_value))) %>% 
+	ungroup() %>% 
+	left_join(feature_names) %>% 
+	select(-Variable_number) %>% 
+	rename(col_name = Variable,
+				 feature_importance_vals = shap_value)
+
+shap_values_individual = py$shap_values %>% 
+	as.data.frame() %>%
+	mutate(row_number = row_number()) %>% 
+	pivot_longer(-row_number, names_to = "Variable_number", values_to = "shap_value") %>% 
+	left_join(feature_names) %>% 
+	select(-Variable_number) %>% 
+	rename(col_name = Variable,
+				 feature_importance_vals = shap_value)
+
+
+shap_values_processed_individual = shap_values_individual %>%
+	left_join(feature_values) %>% 
+	rename(feature = col_name,
+				 shap_value = feature_importance_vals) %>%  
+	arrange((shap_value)) %>%
+	mutate(feature_type = case_when(
+			str_detect(feature, "^act_") ~ "Inhibition",
+			str_detect(feature, "^exp_") ~ "Expression",
+			str_detect(feature, "^dep_") ~ "Depmap",
+			str_detect(feature, "^cnv_") ~ "CNV",
+			str_detect(feature, "^prot_") ~ "Proteomics",
+			T ~ feature
+		))
+	
+shap_values_processed = shap_values %>% 
+	rename(feature = col_name,
+				 shap_value = feature_importance_vals) %>%  
+	arrange((shap_value)) %>%
+	mutate(feature_type = case_when(
+			str_detect(feature, "^act_") ~ "Inhibition",
+			str_detect(feature, "^exp_") ~ "Expression",
+			str_detect(feature, "^dep_") ~ "Depmap",
+			str_detect(feature, "^cnv_") ~ "CNV",
+			str_detect(feature, "^prot_") ~ "Proteomics",
+			T ~ feature
+		))
+
+
+write_csv(shap_values_processed_individual, here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values_xgboost.csv'))
+```
+
+```{r}
+#separate by feature type and plot 
+shap_values_processed = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values_xgboost.csv'))
+
+shap_inhibition = shap_values_processed %>% 
+	filter(feature_type == "Inhibition") %>% 
+	mutate(feature = ifelse(feature == "act_CSNK2A1_CSNK2A3","act_CSNK2A(1/3)",feature)) %>%
+	extract(feature, c(NA,"gene"),"(.*)_(.*)",remove=F) %>%
+	left_join(gene_classifications, by=c('gene'='gene_name')) %>%
+	mutate(class = ifelse(is.na(class), "Non-kinase",class)) %>% 
+	arrange(desc(shap_value)) 
+
+shap_expression = shap_values_processed %>% 
+	filter(feature_type == "Expression") %>% 
+	extract(feature, c(NA,"gene"),"(.*)_(.*)",remove=F) %>%
+	left_join(exp_interactor_type %>% select(Variable,interaction) %>% rename(feature = Variable)) %>% 
+	arrange(desc(shap_value))
+	
+shap_inhibition %>%
+  slice(1:25) %>%
+	arrange(shap_value) %>% 
+	mutate(gene = fct_inorder(gene)) %>% 
+	ggplot(aes(x = shap_value, y = gene, fill = class)) +
+	geom_col() +
+	labs(y='',fill='',x='Inhibition State Importance') +
+	theme(
+		legend.title = element_blank(),
+		legend.position = "bottom",
+		legend.direction = "horizontal",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
+
+shap_expression %>%
+	mutate(interaction = if_else(gene == "DRB1",
+															 "Noninteractor",
+															 interaction)) %>% 
+  slice(1:25) %>%
+	arrange(shap_value) %>% 
+	unique() %>% 
+	mutate(gene = fct_inorder(gene)) %>% 
+	ggplot(aes(x = shap_value, y = gene, fill = interaction)) +
+	geom_col() +
+	labs(y='',fill='',x='Gene Expression Importance') +
+	#scale_x_continuous(breaks = c(0, 5e-4,1e-3)) +
+	theme(
+		legend.title = element_blank(),
+		legend.position = "bottom",
+		legend.direction = "horizontal",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+ggsave(here('figures/PRISM_LINCS_klaeger/expression_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
+```
+
+```{r}
+#force summary plots
+#separate by feature type and plot 
+shap_inhibition_individual = shap_values_processed_individual %>% 
+	filter(feature_type == "Inhibition") %>% 
+	mutate(feature = ifelse(feature == "act_CSNK2A1_CSNK2A3","act_CSNK2A(1/3)",feature)) %>%
+	extract(feature, c(NA,"gene"),"(.*)_(.*)",remove=F) %>%
+	left_join(gene_classifications, by=c('gene'='gene_name')) %>%
+	mutate(class = ifelse(is.na(class), "Non-kinase",class)) %>% 
+	arrange(desc(shap_value))
+
+shap_inhibition_order = shap_inhibition_individual %>% 
+	group_by(feature, feature_type, gene, class) %>% 
+	summarise(mean_shap_value = mean(abs(shap_value))) %>% 
+	ungroup() %>% 
+	arrange(mean_shap_value) %>% 
+	slice_tail(n = 25)
+	
+
+shap_expression = shap_values_processed %>% 
+	filter(feature_type == "Expression") %>% 
+	extract(feature, c(NA,"gene"),"(.*)_(.*)",remove=F) %>%
+	left_join(exp_interactor_type %>% select(Variable,interaction) %>% rename(feature = Variable)) %>% 
+	arrange(desc(shap_value))
+	
+shap_inhibition_individual %>%
+  filter(feature %in% shap_inhibition_order$feature) %>%
+	mutate(feature_value = 
+				 	if_else(
+				 		feature_value > 1,
+				 		1,
+				 		feature_value
+				 	)) %>% 
+	mutate(feature_value = 100*(1 - feature_value)) %>% 
+	mutate(gene = as.factor(gene)) %>% 
+	mutate(gene = fct_relevel(gene, shap_inhibition_order$gene)) %>% 
+	ggplot(aes(x = shap_value, y = gene, colour = feature_value)) +
+	geom_jitter() +
+	scale_color_viridis_c() +
+	labs(y='',fill='',x='Inhibition State Impact on Cell Line Response', colour = "Kinase Inhibition Level (%)") +
+	theme(
+		#legend.title = element_blank(),
+		legend.position = "right",
+		legend.direction = "vertical",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+shap_inhibition_order %>% 
+	mutate(gene = as.factor(gene)) %>% 
+	mutate(gene = fct_relevel(gene, shap_inhibition_order$gene)) %>%
+	ggplot(aes(x = feature_type, y = gene, fill = class)) +
+	geom_tile() +
+	#scale_fill_viridis_d() +
+  theme(
+  	legend.position = "left",
+  	legend.direction = "vertical",
+  	#axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
+  	axis.title.x = element_blank(),
+  	axis.ticks.x = element_blank(),
+  	#axis.text.y = element_blank(),
+    axis.ticks.y = element_blank())
+	
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
+
+shap_expression %>%
+	mutate(interaction = if_else(gene == "DRB1",
+															 "Noninteractor",
+															 interaction)) %>% 
+  slice(1:25) %>%
+	arrange(shap_value) %>% 
+	unique() %>% 
+	mutate(gene = fct_inorder(gene)) %>% 
+	ggplot(aes(x = shap_value, y = gene, fill = interaction)) +
+	geom_col() +
+	labs(y='',fill='',x='Gene Expression Importance') +
+	#scale_x_continuous(breaks = c(0, 5e-4,1e-3)) +
+	theme(
+		legend.title = element_blank(),
+		legend.position = "bottom",
+		legend.direction = "horizontal",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+ggsave(here('figures/PRISM_LINCS_klaeger/expression_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
+```
+

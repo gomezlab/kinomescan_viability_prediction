@@ -1,0 +1,165 @@
+---
+title: "(try) to Combine LINCS and klaeger"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(webchem)
+```
+
+```{r}
+#read in data
+
+LINCS_percent_matrix = read_csv(here('results/full_LINCS_UNC_1uM_data_imputed.csv'))
+
+klaeger_tidy = read_rds(here('data/klaeger_full_tidy.rds'))
+
+matched_kinases = read_csv(here('results/matching/LINCS_klaeger_kinase_matches.csv')) %>% 
+	rename(klaeger_kinase = klaeger_name,
+				 LINCS_kinase = LINCS_name)
+
+drug_matches = read_csv(here('results/matching/LINCS_klaeger_drug_matches.csv'))
+
+```
+
+```{r}
+klaeger_doses = klaeger_tidy %>% 
+	select(concentration_M) %>% 
+	unique()
+
+#using most correlated klaeger concentration of 30uM
+klaeger_tidy_1uM = klaeger_tidy %>% 
+	filter(concentration_M == klaeger_doses$concentration_M[9])
+
+LINCS_long = LINCS_percent_matrix %>% 
+	pivot_longer(c(-Small.Molecule.Name, -Dose), names_to = 'kinase', values_to = 'percent_control')
+```
+
+
+```{r}
+#create matched dataset 
+matched_drug_data = LINCS_long %>% 
+	rename(LINCS_kinase = kinase) %>% 
+	filter(LINCS_kinase %in% matched_kinases$LINCS_kinase) %>%
+	left_join(matched_kinases) %>%
+	filter(Small.Molecule.Name %in% drug_matches$LINCS_name) %>% 
+	left_join(drug_matches, by = c('Small.Molecule.Name' = 'LINCS_name')) %>% 
+	left_join(klaeger_tidy_1uM, by = c('klaeger_name' = 'drug', 'klaeger_kinase' = 'gene_name' )) %>% 
+	select(klaeger_name, Small.Molecule.Name, klaeger_kinase, LINCS_kinase, percent_control, relative_intensity, cid) %>%
+	rename('LINCS_relative_intensity' = percent_control, 
+				 'klaeger_relative_intensity' = relative_intensity,
+				 'LINCS_name' = Small.Molecule.Name) %>%
+	mutate(LINCS_relative_intensity = LINCS_relative_intensity/100)
+
+matched_drug_data_summarised = matched_drug_data %>%
+	#prefer klaeger names over kinomescan
+	select(-LINCS_name) %>% 
+	rename(drug = klaeger_name) %>% 
+	#prefer lowest measured relative intensity value across datasets
+	pivot_longer(c(LINCS_relative_intensity, klaeger_relative_intensity),
+							 names_to = 'origin',
+							 values_to = 'relative_intensity'
+							 ) %>% 
+	group_by(cid, klaeger_kinase, LINCS_kinase) %>% 
+	summarise(relative_intensity = min(relative_intensity)) %>% 
+	left_join(drug_matches %>% 
+							select(klaeger_name, cid) %>% 
+							unique()) %>% 
+	rename(drug = klaeger_name)
+
+#create infividual unmatched datasets 
+unmatched_LINCS_data = LINCS_long %>% 
+	left_join(drug_matches %>% 
+							select(LINCS_name, cid) %>% 
+							unique(),
+						by = c('Small.Molecule.Name' = 'LINCS_name')) %>%
+	filter(!(cid %in% matched_drug_data_summarised$cid)) %>%
+	rename('LINCS_name' = Small.Molecule.Name,
+				 'LINCS_kinase' = kinase,
+				'LINCS_relative_intensity' = percent_control) %>% 
+	mutate(LINCS_relative_intensity = LINCS_relative_intensity/100) %>% 
+	select(-Dose)
+
+unmatched_klaeger_data = klaeger_tidy_1uM %>%
+	left_join(drug_matches %>% 
+							select(klaeger_name, cid) %>% 
+							unique(),
+						by = c('drug' = 'klaeger_name')) %>%
+	filter(!(cid %in% matched_drug_data_summarised$cid)) %>% 
+	rename('klaeger_name' = drug,
+				 'klaeger_kinase' = gene_name,
+				 'klaeger_relative_intensity' = relative_intensity) %>% 
+	select(-concentration_M)
+```
+
+```{r}
+#combine both matched and unmatched datasets 
+
+all_klaeger_LINCS_data = matched_drug_data_summarised %>% 
+	ungroup() %>% 
+	mutate(origin = "overlap") %>% 
+	select(-cid) %>% 
+	bind_rows(unmatched_klaeger_data %>% 
+							mutate(origin = "Kinobeads") %>% 
+							rename(drug = klaeger_name,
+										 relative_intensity = klaeger_relative_intensity) %>% 
+							select(-cid) %>% 
+							left_join(matched_kinases)) %>% 
+	bind_rows(unmatched_LINCS_data %>%  
+							mutate(origin = "KINOMEscan") %>%
+							rename(drug = LINCS_name,
+										 relative_intensity = LINCS_relative_intensity) %>% 
+							select(-cid) %>% 
+							left_join(matched_kinases))
+
+drug_origins = all_klaeger_LINCS_data %>% 
+	ungroup() %>% 
+	select(drug, origin) %>% 
+	unique() %>% 
+	mutate(value = TRUE) %>% 
+	pivot_wider(names_from = origin, values_from = value) %>% 
+	mutate(origin = case_when(
+		!is.na(overlap) ~ "overlap",
+		is.na(Kinobeads) ~ "KINOMEscan",
+		is.na(KINOMEscan) ~ "Kinobeads"
+	)) %>% 
+	select(drug, origin) %>% 
+	unique() %>% 
+write_csv(here('results/matching/kinome_profiling_origin_by_drug.csv'))
+
+all_klaeger_LINCS_data_for_ml = all_klaeger_LINCS_data %>% 
+	mutate(
+		kinase = klaeger_kinase) %>% 
+	group_by(drug, kinase) %>% 
+	summarise(relative_intensity = mean(relative_intensity)) %>% 
+	mutate(binary_hit = if_else(
+		relative_intensity < 0.2,
+		1,
+		0
+	)) %>% 
+	select(drug, kinase, relative_intensity, binary_hit) %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
+	mutate(kinase = if_else(
+		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
+		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
+		kinase
+	)) %>% 
+	left_join(drug_origins)
+
+write_csv(all_klaeger_LINCS_data_for_ml, here('results/all_klaeger_LINCS_data_for_ml_long_matched_only.csv'))
+
+all_klaeger_LINCS_data_for_ml %>% 
+	ggplot(aes(x = relative_intensity)) + 
+	geom_histogram()
+
+klaeger_LINCS_data_for_ml_wide = all_klaeger_LINCS_data_for_ml %>% 
+	mutate(act_gene_name = paste0('act_', kinase)) %>%
+	select(-kinase, -binary_hit) %>% 
+	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
+	select_if(~ !any(is.na(.)))
+
+write_csv(klaeger_LINCS_data_for_ml_wide, here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
+
+```

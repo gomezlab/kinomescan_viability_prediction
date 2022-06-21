@@ -1,0 +1,240 @@
+---
+title: "Run final Neural Network"
+output: html_document
+date: '2022-04-06'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(patchwork)
+library(keras)
+library(vroom)
+library(tidymodels)
+library(tfdatasets)
+library(tictoc)
+library(Metrics)
+library(conflicted)
+conflict_prefer("fit", "keras")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("all_numeric", "tfdatasets")
+conflict_prefer("rmse", "Metrics")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#read in data
+
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+#set feature number to 4000
+feature_num = 4000
+
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+
+CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds'))
+
+PRISM_auc = read_csv(here('results/PRISM_auc_for_ml.csv'))
+
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv')) 
+```
+
+```{r}
+#data preprocessing
+LINCS_klaeger_data_wide = LINCS_klaeger_data_wide %>% 
+	select(-binary_hit) %>% 
+	mutate(kinase = paste0("act_",kinase)) %>% 
+	pivot_wider(names_from = kinase, values_from = relative_intensity) %>% 
+	mutate_all(~replace(., is.na(.), 1))
+
+CCLE_data = CCLE_data %>% 
+	rename('depmap_id' = DepMap_ID) %>% 
+	pivot_longer(-depmap_id, names_to = "gene", values_to = "value") %>% 
+	mutate(gene = str_replace(gene, "[-;]", "_")) %>% 
+	pivot_wider(names_from = gene, values_from = 'value')
+```
+
+
+```{r}
+# run final 4000 feature model 
+tic()	
+
+this_dataset = data %>% 
+	select(depmap_id,
+				 auc,
+				 ccle_name,
+				 broad_id,
+				 any_of(cors$feature[1:feature_num]))
+
+spec = feature_spec(this_dataset %>% 
+											select(auc, starts_with(c("act", "exp_"))),
+										auc ~ .) %>%
+	step_numeric_column(all_numeric()) %>%
+	fit()
+
+	X = this_dataset %>% 
+		select(starts_with(c("act", "exp_")))
+	
+	y = this_dataset %>% 
+		select(auc)
+	
+	input <- layer_input_from_dataset(X)
+	
+	main_output = input %>% 
+		layer_dense_features(dense_features(spec)) %>%
+		layer_batch_normalization() %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.4) %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.4) %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.4) %>% 
+		layer_dense(units = 200, activation = 'relu') %>% 
+		layer_dropout(rate = 0.4) %>% 
+		layer_dense(units = 1, activation = 'linear')
+	
+	model = keras_model(
+		inputs = input,
+		outputs = main_output
+	)
+	
+	model %>% 
+		compile(
+			optimizer = optimizer_adam(learning_rate = 0.003),
+			loss = 'mse',
+			metrics= metric_root_mean_squared_error())
+	
+#set number of epochs based on average of CV early stop points
+set.seed(2222)
+	history <- model %>% fit(
+		x = X,
+		y = y$auc,
+		epochs = 75,
+		batch_size = 512
+	)
+		
+save_model_hdf5(model, here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_model.h5'))
+	
+#k_clear_session()
+```
+
+```{r}
+# make untested dataset 
+
+possible_drug_CCLE_combos = crossing(
+	drug = unique(LINCS_klaeger_data_wide$drug),
+	depmap_id = unique(CCLE_data$depmap_id)
+) 
+
+already_tested_combos = PRISM_auc %>%
+	select(depmap_id,name) %>%
+	rename("PRISM_name" = name) %>% 
+	left_join(compound_match_list %>% 
+							select(drug, PRISM_name), 
+						by = 'PRISM_name') %>% 
+	unique()
+
+non_tested_combos = possible_drug_CCLE_combos %>%
+	anti_join(already_tested_combos)
+
+not_tested_data = non_tested_combos %>%
+	left_join(LINCS_klaeger_data_wide %>% 
+							select(drug,
+										 any_of(names(X))),
+						by = c('drug')) %>% 
+	left_join(CCLE_data %>% 
+							select(depmap_id,
+										 any_of(names(X))),
+						by = 'depmap_id') %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/not_tested_data.rds.gz'), compress = "gz")
+	
+
+# names_non_tested = names(not_tested_data) %>%
+# 	as.data.frame() %>% 
+# 	rename(name = 1)
+# names_tested = names(X) %>%
+# 	as.data.frame() %>% 
+# 	rename(name = 1)
+# names_not_in_non_tested = names_tested %>% 
+# 	filter(!name %in% names_non_tested$name)
+```
+
+```{r}
+#make model predictions
+model = load_model_hdf5(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/keras/final_keras_model.h5'))
+
+not_tested_data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/not_tested_data.rds.gz'))
+
+# n = 10
+# splits = split(not_tested_data, factor(sort(rank(row.names(not_tested_data))%%n)))
+
+tic()
+predictions_1 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(1:135522)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_1.rds'))
+
+predictions_2 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(135523:271045)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_2.rds'))
+
+predictions_3 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(271046:406568)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_3.rds'))
+
+predictions_4 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(406569:542091)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_4.rds'))
+
+predictions_5 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(542092:677614)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_5.rds'))
+
+predictions_6 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(677615:813137)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_6.rds'))
+
+predictions_7 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(813138:948660)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_7.rds'))
+
+predictions_8 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(948661:1084183)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_8.rds'))
+
+predictions_9 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(1084184:1219706)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_9.rds'))
+
+predictions_10 <- model %>% predict(not_tested_data %>% 
+																	 	select(starts_with(c("act_", "exp_"))) %>% 
+																	 	slice(1219707:1355594)) %>% 
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_10.rds'))
+toc()
+
+ids = not_tested_data %>% select(-starts_with(c("act_", "exp_")))
+
+full_predictions = data.frame(predicted_auc = predictions_1) %>% 
+	bind_rows(data.frame(predicted_auc = predictions_2)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_3)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_4)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_5)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_6)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_7)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_8)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_9)) %>%
+	bind_rows(data.frame(predicted_auc = predictions_10)) %>% 
+	bind_cols(ids) %>% 
+	write_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions.csv'))
+```
+

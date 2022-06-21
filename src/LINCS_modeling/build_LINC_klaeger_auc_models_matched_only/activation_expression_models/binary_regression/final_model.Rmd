@@ -1,0 +1,195 @@
+---
+title: "Make Model Predictions"
+output: html_document
+date: '2022-03-09'
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("explain", "fastshap")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+#read in data
+data = vroom(here('results/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+PRISM_auc = read_csv(here('results/PRISM_auc_for_ml.csv'))
+
+compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
+	mutate(drug = if_else(
+		is.na(klaeger_name),
+		LINCS_name, 
+		klaeger_name
+	)) 
+
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv')) %>% 
+	select(-binary_hit) %>% 
+	mutate(kinase = paste0("act_",kinase)) %>% 
+	pivot_wider(names_from = kinase, values_from = relative_intensity) %>% 
+	mutate_all(~replace(., is.na(.), 1)) 
+
+CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
+	rename('depmap_id' = DepMap_ID)
+```
+
+```{r}
+#extract best act-exp model
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_ic50_models_auc_regression_metrics.csv')) %>% 
+	mutate(data_type = if_else(
+		data_type == "activation_expression",
+		"inhibition_expression",
+		data_type))
+
+best_act_exp_model = model_metrics_combined %>% 
+	dplyr::filter(data_type == "inhibition_expression") %>% 
+	arrange(desc(mean)) %>% 
+	filter(model_id == model_id[1] & num_features == num_features[1]) %>% 
+	pivot_wider(names_from = hyperparameter, values_from = value)
+```
+
+```{r}
+#fit best act-exp model 
+args = data.frame(feature_num = best_act_exp_model$num_features)
+print(sprintf('Features: %02d',args$feature_num))
+
+build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
+	this_data_filtered = all_data %>%
+		select(any_of(feature_correlations$feature[1:num_features]),
+					 depmap_id,
+					 ccle_name,
+					 broad_id,
+					 auc)
+}
+this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
+																													 num_features = args$feature_num,
+																													 all_data = data)
+
+this_recipe = recipe(auc ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc"),
+							new_role = "id variable") %>%
+	step_normalize(all_predictors())
+
+xgb_spec <- boost_tree(
+	trees = best_act_exp_model$trees, 
+	tree_depth = best_act_exp_model$tree_depth,       
+	learn_rate = best_act_exp_model$learn_rate                   
+) %>% 
+	set_engine("xgboost", tree_method = "gpu_hist", nthreads = 16, importance_type = "gain") %>% 
+	set_mode("regression")
+
+this_wflow <-
+	workflow() %>%
+	add_model(xgb_spec) %>%
+	add_recipe(this_recipe) 
+
+results = this_wflow %>% 
+	fit(data = this_dataset) %>% 
+	write_rds(here('results/final_tuned_PRISM_LINCS_klaeger_auc_regression_model.rds'))
+```
+
+```{r}
+#Variable Importance
+results = read_rds(here('results/final_tuned_PRISM_LINCS_klaeger_auc_regression_model.rds'))
+
+all_importance = vi(results %>% extract_fit_parsnip()) %>%
+		mutate(feature_type = case_when(
+			str_detect(Variable, "^act_") ~ "Inhibition",
+			str_detect(Variable, "^exp_") ~ "Expression",
+			str_detect(Variable, "^dep_") ~ "Depmap",
+			str_detect(Variable, "^cnv_") ~ "CNV",
+			str_detect(Variable, "^prot_") ~ "Proteomics",
+			T ~ Variable
+		)) %>% 
+	separate(Variable, into = c('prefix', 'Variable'), sep = "_") %>% 
+	select(-prefix) %>% 
+	arrange(Importance) %>%
+	mutate(Variable = fct_inorder(Variable))
+
+ggplot(all_importance %>% slice_tail(n = 25), 
+			 aes(x=Importance,y=Variable)) + 
+	geom_col() +
+	labs(title = "AUC model importances",y='',x='Feature Importance') +
+	theme(legend.justification = c(1, 0), legend.position = c(1, 0)) +
+	scale_fill_brewer(type='qual', palette = "Dark2")  +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/auc_regression_top_25_VIP.png'),width=5,height=3.75) 
+```
+
+```{r}
+inhibition_importances = all_importance %>% 
+	filter(feature_type == "Inhibition") %>% 
+	write_csv(here('results/auc_inhibition_feature_importances.csv'))
+
+expression_importances = all_importance %>% 
+	filter(feature_type == "Expression") %>% 
+	write_csv(here('results/auc_expression_feature_importances.csv'))
+```
+
+#Making Model Predictions
+
+```{r}
+possible_drug_CCLE_combos = crossing(
+	drug = unique(LINCS_klaeger_data_wide$drug),
+	depmap_id = unique(CCLE_data$depmap_id)
+) 
+
+already_tested_combos = PRISM_auc %>%
+	select(depmap_id,name) %>%
+	rename("PRISM_name" = name) %>% 
+	left_join(compound_match_list %>% 
+							select(drug, PRISM_name), 
+						by = 'PRISM_name') %>% 
+	unique()
+
+non_tested_combos = possible_drug_CCLE_combos %>%
+	anti_join(already_tested_combos)
+
+not_tested_data = non_tested_combos %>%
+	left_join(LINCS_klaeger_data_wide %>% 
+							select(drug,
+										 any_of(names(this_dataset))),
+																								 by = c('drug')) 
+	left_join(CCLE_data %>% 
+							select(depmap_id,
+										 any_of(names(this_dataset))),
+						by = 'depmap_id')
+
+model_predictions = augment(results, not_tested_data %>% 
+																					mutate(ccle_name = NA)) %>% 
+	select(-starts_with("act_"), -starts_with("exp_"))
+	
+sample_info = read_csv(here('data/CCLE_data/sample_info.csv.gz')) %>%
+	mutate(cell_line_name_extra = paste0(cell_line_name, "\n",lineage_subtype, "\n",lineage_sub_subtype))
+
+model_predictions_tidy = model_predictions %>%
+	mutate(pred_auc = signif(.pred,3)) %>%
+	left_join(sample_info %>% select(DepMap_ID, stripped_cell_line_name),
+						by=c('depmap_id'='DepMap_ID')) %>% 
+	select(-ccle_name, -.pred) %>% 
+	write_rds(here('results/final_auc_regression_model_predictions.rds'), compress = 'gz')
+```

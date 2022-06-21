@@ -1,0 +1,195 @@
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(conflicted)
+library(BerginskiRMisc)
+library(dr4pl)
+library(PharmacoGx)
+library(Metrics)
+library(wesanderson)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("rename", "dplyr")
+conflict_prefer("rmse", "Metrics")
+conflict_prefer("rsq", "Metrics")
+```
+
+```{r}
+data_vars = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz')) %>% 
+	slice(1)
+
+data_names = data_vars %>% 
+	names() %>% 
+	as.data.frame()
+
+final_xgboost_model = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'))
+
+CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds')) %>% 
+	rename('depmap_id' = DepMap_ID) %>% 
+	rename_with(~str_replace(., "[-;]", "_"), .cols = starts_with("exp_"))
+```
+
+
+```{r}
+#data preprocessing
+matched_kinases = read_csv(here('results/matching/LINCS_klaeger_kinase_matches.csv')) %>% 
+		mutate(LINCS_name = str_replace(LINCS_name, "[-;]", "_"), 
+					 klaeger_name = str_replace(klaeger_name, "[-;]", "_"))
+
+DK_KINOMEscan = read_csv(here('data/LINCS/BI00036838_kinomescan_data.csv')) %>% 
+	select(-Kd, -`Kinase Nanosyn`) %>% 
+	rename(drug = Compound,
+				 relative_intensity = `% Control1`,
+				 dose = `Concentration (nM)`,
+				 kinase = `Kinase DiscoverX`
+				 ) %>% 
+	filter(!str_detect(kinase, "\\(")) %>% 
+	mutate(kinase = str_replace(kinase, "[-;]", "_"),
+				 relative_intensity = relative_intensity/100) %>% 
+	left_join(matched_kinases, by = c("kinase" = "LINCS_name")) %>% 
+	rename(klaeger_kinase = klaeger_name) %>% 
+	write_csv(here('results/misc/DK_manual_KINOMEscan.csv'))
+
+DK_KINOMEscan_for_klaeger = DK_KINOMEscan %>% 
+	select(-kinase, -`Kinase Entrez`, -dose) %>%
+	filter(!is.na(klaeger_kinase)) %>% 
+	group_by(drug, klaeger_kinase) %>% 
+	summarise(relative_intensity = mean(relative_intensity)) %>% 
+	ungroup() %>%
+	write_csv(here('results/misc/BI00036838_manual_KINOMEscan_for_klaeger.csv'))
+
+DK_KINOMEscan_wide = DK_KINOMEscan %>% 
+	select(-klaeger_kinase, -`Kinase Entrez`, -dose) %>% 
+	group_by(drug, kinase) %>% 
+	summarise(relative_intensity = mean(relative_intensity)) %>% 
+	ungroup() %>% 
+	pivot_wider(names_from = kinase, values_from = relative_intensity) %>% 
+	rename_with(~paste0("act_",.),.cols = -drug)
+```
+
+```{r}
+#make data for model 
+DK_dataset = tribble(
+	~drug, ~broad_id, ~depmap_id,
+	"BI00036838", NA, "ACH-001391",
+	"BI00036838", NA, "ACH-000624"
+) %>% 
+	left_join(DK_KINOMEscan_wide) %>% 
+	left_join(CCLE_data) %>% 
+	select(drug, broad_id, depmap_id, any_of(names(data_vars)))
+
+DK_dataset_for_model = data_vars %>% 
+	bind_rows(DK_dataset) %>% 
+	filter(is.na(broad_id)) %>% 
+	mutate_all(~replace(., is.na(.), 1))
+```
+
+```{r}
+model_predictions = augment(final_xgboost_model, DK_dataset_for_model) %>% 
+	select(-starts_with("act_"), -starts_with("exp_"))
+
+sample_info = read_csv(here('data/CCLE_data/sample_info.csv.gz')) %>%
+	rename(depmap_id = DepMap_ID) %>% 
+	mutate(cell_line_name_extra = paste0(cell_line_name, "\n",lineage_subtype, "\n",lineage_sub_subtype))
+
+model_predictions_tidy = model_predictions %>%
+	mutate(pred_auc = signif(.pred,3)) %>%
+	left_join(sample_info %>% select(depmap_id, stripped_cell_line_name)) %>% 
+	select(-ccle_name, -.pred) 
+	#write_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_xgboost.csv'))
+```
+
+```{r}
+#actual AUCs
+DK_validation = read_rds(here('results/validation_results/DK_compound_validation_screen.rds'))
+
+#summarising validation by replicate 
+
+validation_summaries = DK_validation %>% 
+	group_by(compound, concentration_M, cell_line) %>%
+	summarise(sd = sd(viability),
+						num_samples = n(),
+						mean_via = mean(viability),
+						CV = sd/mean_via) %>% 
+	filter(compound == "BI00036838")
+
+cell_line_drug_combos = validation_summaries %>%
+	ungroup() %>% 
+	select(compound, cell_line) %>% 
+	unique() %>% 
+	filter(!compound == "DMSO")
+
+all_validation_results = data.frame()
+for(i in 1:dim(cell_line_drug_combos)[1]) {
+query_drug = cell_line_drug_combos$compound[i]
+query_cell_line = cell_line_drug_combos$cell_line[i]
+
+this_data = validation_summaries %>% 
+	filter(compound == query_drug & cell_line == query_cell_line) %>% 
+	#convert dose to uM
+	mutate(concentration_M = concentration_M*10^6)
+
+auc = 100 - computeAUC(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE,
+								 area.type = "Fitted")
+								 # Hill_fit = c(hill_slope, E_inf, ec50))
+
+ic50 = computeIC50(concentration = this_data$concentration_M,
+								 viability = this_data$mean_via,
+								 viability_as_pct = TRUE,
+								 conc_as_log = FALSE)
+								 # Hill_fit = c(hill_slope, E_inf, ec50)) 
+
+
+results_dataframe = data.frame(drug = query_drug, cell_line = query_cell_line, exp_auc = auc, exp_ic50 = ic50)
+
+all_validation_results = bind_rows(all_validation_results, results_dataframe)
+}
+
+validation_assessment = all_validation_results %>% 
+	mutate(stripped_cell_line_name = case_when(
+		cell_line == "BT-474" ~ "BT474",
+		cell_line == "SUM159" ~ "SUM159PT",
+		T ~ cell_line
+	)) %>% 
+	mutate(drug = ifelse(drug == "ONO-4059 (analog)","ONO-4059 analogue",drug)) %>% 
+	left_join(sample_info) %>% 
+	#rename(depmap_id = DepMap_ID) %>% 
+	left_join(model_predictions_tidy) %>% 
+	rename(predicted_auc = pred_auc) %>% 
+	mutate(exp_auc = exp_auc/100) %>% 
+	filter(!is.na(predicted_auc))
+
+rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
+
+rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
+
+validation_assessment %>% 
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(title = 
+  paste0('R\u00B2 = ',
+			 				 round(
+			 				 	rsq,
+			 				 	1),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	rmse,
+			 				 	2)
+			 	), 
+  x = "Predicted AUC",
+  y = "Actual AUC") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_DK_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+```
+

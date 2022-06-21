@@ -1,0 +1,126 @@
+---
+	title: "Assess kevin keras regression"
+author: "Chinmaya Joisa"
+date: "`r Sys.Date()`"
+output: github_document
+---
+	
+```{r}
+library(tidyverse)
+library(here)
+library(tidymodels)
+library(ROCR)
+library(patchwork)
+library(tictoc)
+library(broom)
+library(gghighlight)
+library(Metrics)
+library(vroom)
+library(conflicted)
+library(vip)
+conflict_prefer("slice", "dplyr")
+conflict_prefer("filter", "dplyr")
+conflict_prefer("vi", "vip")
+conflict_prefer("rmse", "Metrics")
+```
+
+#Keras Tuning Assessment
+
+```{r}
+layers = c('one_layer', 'two_layer', 'four_layer', 'six_layer')
+
+best_keras_scores = data.frame()
+combined_all_keras_scores = data.frame()
+combined_best_keras_scores = data.frame()	
+
+for (feature_number in c(100,200,300,400,500)) {
+	
+	for (layer in layers) {
+		this_keras_scores = read_csv(
+			here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results',layer,
+					sprintf('%dfeat.csv',feature_number))) %>% 
+			mutate(data_type = "inhibition_expression",
+						 layers = paste0(layer))
+			
+	best_keras_scores = bind_rows(best_keras_scores, this_keras_scores)
+	}
+
+this_feature_scores = best_keras_scores %>%
+	arrange(desc(mean_rsq)) %>% 
+			slice(1)
+	
+combined_best_keras_scores = bind_rows(combined_best_keras_scores, this_feature_scores)
+combined_all_keras_scores = bind_rows(combined_best_keras_scores, best_keras_scores) 
+
+	
+}
+
+combined_best_keras_scores = combined_best_keras_scores %>% 
+	arrange(desc(mean_rsq))
+
+write_csv(combined_all_keras_scores, here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results/hyperparameter_search_metrics.csv'))
+write_csv(combined_best_keras_scores, here('results/PRISM_LINCS_klaeger_models_auc/all_datasets/regression/keras/results/best_hyperparameter_search_metrics.csv'))
+```
+
+
+```{r}
+# best per feature plot
+combined_best_keras_scores %>%
+	ggplot(aes(x = num_features, y = mean_rsq)) +
+	geom_point() +
+#  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+#                position=position_dodge(.9)) +
+	coord_cartesian(ylim= c(0.3,0.7)) +
+	labs(title = "Keras Hyperparameter Search", x = "number of features", y = "R-squared") +
+#	facet_wrap(vars(data_type)) +
+		theme(
+		legend.position = "top",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+```
+
+```{r}
+# all hyperparameter plot for best feature count
+combined_all_keras_scores %>%
+	filter(num_features == combined_best_keras_scores$num_features[1]) %>% 
+	mutate(
+		layers = case_when(
+		layers == "one_layer" ~ '1',
+		layers == "two_layer" ~ '2', 
+		layers == "four_layer" ~ '4',
+		layers == "six_layer" ~ '6', 
+		T ~ layers
+					)
+	) %>%
+	mutate(layers = as.numeric(layers)) %>% 
+	pivot_longer(c(dropout, neurons, layers), names_to = "hyperparameter", values_to = "value") %>% 
+	ggplot(aes(x = value, y = mean_rsq)) +
+	geom_point() +
+#  geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+#                position=position_dodge(.9)) +
+#	coord_cartesian(ylim= c(0.3,0.7)) +
+	labs(title = "Keras Hyperparameter Search", x = "number of features", y = "R-squared") +
+  facet_wrap(~hyperparameter, scales = "free_x") +
+		theme(
+		legend.position = "top",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/kevin_keras_hyperparameter_search_metrics.png'), width = 10.5, height = 10.5, units = "cm")
+```
+
+
+
+
