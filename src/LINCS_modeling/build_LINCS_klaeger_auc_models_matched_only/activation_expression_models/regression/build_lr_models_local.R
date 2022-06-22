@@ -13,12 +13,12 @@ tic()
 parser <- ArgumentParser(description='Process input paramters')
 parser$add_argument('--feature_num', default = 100, type="integer")
 
-args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
+args = data.frame(feature_num = c(6000,7000,8000))
 
-this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_for_ml_10000feat_auc.rds.gz'))
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
-folds = read_rds(here('results/cv_folds/matched_only_models/PRISM_LINCS_klaeger_folds_auc.rds.gz'))
+folds = read_rds(here('results/cv_folds/matched_only_models/PRISM_LINCS_klaeger_folds_10000_auc.rds.gz'))
 lr_grid = read_rds(here('results/hyperparameter_grids/lr_grid.rds'))
 
 for(i in 1:length(args$feature_num)) { 
