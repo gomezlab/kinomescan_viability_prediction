@@ -15,6 +15,9 @@ feat5000_data = data %>%
          auc_binary)
 
 write_rds(feat5000_data, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'), compress = "gz")
+#write csv for python
+#write_csv(feat5000_data, here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.csv'))
+
 
 feat10000_data = data %>% 
 	select(any_of(cors$feature[1:10005]),

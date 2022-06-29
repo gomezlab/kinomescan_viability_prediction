@@ -20,7 +20,7 @@ conflict_prefer("rsq", "Metrics")
 ```{r}
 PDAC_exp_data = read_rds(here('results/validation_results/PDAC_validation/PDAC_RNAseq_data_for_model.rds'))
 
-LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
 
 testing_results = bind_rows(
 	read_rds(here('results/validation_results/PDAC_validation/validation_screen_part2.rds')),
@@ -31,11 +31,28 @@ PDAC_inital_screen_data = read_rds(here('data/PDAC_data/screen_combined.rds'))
 
 klaegerscan_PDAC_matches = read_csv(here('results/matching/PDAC_LINCS_klaeger_drug_matches.csv'))
 
-model_vars = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz')) %>% 
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz')) %>% 
 	slice(1)
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
-final_xgboost_model = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'))
+final_xgboost_model = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'))
 ```
+
+```{r}
+#get model variables
+build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
+	this_data_filtered = all_data %>%
+		select(any_of(feature_correlations$feature[1:num_features]),
+					 depmap_id,
+					 ccle_name,
+					 broad_id,
+					 auc)
+}
+this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
+																													 num_features = 1000,
+																													 all_data = data)
+```
+
 
 ```{r}
 #summarising PDAC validation data 
@@ -135,8 +152,9 @@ all_PDAC_validation_results = bind_rows(all_PDAC_validation_results, results_dat
 
 PDAC_dataset_for_model = cell_line_drug_combos %>% 
 	left_join(LINCS_klaeger_data_wide) %>%
-	select(drug, cell_line, any_of(names(model_vars))) %>% 
-	left_join(PDAC_exp_data)
+	select(drug, cell_line, any_of(names(this_dataset))) %>% 
+	left_join(PDAC_exp_data) %>% 
+	select(drug, cell_line, any_of(names(this_dataset)))
 
 model_predictions = augment(final_xgboost_model,
 														PDAC_dataset_for_model 
@@ -167,9 +185,9 @@ validation_assessment = all_PDAC_validation_results %>%
 	mutate(exp_auc = exp_auc/100) %>% 
 	filter(!is.na(predicted_auc))
 
-rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)
+rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
 
-rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
+rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
 ```
 
 ```{r}
@@ -196,7 +214,7 @@ validation_assessment %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_DK_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/matched_only_models/validation/preliminary_PDAC_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
 
 ```{r}

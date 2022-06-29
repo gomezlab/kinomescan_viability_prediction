@@ -94,6 +94,12 @@ cell_line_drug_combos = all_PDAC_viability_data %>%
 	select(drug, cell_line) %>% 
 	unique() %>% 
 	filter(!drug == "DMSO")
+
+PDAC_dataset_for_model = cell_line_drug_combos %>% 
+	left_join(LINCS_klaeger_data_wide) %>%
+	select(drug, cell_line, any_of(names(model_vars))) %>% 
+	left_join(PDAC_exp_data) %>% 
+	write_rds(here('results/validation_results/PDAC_validation/PDAC_data_for_model.rds'))
 ```
 
 ```{r}
@@ -133,11 +139,6 @@ all_PDAC_validation_results = bind_rows(all_PDAC_validation_results, results_dat
 ```{r}
 #make predictions for in-house tested cell line compound combinations
 
-PDAC_dataset_for_model = cell_line_drug_combos %>% 
-	left_join(LINCS_klaeger_data_wide) %>%
-	select(drug, cell_line, any_of(names(model_vars))) %>% 
-	left_join(PDAC_exp_data)
-
 model_predictions = augment(final_xgboost_model,
 														PDAC_dataset_for_model 
 															%>% mutate(broad_id = NA,
@@ -166,6 +167,10 @@ validation_assessment = all_PDAC_validation_results %>%
 	rename(predicted_auc = pred_auc) %>% 
 	mutate(exp_auc = exp_auc/100) %>% 
 	filter(!is.na(predicted_auc))
+	#add result for classifying below median
+	# mutate(exp_below_median = exp_auc < median(exp_auc),
+	# 			 pred_below_median = predicted_auc < median(predicted_auc)) %>% 
+	# mutate(agreement = exp_below_median == pred_below_median)
 
 rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)
 
@@ -182,7 +187,7 @@ validation_assessment %>%
   paste0('R = ',
 			 				 round(
 			 				 	rsq,
-			 				 	1),
+			 				 	2),
 			 				 '/ RMSE = ',
 			 				 round(
 			 				 	rmse,
@@ -196,8 +201,23 @@ validation_assessment %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_DK_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
+
+```{r}
+#EDA of CAF lines vs Tumour lines
+validation_assessment_line_split = validation_assessment %>% 
+	mutate(PDAC_type = if_else(
+		cell_line == "P0119_T1",
+		"CAF Activated Stroma",
+		"Primary Tumour"
+	)) %>% 
+	group_by(drug, PDAC_type) %>% 
+	summarise(mean_exp_auc = mean(exp_auc),
+					 mean_predicted_auc = mean(predicted_auc)) 
+	
+```
+
 
 ```{r}
 #splitting validation by drug origin 
@@ -248,30 +268,62 @@ klaeger_rmse = rmse(
 relative_rsq = kinomescan_rsq/klaeger_rsq
 
 validation_assessment_split %>%
-	filter(origin != "overlap") %>% 
+	filter(origin == "Kinobeads") %>% 
+	mutate(origin = "Novel PDAC-line Tested Kinobead Drugs") %>% 
 	ggplot(aes(x = predicted_auc, y = exp_auc)) +
 	geom_point() +
-	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[4]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(
-# 		title = 
-#   paste0('R = ',
-# 			 				 round(
-# 			 				 	rsq,
-# 			 				 	1),
-# 			 				 '/ RMSE = ',
-# 			 				 round(
-# 			 				 	rmse,
-# 			 				 	2)
-# 			 	), 
+		title =
+  paste0('R = ',
+			 				 round(
+			 				 	klaeger_rsq,
+			 				 	1),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	klaeger_rmse,
+			 				 	2)
+			 	),
   x = "Predicted AUC",
   y = "Actual AUC") +
-	facet_wrap(~origin)
+	facet_wrap(~origin) +
 	theme(
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinobeads.png'), height = 10, width = 9.5, units = "cm")
+	
+validation_assessment_split %>%
+	filter(origin == "KINOMEscan") %>%
+	mutate(origin = "Novel PDAC-Line Tested KINOMEscan Drugs") %>%
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[4]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(
+		title =
+  paste0('R = ',
+			 				 round(
+			 				 	kinomescan_rsq,
+			 				 	2),
+			 				 '/ RMSE = ',
+			 				 round(
+			 				 	kinomescan_rmse,
+			 				 	2)
+			 	),
+  x = "Predicted AUC",
+  y = "Actual AUC") +
+	facet_wrap(~origin) +
+	coord_cartesian(ylim = c(0.4,1)) +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	)	
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinomescan.png'), height = 10, width = 9.5, units = "cm")
 ```
 

@@ -10,21 +10,23 @@ library(ROCR)
 library(argparse)
 library(xgboost)
 
-args = data.frame(feature_num = c(100,200,300,400,500,1000,1500,2000,3000,4000,5000))
-this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
-cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
-folds = read_rds(here('results/cv_folds/PRISM_LINCS_klaeger_folds_auc.rds.gz'))
+args = data.frame(feature_num = c(5000))
+
+this_dataset = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+folds = read_rds(here('results/cv_folds/matched_only_models/PRISM_LINCS_klaeger_folds_auc.rds.gz'))
 
 for(i in 1:length(args$feature_num)) {
 	tic()	
 print(sprintf('Features: %02d',args$feature_num[i]))
 
-dir.create(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/', 
+dir.create(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/', 
 								sprintf('xgboost/results')), 
 					 showWarnings = F, recursive = T)
 
-full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/results', 
-												sprintf('%dfeat.rds',args$feature_num[i]))
+full_output_file = here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/xgboost/results', 
+												sprintf('%dfeat.rds.gz',args$feature_num))
 
 this_recipe = recipe(auc ~ ., this_dataset) %>%
 	update_role(-starts_with("act_"),

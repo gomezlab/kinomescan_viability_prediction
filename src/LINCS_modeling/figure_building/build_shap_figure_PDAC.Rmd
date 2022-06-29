@@ -1,5 +1,6 @@
 ```{r}
 library(tidyverse)
+library(tidymodels)
 library(here)
 library(reticulate)
 library(vroom)
@@ -8,6 +9,11 @@ library(fastshap)
 library(conflicted)
 conflict_prefer("rename", "dplyr")
 conflict_prefer("filter", "dplyr")
+conflict_prefer("explain", "fastshap")
+#py_install("shap")
+#py_install("matplotlib")
+# matplotlib <- import("matplotlib")
+# matplotlib$use("Agg", force = TRUE)
 ```
 
 ```{r}
@@ -15,6 +21,10 @@ conflict_prefer("filter", "dplyr")
 data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+final_model = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'))
+
+PDAC_dataset_for_model = read_rds(here('results/validation_results/PDAC_validation/PDAC_data_for_model.rds'))
 
 gene_classifications = read_csv(here('data/KlaegerScience2017/manual_gene_labels.csv')) %>%
 	bind_rows(all_kinases %>% select(symbol,class) %>% rename(gene_name = symbol)) %>% 
@@ -34,10 +44,53 @@ exp_interactor_type = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/expr
 		direct_count >= 1 ~ "Inhibition\nInteractor",
 		T ~ "Noninteractor"
 	)) 
+```
 
+```{r}
+#define recipe
+build_all_data_regression_viability_set = function(num_features, all_data, feature_correlations) {
+	this_data_filtered = all_data %>%
+		select(any_of(feature_correlations$feature[1:num_features]),
+					 depmap_id,
+					 ccle_name,
+					 broad_id,
+					 auc)
+}
+this_dataset = build_all_data_regression_viability_set(feature_correlations =  cors,
+																													 num_features = 5000,
+																													 all_data = data)
+
+this_recipe = recipe(auc ~ ., this_dataset) %>%
+	update_role(-starts_with("act_"),
+							-starts_with("exp_"),
+							-starts_with("auc"),
+							new_role = "id variable") 
+```
+
+```{r}
+#preprocess PDAC data
+PDAC_X = prep(this_recipe, 
+							PDAC_dataset_for_model %>%
+								mutate(broad_id = NA,
+											 depmap_id = NA,
+											 ccle_name = NA,
+											 auc = NA,
+											 exp_AL162231.1 = 0,
+											 exp_AC093512.2 = 0,
+											 exp_AC008397.1 = 0,
+											 exp_AC007906.2 = 0,
+											 exp_AL445238.1 = 0,
+											 exp_AL445989.1 = 0)
+							)%>% 
+	juice() %>% 
+	#write into csv for python
+	write_csv(here('results/PRISM_LINCS_klaeger_models_auc/PDAC_data_for_shap.csv'))
+```
+
+```{r}
 #shap values from python
-shap_values = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_auc_xgboost_shap_values_python.csv'))
-shap_samples = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_samples_for_shap_values_python.csv'))
+shap_values = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_auc_xgboost_shap_values_python_PDAC.csv'))
+shap_samples = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_samples_for_shap_values_python_PDAC.csv'))
 ```
 
 ```{r}
@@ -76,7 +129,7 @@ shap_values_processed = shap_values_individual %>%
 			T ~ feature
 		))
 
-write_csv(shap_values_processed_individual, here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values_xgboost.csv'))
+write_csv(shap_values_processed_individual, here('results/PRISM_LINCS_klaeger_models_auc/all_feature_shap_values_xgboost_PDAC.csv'))
 ```
 
 ```{r}
@@ -114,10 +167,10 @@ shap_inhibition %>%
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_PDAC.png'), height = 10.5, width = 8.5, units = "cm")
 
 shap_expression %>%
-	mutate(interaction = if_else(gene == "PNPLA4",
+	mutate(interaction = if_else(gene == "KCTD14" | gene == "CARMIL2" | gene == "ASAP2",
 															 "Noninteractor",
 															 interaction)) %>% 
   slice(1:25) %>%
@@ -138,7 +191,7 @@ shap_expression %>%
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/expression_shap_figure.png'), height = 10.5, width = 8.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/expression_shap_figure_PDAC.png'), height = 10.5, width = 8.5, units = "cm")
 ```
 
 ```{r}
@@ -174,18 +227,18 @@ shap_inhibition_individual %>%
 	geom_jitter(position = "dodge") +
 	scale_colour_viridis_c() +
 	#coord_flip() +
-	labs(y='',fill='',x='Inhibition State Impact on Cell Line Response', colour = "Kinase Inhibition Level (%)") +
+	labs(y='',fill='',x='Kinase Inhibition Impact on Cell Line Response', colour = "Kinase Inhibition Level (%)") +
 	theme(
 		#legend.title = element_blank(),
-		legend.position = "right",
-		legend.direction = "vertical",
+		legend.position = "bottom",
+		legend.direction = "horizontal",
 		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
 		panel.background = element_rect(fill = "transparent",colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_summary_figure.png'), height = 10.5, width = 8.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_summary_figure_PDAC.png'), height = 10.5, width = 8.5, units = "cm")
 
 shap_inhibition_order %>% 
 	mutate(gene = as.factor(gene)) %>% 
@@ -200,8 +253,13 @@ shap_inhibition_order %>%
   	axis.title.x = element_blank(),
   	axis.ticks.x = element_blank(),
   	#axis.text.y = element_blank(),
-    axis.ticks.y = element_blank())
+    axis.ticks.y = element_blank(),
+  	legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA))
 	
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_summary_figure_annotations.png'), height = 10.5, width = 8.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_summary_figure_annotations_PDAC.png'), height = 10.5, width = 8.5, units = "cm")
 ```
 

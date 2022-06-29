@@ -6,54 +6,49 @@ output: html_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(here)
+library(webchem)
 ```
 
 ```{r}
 #read in data 
 cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv'))
-LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
+LINCS_klaeger_cids = read_csv(here('results/matching/kinomescan_klaeger_cids.csv')) %>% 
+	mutate(cid = as.character(cid))
 ```
 
 ```{r}
 #variable renaming
-LINCS_klaeger_data_long_processed = LINCS_klaeger_data_long %>% 
-	mutate(kinase = str_replace(kinase, "[-;]", "_")) %>% 
-	mutate(kinase = if_else(
-		kinase == 'HIST2H2BE_HIST1H2BB;HIST1H2BO;HIST1H2BJ;HIST3H2BB;HIST1H2BA',
-		'HIST2H2BE_HIST1H2BB_HIST1H2BO_HIST1H2BJ_HIST3H2BB_HIST1H2BA',
-		kinase
-	))
-
 cardio_toxicity_data_processed = cardio_toxicity_data %>% 
 	mutate(across(-Drug, ~as.factor(.))) %>% 
 	rename(drug = Drug)
 ```
 
+```{r}
+#find drug matches
+
+cardio_cids = get_cid(unique(cardio_toxicity_data_processed$drug), from = "name", domain = "compound", match = "all", verbose = T)
+
+drug_matches = cardio_cids %>% 
+	rename(cardio_drug_name = query) %>% 
+	inner_join(LINCS_klaeger_cids)
+
+#change PFE_PKIS-10 to Lorlatinib for joining 
+LINCS_klaeger_data_wide_processed = LINCS_klaeger_data_wide %>% 
+		mutate(drug = if_else(
+		drug == "PFE-PKIS 10",
+		"Lorlatinib",
+		drug
+	))
+```
+
+
 
 ```{r}
-LINCS_klaeger_data_for_model = LINCS_klaeger_data_long_processed %>% 
-	mutate(act_gene_name = paste0('act_', kinase)) %>% 
-	select(-kinase, -binary_hit) %>%  
-	pivot_wider(names_from = act_gene_name, values_from = relative_intensity) %>% 
-	mutate_all(~replace(., is.na(.), 1)) 
-
 all_model_data = cardio_toxicity_data_processed %>% 
-	left_join(LINCS_klaeger_data_for_model) %>% 
+	left_join(LINCS_klaeger_data_wide_processed) %>% 
 	drop_na() 
-
-LINCS_klaeger_data_for_model_binary_hit = LINCS_klaeger_data_long_processed %>% 
-	mutate(act_gene_name = paste0('act_', kinase)) %>% 
-	select(-kinase, -relative_intensity) %>% 
-	pivot_wider(names_from = act_gene_name, values_from = binary_hit) %>% 
-	mutate_all(~replace(., is.na(.), 1)) 
-
-all_binary_model_data = cardio_toxicity_data_processed %>% 
-	left_join(LINCS_klaeger_data_for_model_binary_hit) %>% 
-	drop_na()
 
 write_rds(all_model_data,
 					here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml.rds.gz'), compress = "gz")
-write_rds(all_binary_model_data, 
-					here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml_binary.rds.gz'), compress = "gz")
-
 ```

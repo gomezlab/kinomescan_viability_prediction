@@ -16,10 +16,7 @@ conflict_prefer("rename", "dplyr")
 sample_info = read_csv(here('data/CCLE_data/sample_info.csv')) %>% 
 	select(DepMap_ID, stripped_cell_line_name)
 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
-	mutate(drug = if_else(is.na(klaeger_name),
-															LINCS_name, 
-															klaeger_name))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv'))
 
 response_curve_parameters = read_csv(here('data/PRISM/secondary/secondary-screen-dose-response-curve-parameters.csv')) %>% 
 	#Filter only to compounds that match the Klaeger list and to cell lines that
@@ -32,7 +29,7 @@ PRISM_replication = read_rds(here('results/validation_results/HCC_PRISM_replicat
 validation_results = first_validation %>% 
 	bind_rows(second_validation) 
 
-model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_keras.csv')) 
+model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/final_model_predictions_xgboost.csv')) 
 	#rename(predicted_auc = pred_auc) %>% 
 	#select(-broad_id)
 
@@ -152,7 +149,7 @@ replication_comparison %>%
   paste0('R\u00B2 = ',
 			 				 round(
 			 				 	rsq,
-			 				 	1),
+			 				 	2),
 			 				 '/ RMSE = ',
 			 				 round(
 			 				 	rmse,
@@ -166,7 +163,7 @@ replication_comparison %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png'), height = 10, width = 9.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/matched_only_models/validation/preliminary_replication_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
 
 ```{r}
@@ -221,6 +218,7 @@ validation_assessment = all_validation_results %>%
 	rename(depmap_id = DepMap_ID) %>% 
 	left_join(model_predictions) %>% 
 	mutate(exp_auc = exp_auc/100) %>% 
+	rename(predicted_auc = pred_auc) %>% 
 	filter(!is.na(predicted_auc))
 
 rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
@@ -250,6 +248,6 @@ validation_assessment %>%
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/matched_only_models/validation/preliminary_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
 

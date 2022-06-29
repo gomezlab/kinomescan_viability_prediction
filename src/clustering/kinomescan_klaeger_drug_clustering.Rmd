@@ -17,11 +17,8 @@ conflict_prefer("filter", "dplyr")
 
 full_dataset =  read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
 
-LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
-LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
-
-
-matched_kinases = read_csv(here('results/matching/LINCS_klaeger_kinase_matches.csv'))
+LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
+LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long_matched_only.csv'))
 ```
 
 #UMAP Embedding - Both Kinobeads and KINOMEscan drugs
@@ -77,102 +74,17 @@ umap_df %>%
   labs(x = "UMAP1",
        y = "UMAP2",
   		 colour = "Kinome Profiling\nData Origin",
-      title = "Kinobeads + KINOMEscan UMAP")
-	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP.png"), width = 25, height = 15, units = "cm")
-```
-
-```{r}
-#adding in outcomes
-mean_aucs = full_dataset %>% 
-	group_by(drug) %>% 
-	summarise(mean_auc = mean(auc))
-
-umap_with_outcome = umap_df %>% 
-	left_join(mean_aucs) %>% 
-	filter(!is.na(mean_auc))
-
-umap_with_outcome %>%
-	# mutate(origin = if_else(
-	# 	origin == "overlap",
-	# 	"KINOMEscan",
-	# 	origin)) %>% 
-  ggplot(aes(x = UMAP1, 
-             y = UMAP2, 
-             colour = mean_auc, 
-  					 shape = origin)) +
-	geom_point() +
-	scale_colour_viridis_c() +
-	#facet_wrap(vars(origin)) +
-  labs(x = "UMAP1",
-       y = "UMAP2",
-  		 colour = "Mean Area\nUnder Dose-Response\nCurve",
-      title = "Kinobeads + KINOMEscan UMAP by outcome")
-	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_by_outcome.png"), width = 25, height = 15, units = "cm")
-```
-
-#UMAP Embedding - Both Kinobeads and KINOMEscan drugs with only matched kinases
-
-```{r}
-#data pre-processing
-kinases_in_both_datasets = matched_kinases %>% 
-	select(klaeger_name) %>% 
-	mutate(kinase = paste0("act_", klaeger_name)) %>% 
-	mutate(kinase = str_replace(kinase, "[-;]", "_"))
-
-kinomescan_klaeger = LINCS_klaeger_data %>% 
-	select(-starts_with("exp")) %>% 
-	select(drug, origin, starts_with("act_")) %>%
-	select(drug, origin, any_of(kinases_in_both_datasets$kinase)) %>% 
-	mutate(id = row_number())
-
-kinomescan_klaeger_meta = kinomescan_klaeger %>% 
-	select(id, drug, origin)
-
-zv_kinases = kinomescan_klaeger %>% 
-	select(starts_with("act_")) %>% 
-	pivot_longer(everything(), names_to = "kinase", values_to = "relative_intensity") %>% 
-	group_by(kinase) %>% 
-	summarise(var = var(relative_intensity)) %>% 
-	filter(var == 0)
-```
-
-```{r}
-set.seed(2222)
-umap_fit <- kinomescan_klaeger %>%
-  select(id, starts_with("act_")) %>%
-  column_to_rownames("id") %>% 
-	select(-any_of(zv_kinases$kinase)) %>% 
-	scale() %>% 
-	as.data.frame() %>% 
-	drop_na() %>% 
-	as.matrix() %>% 
-	umap()
-
-umap_df <- umap_fit$layout %>%
-  as.data.frame()%>%
-  rename(UMAP1="V1",
-         UMAP2="V2") %>%
-  mutate(id=row_number())%>%
-  inner_join(kinomescan_klaeger_meta, by="id")
-
-umap_df %>%
-  ggplot(aes(x = UMAP1, 
-             y = UMAP2, 
-             colour = origin)) +
-	geom_point() +
-	scale_colour_brewer(type = "qual") +
-  labs(x = "UMAP1",
-       y = "UMAP2",
-  		 colour = "Kinome Profiling\nData Origin") +
-		theme(
-		legend.position = "right",
-		legend.direction = "vertical",
-		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+      title = "Kinobeads + KINOMEscan UMAP") +
+			theme(
+		legend.position = "left",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
 		panel.background = element_rect(fill = "transparent",colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
+
 	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"), width = 14.816, height = 5.258, units = "cm")
 ```
 
@@ -201,18 +113,8 @@ umap_with_outcome %>%
   labs(x = "UMAP1",
        y = "UMAP2",
   		 colour = "Mean Area\nUnder Dose-Response\nCurve",
-  		 shape = "Kinome Profiling\nData Origin",
-       title = "Kinobeads + KINOMEscan UMAP by outcome") +
-			theme(
-		legend.position = "bottom",
-		legend.direction = "horizontal",
-		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
-		panel.background = element_rect(fill = "transparent",colour = NA),
-    panel.grid.minor = element_blank(), 
-    panel.grid.major = element_blank(),
-    plot.background = element_rect(fill = "transparent",colour = NA)
-      )
-	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_by_outcome_matched_kinases_only.png"), width = 20, height = 10, units = "cm")
+      title = "Kinobeads + KINOMEscan UMAP by outcome")
+	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_by_outcome_matched_kinases_only.png"), width = 25, height = 15, units = "cm")
 ```
 
 # UMAP of drugs only from Kinomescan

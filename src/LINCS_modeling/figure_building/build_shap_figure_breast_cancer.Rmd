@@ -8,6 +8,8 @@ library(fastshap)
 library(conflicted)
 conflict_prefer("rename", "dplyr")
 conflict_prefer("filter", "dplyr")
+# matplotlib <- import("matplotlib")
+# matplotlib$use("Agg", force = TRUE)
 ```
 
 ```{r}
@@ -15,6 +17,8 @@ conflict_prefer("filter", "dplyr")
 data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 
 cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+
+sample_info = read_csv(here('data/CCLE_data/sample_info.csv'))
 
 gene_classifications = read_csv(here('data/KlaegerScience2017/manual_gene_labels.csv')) %>%
 	bind_rows(all_kinases %>% select(symbol,class) %>% rename(gene_name = symbol)) %>% 
@@ -203,5 +207,7 @@ shap_inhibition_order %>%
     axis.ticks.y = element_blank())
 	
 ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_summary_figure_annotations.png'), height = 10.5, width = 8.5, units = "cm")
+
+
 ```
 

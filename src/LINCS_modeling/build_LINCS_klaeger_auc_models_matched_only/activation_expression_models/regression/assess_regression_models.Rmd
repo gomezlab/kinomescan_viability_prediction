@@ -42,7 +42,7 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 }
 
 all_xgb_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
+for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000)) {
 	this_model_results = read_rds(
 		here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/xgboost/results',
 				 sprintf('%dfeat.rds.gz',feature_number)))
@@ -68,21 +68,6 @@ for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
 	all_lr_metrics = bind_rows(all_lr_metrics, this_model_metrics)
 }
 
-
-all_keras_metrics = data.frame()
-for (feature_number in c(100,200,300,400,500,1000,1500,2000,3000,4000,5000)) {
-	this_keras_scores = read_csv(
-		here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/keras/results',
-				 sprintf('hps_keras_%d.csv',feature_number))) %>% 
-		mutate(num_features = feature_number) %>% 
-		select(num_features, starts_with("param_"), mean_test_score, std_test_score) %>%
-		rename(mean_rsq = mean_test_score,
-					 std_err = std_test_score) %>% 
-		arrange(desc(mean_rsq)) %>% 
-		slice(1)
-	all_keras_metrics = bind_rows(all_keras_metrics, this_keras_scores)
-}
-
 all_model_metrics = all_rf_metrics %>% 
 	pivot_longer(trees, names_to = 'hyperparameter', values_to = 'value') %>%
 	mutate(model_type = 'random forest') %>%
@@ -96,20 +81,11 @@ all_model_metrics = all_rf_metrics %>%
 			pivot_longer(penalty, names_to = 'hyperparameter', values_to = 'value') %>% 
 			mutate(model_type = 'lasso')
 	) %>% 
-	bind_rows(
-		all_keras_metrics %>%
-			pivot_longer(starts_with("param_"), names_to = "hyperparameter", values_to = "value") %>% 
-			mutate(model_type = "Neural Network",
-				 data_type = "inhibition_expression",
-				 .metric = "rsq", 
-				 n = 5) %>%
-			rename(mean = mean_rsq)
-	) %>%
 	mutate(.config = paste0(.config, '_',model_type)) %>% 
 	rename('model_id' = .config) %>% 
 	mutate(data_type = "inhibition_expression")
 
-write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/all_model_metrics.csv'))
+write_csv(all_model_metrics, here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/all_model_metrics.csv'))
 toc()
 
 ```

@@ -29,11 +29,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 #read in data
 
-data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
+data = read_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_for_ml_5000feat_auc.rds.gz'))
 
-cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
+cors =  vroom(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/PRISM_LINCS_klaeger_data_feature_correlations_auc.csv'))
 
-LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
 
 CCLE_data = read_rds(here('data/full_CCLE_expression_set_for_ML.rds'))
 
@@ -56,7 +56,7 @@ CCLE_data = CCLE_data %>%
 
 ```{r}
 #extract best act-exp model
-model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_models_auc_regression_metrics.csv')) %>% 
+model_metrics_combined = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/all_model_metrics.csv')) %>% 
 	mutate(data_type = if_else(
 		data_type == "activation_expression",
 		"inhibition_expression",
@@ -107,7 +107,7 @@ this_wflow <-
 
 results = this_wflow %>% 
 	fit(data = this_dataset) %>% 
-	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'), compress = "gz")
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/xgboost/final_xgboost_model.rds.gz'), compress = "gz")
 ```
 
 ```{r}
@@ -181,7 +181,7 @@ not_tested_data = non_tested_combos %>%
 							select(depmap_id,
 										 any_of(names(this_dataset))),
 						by = 'depmap_id') %>% 
-	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/activation_expression/regression/not_tested_data_xgboost.rds.gz'), compress = "gz")
+	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/activation_expression/regression/not_tested_data_xgboost.rds.gz'), compress = "gz")
 
 model_predictions = augment(results, not_tested_data %>% 
 																					mutate(ccle_name = NA,
@@ -196,5 +196,5 @@ model_predictions_tidy = model_predictions %>%
 	left_join(sample_info %>% select(DepMap_ID, stripped_cell_line_name),
 						by=c('depmap_id'='DepMap_ID')) %>% 
 	select(-ccle_name, -.pred) %>% 
-	write_rds(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_xgboost.csv'), compress = 'gz')
+	write_csv(here('results/PRISM_LINCS_klaeger_models_auc/matched_only_models/final_model_predictions_xgboost.csv'))
 ```

@@ -10,20 +10,13 @@ library(ggdendro)
 # Load the data
 cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv')) %>% 
 	rename(drug = Drug)
-LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
+LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long_matched_only.csv'))
 cardio_toxicity_data_full = read_rds(here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml.rds.gz'))
 ```
 
 ```{r}
 #pre-process data
 cardio_toxicity_data_processed = cardio_toxicity_data %>% 
-		bind_rows(data.frame(drug = c("Erlotinib"),
-												 QT_interval_prolongation = 1,
-												 LV_dysfuntion = 1,
-												 HF = 1,
-												 Arrhythmia = 1,
-												 Ischemia_or_MI = 1, Hypertension = 1
-											 )) %>% 
 	mutate(across(-drug, ~case_when(. == 1 ~ "No Reported Event",
 																	. == 0 ~ "Reported Event",
 																	. == 2 ~ ">10% Incidence")))
@@ -36,7 +29,6 @@ cardio_toxicity_data_full_long = cardio_toxicity_data_full %>%
 	pivot_longer(starts_with("act_"), names_to = "kinase", values_to = "relative_intensity") %>% 
 	separate(kinase, into = c('prefix', 'kinase'), sep = "_") %>% 
 	select(-prefix)
-	
 ```
 
 ```{r}
@@ -62,7 +54,7 @@ cardio_promiscuity_data %>%
 	ggplot(aes(x = Incidence, y = promiscuity_score, fill = Incidence)) +
 	geom_violin() +
 	facet_wrap(~cardiac_adverse_event) +
-	labs(y = "Inhibitor Promiscuity", title = "Inhibitor Promiscuity Does Not Explain Cardiac Toxicity") +
+	labs(y = "Inhibitor Promiscuity", title = "Inhibitor Promiscuity Does Not Fully Explain Cardiac Toxicity") +
 		theme(
 		legend.text = element_text(size = 9),
 		legend.background = element_rect(fill = "transparent",colour = NA),
@@ -215,7 +207,7 @@ ggsave(here('figures/cardio_toxicity/target_heatmap.png'), width = 17.7, height 
 
 #scaling columns
 matrix_scaled <- cardio_toxicity_data_full
-matrix_scaled[, c(8:824)] <- scale(matrix_scaled[, 8:824])
+matrix_scaled[, c(8:215)] <- scale(matrix_scaled[, 8:215])
 
 #clustering
 cluster_matrix <- as.matrix(matrix_scaled[, -c(1,2,3,4,5,6,7)])

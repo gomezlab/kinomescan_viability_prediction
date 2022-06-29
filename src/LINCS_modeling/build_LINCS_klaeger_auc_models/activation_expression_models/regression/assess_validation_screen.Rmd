@@ -16,10 +16,7 @@ conflict_prefer("rename", "dplyr")
 sample_info = read_csv(here('data/CCLE_data/sample_info.csv')) %>% 
 	select(DepMap_ID, stripped_cell_line_name)
 
-compound_match_list = read_csv(here('results/matching/LINCS_PRISM_klaeger_combined_drug_matches_final.csv')) %>% 
-	mutate(drug = if_else(is.na(klaeger_name),
-															LINCS_name, 
-															klaeger_name))
+compound_match_list = read_csv(here('results/matching/PRISM_LINCS_klaeger_drug_matches.csv')) 
 
 response_curve_parameters = read_csv(here('data/PRISM/secondary/secondary-screen-dose-response-curve-parameters.csv')) %>% 
 	#Filter only to compounds that match the Klaeger list and to cell lines that
@@ -32,7 +29,7 @@ PRISM_replication = read_rds(here('results/validation_results/HCC_PRISM_replicat
 validation_results = first_validation %>% 
 	bind_rows(second_validation) 
 
-model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_keras.csv')) 
+model_predictions = read_csv(here('results/PRISM_LINCS_klaeger_models_auc/final_model_predictions_xgboost.csv')) 
 	#rename(predicted_auc = pred_auc) %>% 
 	#select(-broad_id)
 
@@ -140,19 +137,20 @@ replication_comparison = all_replication_results %>%
 	mutate(exp_auc = exp_auc/100) %>% 
 	filter(!is.na(auc))
 
-rsq = cor(replication_comparison$auc, replication_comparison$exp_auc)^2
+rsq = cor(replication_comparison$auc, replication_comparison$exp_auc)
 rmse = rmse(replication_comparison$auc, replication_comparison$exp_auc)
 
-replication_comparison %>% 
+replication_comparison %>%
+	mutate(origin = "Breast Cancer Replication") %>% 
 	ggplot(aes(x = auc, y = exp_auc)) +
 	geom_point() +
 	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(title = 
-  paste0('R\u00B2 = ',
+  paste0('R = ',
 			 				 round(
 			 				 	rsq,
-			 				 	1),
+			 				 	2),
 			 				 '/ RMSE = ',
 			 				 round(
 			 				 	rmse,
@@ -160,6 +158,7 @@ replication_comparison %>%
 			 	), 
   x = "PRISM AUC",
   y = "Replicated AUC") +
+	facet_wrap(~origin) +
 	theme(
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
@@ -221,22 +220,24 @@ validation_assessment = all_validation_results %>%
 	rename(depmap_id = DepMap_ID) %>% 
 	left_join(model_predictions) %>% 
 	mutate(exp_auc = exp_auc/100) %>% 
+	rename(predicted_auc = pred_auc) %>% 
 	filter(!is.na(predicted_auc))
 
-rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)^2
+rsq = cor(validation_assessment$exp_auc, validation_assessment$predicted_auc)
 
 rmse = rmse(validation_assessment$exp_auc, validation_assessment$predicted_auc)
 
 validation_assessment %>% 
+	mutate(origin = "Breast Cancer Kinobead Drugs Validation") %>%
 	ggplot(aes(x = predicted_auc, y = exp_auc)) +
 	geom_point() +
 	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(title = 
-  paste0('R\u00B2 = ',
+  paste0('R = ',
 			 				 round(
 			 				 	rsq,
-			 				 	1),
+			 				 	2),
 			 				 '/ RMSE = ',
 			 				 round(
 			 				 	rmse,
@@ -244,6 +245,7 @@ validation_assessment %>%
 			 	), 
   x = "Predicted AUC",
   y = "Actual AUC") +
+	facet_wrap(~origin) +
 	theme(
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
