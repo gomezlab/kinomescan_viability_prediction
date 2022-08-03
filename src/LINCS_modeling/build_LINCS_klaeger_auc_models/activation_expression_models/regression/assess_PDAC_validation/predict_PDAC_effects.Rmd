@@ -215,6 +215,11 @@ validation_assessment_line_split = validation_assessment %>%
 	group_by(drug, PDAC_type) %>% 
 	summarise(mean_exp_auc = mean(exp_auc),
 					 mean_predicted_auc = mean(predicted_auc)) 
+
+PDAC_type_diffs_experimental = validation_assessment_line_split %>% 
+	ungroup() %>%
+	select(-mean_predicted_auc)
+	group_by(drug)
 	
 ```
 

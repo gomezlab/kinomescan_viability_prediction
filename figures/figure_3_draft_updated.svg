@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="209.88867mm"
+   height="209.97331mm"
+   viewBox="0 0 209.88867 209.97331"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
+   sodipodi:docname="figure_3_draft_updated.svg"
+   inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/figure_3_draft_updated.png"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     showguides="true"
+     inkscape:guide-bbox="true"
+     height="210mm"
+     inkscape:zoom="1"
+     inkscape:cx="385"
+     inkscape:cy="448.5"
+     inkscape:window-width="1920"
+     inkscape:window-height="960"
+     inkscape:window-x="1920"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0.35282046,-0.23767477)">
+    <image
+       width="104.98666"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/inhibition_shap_figure.png"
+       id="image28"
+       x="-0.35282898"
+       y="105.22433" />
+    <image
+       width="104.98666"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/expression_shap_figure.png"
+       id="image40"
+       x="104.54919"
+       y="105.22433" />
+    <text
+       xml:space="preserve"
+       style="font-size:9.36855px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.313678"
+       x="2.0654733"
+       y="8.2295485"
+       id="text2015"
+       transform="scale(1.0262793,0.97439361)"><tspan
+         sodipodi:role="line"
+         id="tspan2013"
+         style="stroke-width:0.313678"
+         x="2.0654733"
+         y="8.2295485">a</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:9.36855px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.313678"
+       x="137.26465"
+       y="9.2076969"
+       id="text2015-3"
+       transform="scale(1.0262793,0.97439361)"><tspan
+         sodipodi:role="line"
+         id="tspan2013-6"
+         style="stroke-width:0.313678"
+         x="137.26465"
+         y="9.2076969">b</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:9.36855px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.313678"
+       x="0.40463004"
+       y="114.86662"
+       id="text2015-7"
+       transform="scale(1.0262793,0.97439361)"><tspan
+         sodipodi:role="line"
+         id="tspan2013-5"
+         style="stroke-width:0.313678"
+         x="0.40463004"
+         y="114.86662">c</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:9.36855px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.313678"
+       x="102.52215"
+       y="116.07199"
+       id="text2015-35"
+       transform="scale(1.0262793,0.97439361)"><tspan
+         sodipodi:role="line"
+         id="tspan2013-62"
+         style="stroke-width:0.313678"
+         x="102.52215"
+         y="116.07199">d</tspan></text>
+    <image
+       width="69.934669"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/final_keras_CV_results_ic50.png"
+       id="image109"
+       x="139.60118"
+       y="0.23767477" />
+    <image
+       width="139.95401"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/all_regression_model_metrics_act_exp.png"
+       id="image109-3"
+       x="-0.35282898"
+       y="0.23767477" />
+  </g>
+</svg>

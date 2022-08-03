@@ -41,7 +41,7 @@ combined_metrics %>%
 	mutate(
 		data_type = if_else(
 		data_type == "inhibition_expression",
-		"Inhibition States and Expression only",
+		"Inhibition States and Gene Expression",
 		"Inhibition States and All Multi-Omics data"
 	),
 		model_type = case_when(
@@ -69,3 +69,37 @@ combined_metrics %>%
 ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_model_metrics.png'), height = 10.5, width = 14, units = "cm")
 ```
 
+```{r}
+combined_metrics %>%
+	filter(data_type == "inhibition_expression") %>% 
+	filter(model_type != "Neural Network") %>% 
+	mutate(
+		data_type = if_else(
+		data_type == "inhibition_expression",
+		"Inhibition States and Gene Expression",
+		"Inhibition States and All Multi-Omics data"
+	),
+		model_type = case_when(
+			model_type == "random forest" ~ "Random Forest",
+			model_type == "lasso" ~ "Lasso",
+			model_type == "xgboost" ~ "XGBoost",
+			T ~ model_type)) %>% 
+	ggplot(aes(x = num_features, y = mean, colour = model_type, shape = model_type)) +
+	geom_point() + 
+  # geom_errorbar(aes(ymin=mean-std_err, ymax=mean+std_err), width=.2,
+  #                position=position_dodge(.9)) +
+	coord_cartesian(ylim= c(0.4,0.7)) +
+	facet_wrap(vars(target, data_type), scales = "free_x") +
+	labs(x = "Number of Features Selected", y = "R-squared", colour = "Model Type", shape = "Model Type") +
+		theme(
+		legend.position = "bottom",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_model_metrics_act_exp.png'), height = 10.5, width = 14, units = "cm")
+```

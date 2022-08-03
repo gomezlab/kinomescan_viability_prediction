@@ -64,7 +64,7 @@ umap_df %>%
 	# mutate(origin = if_else(
 	# 	origin == "overlap",
 	# 	"KINOMEscan",
-	# 	origin)) %>% 
+	# 	origin)) %>%
   ggplot(aes(x = UMAP1, 
              y = UMAP2, 
              colour = origin)) +
@@ -74,7 +74,7 @@ umap_df %>%
   labs(x = "UMAP1",
        y = "UMAP2",
   		 colour = "Kinome Profiling\nData Origin",
-      title = "Kinobeads + KINOMEscan UMAP") +
+      title = "Kinobeads + KINOMEscan Target Space UMAP") +
 			theme(
 		legend.position = "left",
 		legend.text = element_text(size = 9),
@@ -85,7 +85,7 @@ umap_df %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"), width = 14.816, height = 5.258, units = "cm")
+	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"), width = 20.125, height = 5.258, units = "cm")
 ```
 
 ```{r}
