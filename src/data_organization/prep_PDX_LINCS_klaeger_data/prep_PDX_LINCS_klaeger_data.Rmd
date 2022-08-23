@@ -12,7 +12,7 @@ library(janitor)
 
 ```{r}
 #read in data 
-compound_match_list = read_csv(here('results/PDX_klaeger_LINCS_combined_drug_matches.csv'))
+compound_match_list = read_csv(here('results/matching/PDX_klaeger_LINCS_combined_drug_matches.csv'))
 
 LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long.csv'))
 
@@ -101,6 +101,11 @@ all_model_data %>%
 	ggplot(aes(x = binary_response)) +
 	geom_bar()
 
-write_csv(all_model_data, here('results/PDX_klaeger_LINCS_data_for_ml.csv'))
+all_model_data %>% 
+	ggplot(aes(x = BestAvgResponse)) +
+	geom_histogram()
+
+
+write_csv(all_model_data, here('results/PDX_LINCS_klaeger_models/PDX_klaeger_LINCS_data_for_ml.csv'))
 
 ```

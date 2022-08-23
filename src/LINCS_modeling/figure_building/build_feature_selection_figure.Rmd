@@ -159,7 +159,8 @@ a = ic50_correlations_summary %>%
   ) +
   scale_fill_viridis_d(name = "Quartiles") +
 	theme_ridges(center_axis_labels = TRUE) + 
-	labs(title = " ",x = "Absolute Correlation Value", y = "Data Type")
+	labs(title = " ",x = "Absolute Correlation Value", y = "Data Type") +
+	coord_cartesian(clip = "off")
 	
 ggsave(here('figures/IC50_feature_correlations.png'), height = 6, width = 21, units = "cm")
 
@@ -215,7 +216,7 @@ rank_zoom = ggplot(ic50_correlations_summary %>% filter(rank <= 5001), aes(x=ran
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA),
 		axis.title = element_text(size = 14)
-      ) 
+      )  
 
 c = a / rank_zoom
 ggsave(here('figures/combined_feature_selection_figure.png'), height = 12, width = 21, units = "cm")

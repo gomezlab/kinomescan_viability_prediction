@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="225mm"
+   viewBox="0 0 209.99999 225"
+   version="1.1"
+   id="svg5"
+   inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/supp_figure_1_draft.png"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600"
+   inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
+   sodipodi:docname="supp_figure_1_draft.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     height="225mm"
+     inkscape:zoom="1.2218217"
+     inkscape:cx="401.04051"
+     inkscape:cy="250.44571"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-0.40565005,-0.26415551)">
+    <image
+       width="209.97333"
+       height="119.97266"
+       preserveAspectRatio="none"
+       xlink:href="combined_feature_selection_figure.png"
+       id="image100"
+       x="0.63245857"
+       y="0.62062138" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.1287628"
+       y="6.8139791"
+       id="text1287"><tspan
+         id="tspan1285"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.1287628"
+         y="6.8139791"
+         sodipodi:role="line">a</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="0.82044381"
+       y="70.897057"
+       id="text1287-6"
+       inkscape:transform-center-x="-0.71033743"
+       inkscape:transform-center-y="-1.8672395"><tspan
+         id="tspan1285-2"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="0.82044381"
+         y="70.897057"
+         sodipodi:role="line">b</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.7547135"
+       y="122.83983"
+       id="text1287-1"><tspan
+         id="tspan1285-7"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.7547135"
+         y="122.83983"
+         sodipodi:role="line">c</tspan></text>
+    <image
+       width="209.54997"
+       height="104.98666"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/all_regression_model_metrics.png"
+       id="image8093"
+       x="0.63245857"
+       y="120.59328" />
+  </g>
+</svg>

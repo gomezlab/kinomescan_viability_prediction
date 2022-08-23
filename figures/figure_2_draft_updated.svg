@@ -29,12 +29,12 @@
      showgrid="false"
      height="1e-05mm"
      inkscape:zoom="1.2218217"
-     inkscape:cx="238.98741"
-     inkscape:cy="315.92171"
+     inkscape:cx="427.23091"
+     inkscape:cy="349.06894"
      inkscape:window-width="1920"
-     inkscape:window-height="1043"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:window-height="960"
+     inkscape:window-x="1920"
+     inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      fit-margin-top="0"
@@ -118,5 +118,31 @@
        id="image105"
        x="0.63266343"
        y="48.910336" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="0.97865862"
+       y="114.01034"
+       id="text1287-6-7"
+       inkscape:transform-center-x="-0.71033743"
+       inkscape:transform-center-y="-1.8672395"><tspan
+         id="tspan1285-2-5"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="0.97865862"
+         y="114.01034"
+         sodipodi:role="line">d</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.4804305"
+       y="60.705349"
+       id="text1287-6-3"
+       inkscape:transform-center-x="-0.71033743"
+       inkscape:transform-center-y="-1.8672395"><tspan
+         id="tspan1285-2-6"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.4804305"
+         y="60.705349"
+         sodipodi:role="line">c</tspan></text>
   </g>
 </svg>

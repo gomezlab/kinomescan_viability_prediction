@@ -37,6 +37,7 @@ combined_metrics = ic50_model_metrics %>%
 
 ```{r}
 combined_metrics %>%
+	filter(model_type != "Neural Network") %>% 
 	mutate(
 		data_type = if_else(
 		data_type == "inhibition_expression",
@@ -65,7 +66,7 @@ combined_metrics %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 
-ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_model_metrics.png'), height = 10.5, width = 14, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/all_regression_model_metrics.png'), height = 10.5, width = 20.96, units = "cm")
 ```
 
 ```{r}
