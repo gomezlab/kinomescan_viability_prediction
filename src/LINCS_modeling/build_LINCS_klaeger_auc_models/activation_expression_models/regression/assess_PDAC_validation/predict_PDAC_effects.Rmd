@@ -216,10 +216,10 @@ validation_assessment_line_split = validation_assessment %>%
 	summarise(mean_exp_auc = mean(exp_auc),
 					 mean_predicted_auc = mean(predicted_auc)) 
 
-PDAC_type_diffs_experimental = validation_assessment_line_split %>% 
-	ungroup() %>%
-	select(-mean_predicted_auc)
-	group_by(drug)
+# PDAC_type_diffs_experimental = validation_assessment_line_split %>% 
+# 	ungroup() %>%
+# 	select(-mean_predicted_auc)
+# 	group_by(drug)
 	
 ```
 
@@ -332,3 +332,57 @@ validation_assessment_split %>%
 ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinomescan.png'), height = 10, width = 9.5, units = "cm")
 ```
 
+```{r}
+#create metrics plot by individual compound
+validation_assessment_split = validation_assessment_split %>% 
+		mutate(PDAC_type = case_when(
+		cell_line == "P0119_T1" ~ "CAF Activated Stroma",
+		cell_line == "P0411_T1" ~ "Primary Tumour Line 1",
+		cell_line == "P0422_T1" ~ "Primary Tumour Line 2"
+	)) %>% 
+	filter(origin != "overlap")
+
+cells_validated = validation_assessment_split %>% 
+  select(PDAC_type, origin) %>% 
+  unique()
+
+all_individual_metrics = data.frame()
+for(i in 1:dim(cells_validated)[1]) {
+
+this_cell = cells_validated$PDAC_type[i]
+this_origin = cells_validated$origin[i]
+	
+this_model_predictions = validation_assessment_split %>% 
+  filter(PDAC_type == this_cell & origin == this_origin)
+
+this_rsq = cor(this_model_predictions$exp_auc, this_model_predictions$predicted_auc)^2
+
+this_rmse = rmse(this_model_predictions$exp_auc, this_model_predictions$predicted_auc)
+
+this_metrics = data.frame(this_rsq, this_rmse, this_cell, this_origin)
+
+all_individual_metrics = bind_rows(all_individual_metrics, this_metrics)
+
+}
+
+validation_assessment_split %>% 
+  left_join(all_individual_metrics %>% 
+  						rename(PDAC_type = this_cell, origin = this_origin)) %>% 
+  mutate(this_rsq = paste0("R\u00B2 = ", round(this_rsq, 2), " / RMSE = ", round(this_rmse, 2))) %>% 
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(
+	  x = "Predicted Combination Viability",
+	  y = "Experimental Combination Viability") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	) +
+  facet_wrap(~ PDAC_type + origin + this_rsq)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/individual_cell_line_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+
+```

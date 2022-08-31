@@ -255,3 +255,47 @@ validation_assessment %>%
 ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
 ```
 
+```{r}
+#create metrics plot by individual compound
+cells_validated = validation_assessment %>% 
+  select(stripped_cell_line_name) %>% 
+  unique()
+
+all_individual_metrics = data.frame()
+for(this_cell in cells_validated$stripped_cell_line_name) {
+
+this_model_predictions = validation_assessment %>% 
+  filter(stripped_cell_line_name == this_cell)
+
+this_rsq = cor(this_model_predictions$exp_auc, this_model_predictions$predicted_auc)^2
+
+this_rmse = rmse(this_model_predictions$exp_auc, this_model_predictions$predicted_auc)
+
+this_metrics = data.frame(this_rsq, this_rmse, this_cell)
+
+all_individual_metrics = bind_rows(all_individual_metrics, this_metrics)
+
+}
+
+validation_assessment %>% 
+  left_join(all_individual_metrics %>% 
+  						rename(stripped_cell_line_name = this_cell)) %>% 
+  mutate(this_rsq = paste0("R\u00B2 = ", round(this_rsq, 2), " / RMSE = ", round(this_rmse, 2))) %>% 
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(
+	  x = "Predicted Combination Viability",
+	  y = "Experimental Combination Viability") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	) +
+  facet_wrap(~ stripped_cell_line_name + this_rsq)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/individual_cell_line_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+
+```
+

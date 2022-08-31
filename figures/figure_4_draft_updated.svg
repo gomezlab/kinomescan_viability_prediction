@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 296.99999"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
+   sodipodi:docname="figure_4_draft.svg"
+   inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/figure_4_draft.png"
+   inkscape:export-xdpi="600"
+   inkscape:export-ydpi="600"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#cccccc"
+     borderopacity="1"
+     inkscape:pageshadow="0"
+     inkscape:pageopacity="1"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="0.70199214"
+     inkscape:cx="596.16052"
+     inkscape:cy="561.25985"
+     inkscape:window-width="2192"
+     inkscape:window-height="1113"
+     inkscape:window-x="2192"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1"
+     units="mm"
+     height="20cm" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <image
+       width="209.97333"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/untested_feature_space_invert.png"
+       id="image17"
+       x="0.042810895"
+       y="0.060129311" />
+    <image
+       width="94.996002"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png"
+       id="image213"
+       x="9.4965153"
+       y="95.746498" />
+    <image
+       width="94.996002"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png"
+       id="image225"
+       x="104.49252"
+       y="95.746498" />
+    <text
+       xml:space="preserve"
+       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
+       x="1.1742703"
+       y="8.583643"
+       id="text2145"
+       transform="scale(1.0181375,0.98218562)"><tspan
+         sodipodi:role="line"
+         id="tspan2143"
+         style="stroke-width:0.366404"
+         x="1.1742703"
+         y="8.583643">a</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
+       x="21.747648"
+       y="122.40582"
+       id="text2145-3"
+       transform="matrix(0.98302025,0.26509463,-0.25573376,0.9483084,0,0)"><tspan
+         sodipodi:role="line"
+         id="tspan2143-6"
+         style="stroke-width:0.366404"
+         x="21.747648"
+         y="122.40582" /></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
+       x="1.9340807"
+       y="106.5963"
+       id="text2145-7"
+       transform="scale(1.0181375,0.98218561)"><tspan
+         sodipodi:role="line"
+         id="tspan2143-5"
+         style="stroke-width:0.366404"
+         x="1.9340807"
+         y="106.5963">b</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
+       x="101.32428"
+       y="106.02943"
+       id="text2145-35"
+       transform="scale(1.0181375,0.98218561)"><tspan
+         sodipodi:role="line"
+         id="tspan2143-62"
+         style="stroke-width:0.366404"
+         x="101.32428"
+         y="106.02943">c</tspan></text>
+    <image
+       width="94.996002"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinobeads.png"
+       id="image117"
+       x="9.4965153"
+       y="195.73784" />
+    <image
+       width="94.996002"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinomescan.png"
+       id="image129"
+       x="104.49252"
+       y="195.73784" />
+    <text
+       xml:space="preserve"
+       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
+       x="3.2023709"
+       y="213.75894"
+       id="text2145-35-3"
+       transform="scale(1.0181375,0.98218561)"><tspan
+         sodipodi:role="line"
+         id="tspan2143-62-6"
+         style="stroke-width:0.366404"
+         x="3.2023709"
+         y="213.75894">d</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
+       x="103.42841"
+       y="213.7468"
+       id="text2145-35-3-7"
+       transform="scale(1.0181375,0.98218561)"><tspan
+         sodipodi:role="line"
+         id="tspan2143-62-6-5"
+         style="stroke-width:0.366404"
+         x="103.42841"
+         y="213.7468">e</tspan></text>
+  </g>
+</svg>
