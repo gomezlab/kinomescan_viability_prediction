@@ -8,7 +8,7 @@
    version="1.1"
    id="svg5"
    inkscape:version="1.1.2 (1:1.1+202202050950+0a00cf5339)"
-   sodipodi:docname="figure_4_draft.svg"
+   sodipodi:docname="figure_4_draft_updated.svg"
    inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/figure_4_draft.png"
    inkscape:export-xdpi="600"
    inkscape:export-ydpi="600"
@@ -28,12 +28,12 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.70199214"
-     inkscape:cx="596.16052"
-     inkscape:cy="561.25985"
+     inkscape:cx="382.48291"
+     inkscape:cy="687.32963"
      inkscape:window-width="2192"
-     inkscape:window-height="1113"
-     inkscape:window-x="2192"
-     inkscape:window-y="27"
+     inkscape:window-height="1196"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      units="mm"
@@ -52,22 +52,6 @@
        id="image17"
        x="0.042810895"
        y="0.060129311" />
-    <image
-       width="94.996002"
-       height="99.991341"
-       preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_replication_assessment.png"
-       id="image213"
-       x="9.4965153"
-       y="95.746498" />
-    <image
-       width="94.996002"
-       height="99.991341"
-       preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png"
-       id="image225"
-       x="104.49252"
-       y="95.746498" />
     <text
        xml:space="preserve"
        style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
@@ -107,34 +91,6 @@
     <text
        xml:space="preserve"
        style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
-       x="101.32428"
-       y="106.02943"
-       id="text2145-35"
-       transform="scale(1.0181375,0.98218561)"><tspan
-         sodipodi:role="line"
-         id="tspan2143-62"
-         style="stroke-width:0.366404"
-         x="101.32428"
-         y="106.02943">c</tspan></text>
-    <image
-       width="94.996002"
-       height="99.991341"
-       preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinobeads.png"
-       id="image117"
-       x="9.4965153"
-       y="195.73784" />
-    <image
-       width="94.996002"
-       height="99.991341"
-       preserveAspectRatio="none"
-       xlink:href="PRISM_LINCS_klaeger/validation/preliminary_PDAC_validation_assessment_kinomescan.png"
-       id="image129"
-       x="104.49252"
-       y="195.73784" />
-    <text
-       xml:space="preserve"
-       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
        x="3.2023709"
        y="213.75894"
        id="text2145-35-3"
@@ -143,18 +99,22 @@
          id="tspan2143-62-6"
          style="stroke-width:0.366404"
          x="3.2023709"
-         y="213.75894">d</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:10.9433px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';stroke-width:0.366404"
-       x="103.42841"
-       y="213.7468"
-       id="text2145-35-3-7"
-       transform="scale(1.0181375,0.98218561)"><tspan
-         sodipodi:role="line"
-         id="tspan2143-62-6-5"
-         style="stroke-width:0.366404"
-         x="103.42841"
-         y="213.7468">e</tspan></text>
+         y="213.75894">c</tspan></text>
+    <image
+       width="189.992"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/validation/individual_cell_line_validation_assessment.png"
+       id="image150"
+       x="9.496521"
+       y="95.746498" />
+    <image
+       width="189.992"
+       height="99.991341"
+       preserveAspectRatio="none"
+       xlink:href="PRISM_LINCS_klaeger/validation/PDAC_individual_cell_line_validation_assessment.png"
+       id="image494"
+       x="9.496521"
+       y="195.73784" />
   </g>
 </svg>

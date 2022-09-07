@@ -286,8 +286,8 @@ validation_assessment %>%
 	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
 	labs(
-	  x = "Predicted Combination Viability",
-	  y = "Experimental Combination Viability") +
+	  x = "Predicted AUC",
+	  y = "Experimental AUC") +
 	theme(
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
@@ -295,7 +295,7 @@ validation_assessment %>%
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	) +
   facet_wrap(~ stripped_cell_line_name + this_rsq)
-ggsave(here('figures/PRISM_LINCS_klaeger/validation/individual_cell_line_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/individual_cell_line_validation_assessment.png'), height = 10, width = 19, units = "cm")
 
 ```
 
