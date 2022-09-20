@@ -1,0 +1,30 @@
+---
+title: "Tidy kinomescan and klaeger SMILES for QSAR"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(here)
+library(webchem)
+```
+
+```{r}
+#read in data
+
+all_cids = read_csv(here('results/matching/kinomescan_klaeger_cids.csv'))
+
+#CID's converted to SMILES by pubchem identifier exchange service https://pubchem.ncbi.nlm.nih.gov/idexchange/idexchange.cgi
+
+all_smiles = read_tsv(here('results/matching/klaeger_kinomescan_combined_smiles.txt'), col_names = FALSE)
+```
+
+```{r}
+LINCS_klaeger_smiles = all_smiles %>% 
+	rename(cid = X1, smiles = X2) %>% 
+	left_join(all_cids %>% select(-origin)) %>% 
+	unique() %>% 
+	drop_na() %>% 
+	write_csv(here('results/matching/kinomescan_klaeger_cid_smiles.csv'))
+```
+

@@ -5,6 +5,8 @@ library(patchwork)
 library(here)
 library(vroom)
 library(cowplot)
+library(Metrics)
+library(wesanderson)
 ```
 
 ```{r}
@@ -43,6 +45,7 @@ full_predictions <- predictions %>%
     select(
       depmap_id,
       primary_disease,
+      lineage_sub_subtype,
 			cell_line_name_extra
     ),
   by = c("depmap_id")
@@ -395,3 +398,62 @@ for (this_line in unique(BC_predictions$stripped_cell_line_name)) {
 	ggsave(here('figures/PRISM_LINCS_klaeger/final_xgboost_model//BC_lines_predictions/',paste0(this_line,".png")), this_plot, width=16,height=5)
 }
 ```
+
+```{r}
+#assess AML predictions w.r.t FLT3
+
+AML_predictions = full_predictions %>% 
+	filter(primary_disease == "Leukemia") %>% 
+	filter(str_detect(cell_line_name_extra, "AML"))
+	
+FLT3_data = LINCS_klaeger_data %>% 
+	filter(kinase == "FLT3") %>% 
+	select(-binary_hit) %>% 
+	pivot_wider(names_from = kinase, values_from = relative_intensity)
+
+AML_predictions_with_FLT3_status = AML_predictions %>% 
+	filter(drug %in% c("Sorafenib", "Lestaurtinib", "Midostaurin", "Quizartinib", "Crenolanib", "Gilteritinib")) %>% 
+	left_join(FLT3_data) %>% 
+	select(-broad_id) %>% 
+	drop_na()
+
+AML_subtypes = AML_predictions_with_FLT3_status %>% 
+  select(lineage_sub_subtype) %>% 
+  unique()
+
+all_individual_metrics = data.frame()
+for(this_subtype in AML_subtypes$lineage_sub_subtype) {
+
+this_model_predictions = AML_predictions_with_FLT3_status %>% 
+  filter(lineage_sub_subtype == this_subtype)
+
+this_rsq = cor(this_model_predictions$FLT3, this_model_predictions$predicted_auc)
+
+this_rmse = rmse(this_model_predictions$FLT3, this_model_predictions$predicted_auc)
+
+this_metrics = data.frame(this_rsq, this_rmse, this_subtype)
+
+all_individual_metrics = bind_rows(all_individual_metrics, this_metrics)
+
+}
+
+AML_predictions_with_FLT3_status %>% 
+  left_join(all_individual_metrics %>% 
+              rename(lineage_sub_subtype = this_subtype)) %>% 
+  mutate(this_rsq = paste0("R ", round(this_rsq, 2), " / RMSE = ", round(this_rmse, 2))) %>% 
+	ggplot(aes(x = FLT3, y = predicted_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(
+	  x = "FLT3 ",
+	  y = "Experimental Combination auc") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	) +
+  facet_wrap(~ lineage_sub_subtype + this_rsq)
+```
+

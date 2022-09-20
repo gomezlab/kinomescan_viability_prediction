@@ -47,7 +47,7 @@ plot_data %>%
 	ggplot(aes(x = ic50, y = auc)) +
 	geom_hex() +
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
-	geom_smooth() +
+	geom_smooth(method = "lm") +
 	labs(title = 
 			 	paste0('IC50/AUC R = ',
 			 				 round(
