@@ -35,6 +35,10 @@ this_dataset = data %>%
 	mutate(binary_response = as.factor(binary_response))
 ```
 
+```{r}
+#EDA
+```
+
 
 ```{r}
 #tuning lasso feature selection within xgboost
