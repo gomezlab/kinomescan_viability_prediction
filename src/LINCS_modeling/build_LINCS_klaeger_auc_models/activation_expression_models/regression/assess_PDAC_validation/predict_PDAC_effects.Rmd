@@ -8,8 +8,6 @@ library(dr4pl)
 library(PharmacoGx)
 library(Metrics)
 library(wesanderson)
-library(keras)
-conflict_prefer("fit", "keras")
 conflict_prefer("slice", "dplyr")
 conflict_prefer("filter", "dplyr")
 conflict_prefer("rename", "dplyr")
@@ -133,6 +131,8 @@ results_dataframe = data.frame(drug = query_drug, cell_line = query_cell_line, e
 
 all_PDAC_validation_results = bind_rows(all_PDAC_validation_results, results_dataframe)
 }
+
+write_rds(all_PDAC_validation_results, here('results/validation_results/PDAC_validation/all_PDAC_validation_results_auc.rds'))
 ```
 
 
