@@ -155,7 +155,8 @@ model_predictions = augment(final_xgboost_model,
 
 model_predictions_tidy = model_predictions %>%
 	mutate(pred_auc = signif(.pred,3)) %>% 
-	select(-.pred, -broad_id, -depmap_id, -ccle_name)
+	select(-.pred, -broad_id, -depmap_id, -ccle_name) %>% 
+	write_csv(here('results/validation_results/PDAC_validation/all_PDAC_validation_predictions_auc.rds'))
 ```
 
 ```{r}
@@ -386,3 +387,27 @@ validation_assessment_split %>%
 ggsave(here('figures/PRISM_LINCS_klaeger/validation/PDAC_individual_cell_line_validation_assessment.png'), height = 10, width = 19, units = "cm")
 
 ```
+
+```{r}
+#make specific figure for grant 
+validation_assessment_split %>% 
+  left_join(all_individual_metrics %>% 
+  						rename(PDAC_type = this_cell, origin = this_origin)) %>% 
+	filter(origin == "Kinobeads" & PDAC_type != "Primary Tumour Line 2") %>% 
+	ggplot(aes(x = predicted_auc, y = exp_auc)) +
+	geom_point() +
+	geom_smooth(method = "lm", color = wes_palettes$GrandBudapest1[2]) +
+	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'black', linetype = 3) +
+	labs(
+	  x = "Predicted AUC",
+	  y = "Experimental AUC") +
+	theme(
+		panel.background = element_rect(fill = "transparent",colour = NA),
+		panel.grid.minor = element_blank(), 
+		panel.grid.major = element_blank(),
+		plot.background = element_rect(fill = "transparent",colour = NA)
+	) +
+  facet_wrap(~ PDAC_type)
+ggsave(here('figures/PRISM_LINCS_klaeger/validation/PDAC_figure_grant.png'), height = 5, width = 10, units = "cm")
+```
+
