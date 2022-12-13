@@ -12,7 +12,7 @@ library(webchem)
 ```{r}
 #read in data 
 cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv'))
-LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
+LINCS_klaeger_data_wide = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide.csv'))
 LINCS_klaeger_cids = read_csv(here('results/matching/kinomescan_klaeger_cids.csv')) %>% 
 	mutate(cid = as.character(cid))
 ```
