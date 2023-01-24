@@ -1,5 +1,5 @@
 # Modeling Responses to Kinase Inhibitors using Multi-Assay Kinome Inhibition States
-This repository contains code for processing kinobeads and kinomescan data for cell line response prediction, as outlines in the paper: [insert link]
+This repository contains code for processing kinobeads and kinomescan data for cell line response prediction, as outlined in the paper: [https://www.biorxiv.org/content/10.1101/2022.12.06.519165v1]
 
 ## Prerequesites 
 This repository contains code written almost entirely in R, using Rstudio and 'Tidyverse' idioms. The file [`package_check.R`](package_check.R) describes all the R packages needed to run the code in a covenient "pacman" script. Running this script will install all the required packages in one go. 
