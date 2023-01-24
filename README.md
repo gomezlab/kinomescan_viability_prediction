@@ -2,7 +2,7 @@
 This repository contains code for processing kinobeads and kinomescan data for cell line response prediction, as outlines in the paper: [insert link]
 
 ## Prerequesites 
-This repository contains code written almost entirely in R, using Rstudio and 'Tidyverse' idioms.
+This repository contains code written almost entirely in R, using Rstudio and 'Tidyverse' idioms. The file [`package_check.R`](package_check.R) describes all the R packages needed to run the code in a covenient "pacman" script. Running this script will install all the required packages in one go. 
 
 ## Repository Structure 
 This repository is divided into three main folders:
@@ -19,6 +19,9 @@ The folder [`src/LINCS_modeling`](src/LINCS_modeling) contains code to build mac
 
 ## Figure Building 
 The majority of figures included in the paper are produced directly in the model-building and analysis code, however the code for some specific visualizations can be found in the folder [`src/LINCS_modeling/figure_building`](src/LINCS_modeling/figure_building)
+
+## Figures
+All the figures in the paper can be found in the folder [`figures`](figures) and some specific figures generated as part of model building code can be found in [`figures/PRISM_LINCS_klaeger`](figures/PRISM_LINCS_klaeger)
 
 
 
