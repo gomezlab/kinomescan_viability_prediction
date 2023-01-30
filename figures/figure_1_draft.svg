@@ -31,11 +31,11 @@
      inkscape:guide-bbox="true"
      height="200mm"
      inkscape:zoom="1.5004828"
-     inkscape:cx="447.85585"
-     inkscape:cy="517.5001"
-     inkscape:window-width="1920"
-     inkscape:window-height="960"
-     inkscape:window-x="1920"
+     inkscape:cx="315.23187"
+     inkscape:cy="197.26984"
+     inkscape:window-width="2192"
+     inkscape:window-height="1113"
+     inkscape:window-x="2192"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1" />
@@ -60,7 +60,7 @@
        width="69.426971"
        height="63.788788"
        preserveAspectRatio="none"
-       xlink:href="PRISM_IC50_AUC_correlation.png"
+       xlink:href="../../kinomescan_viability_prediction/figures/PRISM_IC50_AUC_correlation.png"
        id="image10077"
        x="138.74988"
        y="136.15005" />
@@ -112,7 +112,7 @@
        width="201.328"
        height="80.531204"
        preserveAspectRatio="none"
-       xlink:href="Klaeger+KINOMEscan%20data%20overview.png"
+       xlink:href="../../kinomescan_viability_prediction/figures/Klaeger+KINOMEscan%20data%20overview.png"
        id="image409"
        x="6.8488503"
        y="3.0408554" />
@@ -131,7 +131,7 @@
        width="201.168"
        height="52.577999"
        preserveAspectRatio="none"
-       xlink:href="clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"
+       xlink:href="../../kinomescan_viability_prediction/figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"
        id="image288"
        x="6.9241791"
        y="83.57206" />
