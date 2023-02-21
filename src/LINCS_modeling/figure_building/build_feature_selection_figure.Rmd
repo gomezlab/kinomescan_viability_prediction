@@ -175,7 +175,7 @@ auc_correlations_summary %>%
 	labs(title = " ",x = "Absolute Correlation Value", y = "Data Type")
 	
 ggsave(here('figures/auc_feature_correlations.png'), height = 6, width = 21, units = "cm")
-ggsave(here('figures/auc_feature_correlations_for_poster.png'), height = 10, width = 6.6, units = "in")
+ggsave(here('figures/auc_feature_correlations_for_poster.png'), height = 5, width = 6.6, units = "in")
 
 ```
 
