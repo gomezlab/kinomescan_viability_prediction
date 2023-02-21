@@ -15,7 +15,7 @@ conflict_prefer("filter", "dplyr")
 ```{r}
 #read in data 
 
-full_dataset =  read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
+#full_dataset =  read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
 
 LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
 LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long_matched_only.csv'))
@@ -86,6 +86,7 @@ umap_df %>%
       )
 
 	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"), width = 20.125, height = 5.258, units = "cm")
+	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only_for_poster.png"), width = 6.6, height = 5, units = "in")
 ```
 
 ```{r}
@@ -199,4 +200,5 @@ umap_with_outcome %>%
   		 colour = "Mean Area\nUnder Dose-Response\nCurve",
       title = "KINOMEscan UMAP by outcome")
 	ggsave(here("figures/clustering/kinomescan_UMAP_by_outcome.png"), width = 25, height = 15, units = "cm")
+	
 ```
