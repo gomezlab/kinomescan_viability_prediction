@@ -31,7 +31,7 @@ median_epochs = median(all_metrics$epochs)
 all_predictions %>%
  ggplot(aes(x = predicted_auc, y = auc)) +
  geom_hex() +
- scale_fill_viridis_c(guide = guide_colorbar(title = "Number of\nAUC values")) +
+ scale_fill_viridis_c(guide = guide_colorbar(title = "# Values")) +
  labs(title = 
   paste0('R\u00B2 = ',
 			 				 round(
@@ -48,13 +48,14 @@ all_predictions %>%
 	geom_smooth(colour = "red") +
 	coord_cartesian(xlim = c(0.2,1), ylim= c(0,1)) +
 	theme(
-		legend.position = "bottom",
+		legend.position = "right",
 		panel.background = element_rect(fill = "transparent",colour = NA),
 		panel.grid.minor = element_blank(), 
 		panel.grid.major = element_blank(),
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
 ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results_auc.png'), width = 7, height = 10.5, units = "cm")
+ggsave(here('figures/PRISM_LINCS_klaeger/final_keras_CV_results_auc_for_poster.png'), width = 3.2, height = 2.7, units = "in")
 ```
 
 ```{r}
