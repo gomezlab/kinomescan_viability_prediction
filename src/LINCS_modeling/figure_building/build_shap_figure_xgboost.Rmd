@@ -115,7 +115,25 @@ shap_inhibition %>%
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
 ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure.png'), height = 10.5, width = 10.5, units = "cm")
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_for_poster.png'), height = 2.7, width = 7, units = "cm")
+
+shap_inhibition %>%
+  slice(1:19) %>%
+	arrange(mean_importance_value) %>% 
+	mutate(gene = fct_inorder(gene)) %>% 
+	ggplot(aes(x = mean_importance_value, y = gene, fill = class)) +
+	geom_col() +
+	labs(y='',fill='',x='Inhibition State Importance') +
+	theme(
+		legend.title = element_blank(),
+		legend.position = "bottom",
+		legend.direction = "horizontal",
+		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_for_poster.png'), height = 2.7, width = 7, units = "in")
 
 shap_expression %>%
 	mutate(interaction = if_else(gene == "PNPLA4",
