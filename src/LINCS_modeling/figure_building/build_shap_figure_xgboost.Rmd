@@ -133,7 +133,7 @@ shap_inhibition %>%
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_for_poster.png'), height = 2.7, width = 7, units = "in")
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_for_poster.png'), height = 3, width = 7, units = "in")
 
 shap_expression %>%
 	mutate(interaction = if_else(gene == "PNPLA4",
