@@ -125,15 +125,15 @@ shap_inhibition %>%
 	labs(y='',fill='',x='Inhibition State Importance') +
 	theme(
 		legend.title = element_blank(),
-		legend.position = "bottom",
-		legend.direction = "horizontal",
+		legend.position = "right",
+		legend.direction = "vertical",
 		legend.margin = margin(t = 0, b = 0, l = 0, r = 0, unit = "cm"),
 		panel.background = element_rect(fill = "transparent",colour = NA),
     panel.grid.minor = element_blank(), 
     panel.grid.major = element_blank(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       )
-ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_for_poster.png'), height = 3, width = 7, units = "in")
+ggsave(here('figures/PRISM_LINCS_klaeger/inhibition_shap_figure_for_poster.png'), height = 2.8, width = 7.5, units = "in")
 
 shap_expression %>%
 	mutate(interaction = if_else(gene == "PNPLA4",
