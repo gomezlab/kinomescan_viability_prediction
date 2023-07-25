@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="206.61858mm"
-   height="180.3571mm"
-   viewBox="0 0 206.61857 180.3571"
+   width="210mm"
+   height="225mm"
+   viewBox="0 0 209.99999 225"
    version="1.1"
    id="svg5"
    inkscape:export-filename="/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/figures/supp_figure_1_draft.png"
@@ -29,12 +29,12 @@
      showgrid="false"
      height="225mm"
      inkscape:zoom="1.2218217"
-     inkscape:cx="291.77743"
-     inkscape:cy="248.80881"
-     inkscape:window-width="2192"
-     inkscape:window-height="1113"
-     inkscape:window-x="2192"
-     inkscape:window-y="27"
+     inkscape:cx="401.04051"
+     inkscape:cy="250.44571"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      fit-margin-top="0"
@@ -47,7 +47,15 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-1.0523198,-0.65767449)">
+     transform="translate(-0.40565005,-0.26415551)">
+    <image
+       width="209.97333"
+       height="119.97266"
+       preserveAspectRatio="none"
+       xlink:href="combined_feature_selection_figure.png"
+       id="image100"
+       x="0.63245857"
+       y="0.62062138" />
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
@@ -62,31 +70,34 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
-       x="0.33463773"
-       y="107.92451"
+       x="0.82044381"
+       y="70.897057"
        id="text1287-6"
        inkscape:transform-center-x="-0.71033743"
        inkscape:transform-center-y="-1.8672395"><tspan
          id="tspan1285-2"
          style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
-         x="0.33463773"
-         y="107.92451"
+         x="0.82044381"
+         y="70.897057"
          sodipodi:role="line">b</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.5833px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
+       x="1.7547135"
+       y="122.83983"
+       id="text1287-1"><tspan
+         id="tspan1285-7"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.90222px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.264583"
+         x="1.7547135"
+         y="122.83983"
+         sodipodi:role="line">c</tspan></text>
     <image
-       width="99.991341"
-       height="99.991341"
+       width="209.54997"
+       height="104.98666"
        preserveAspectRatio="none"
-       xlink:href="klaeger_LINCS_correlation.png"
-       id="image354"
-       x="58.640484"
-       y="2.4139171" />
-    <image
-       width="204.978"
-       height="69.934669"
-       preserveAspectRatio="none"
-       xlink:href="klaeger_LINCS_heatmap.png"
-       id="image366"
-       x="2.6929028"
-       y="111.08011" />
+       xlink:href="PRISM_LINCS_klaeger/all_regression_model_metrics.png"
+       id="image8093"
+       x="0.63245857"
+       y="120.59328" />
   </g>
 </svg>

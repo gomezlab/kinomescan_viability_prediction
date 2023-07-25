@@ -73,10 +73,11 @@ matched_drug_data %>%
 	geom_hex() +
 	scale_fill_gradient(low="lightblue1",high="darkblue") +
 	geom_smooth() +
-	labs(title = paste0('Correlation = ', cor(matched_drug_data$LINCS_relative_intensity, matched_drug_data$klaeger_relative_intensity))) +
+	labs(title = paste0('Correlation = ', round(cor(matched_drug_data$LINCS_relative_intensity, matched_drug_data$klaeger_relative_intensity), 3)),
+			x = "KINOMEscan Inhibition State", y = "Kinobeads Inhibition State") +
 	geom_abline(intercept = 0, slope = 1, size = 0.5, colour = 'red')
 
-ggsave(here('figures/klaeger_LINCS_correlation.png'))
+ggsave(here('figures/klaeger_LINCS_correlation.png'), width = 10, height = 10, units = "cm")
 
 #create infividual unmatched datasets 
 unmatched_LINCS_data = LINCS_long %>% 
