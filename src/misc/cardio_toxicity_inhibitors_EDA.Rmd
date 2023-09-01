@@ -21,7 +21,6 @@ cardio_toxicity_data_processed = cardio_toxicity_data %>%
 																	. == 0 ~ "Reported Event",
 																	. == 2 ~ ">10% Incidence")))
 
-
 cardio_toxicity_data_long = cardio_toxicity_data_processed %>% 
 	pivot_longer(-drug, names_to = "cardiac_adverse_event", values_to = "Incidence")
 
@@ -54,7 +53,7 @@ cardio_promiscuity_data %>%
 	ggplot(aes(x = Incidence, y = promiscuity_score, fill = Incidence)) +
 	geom_violin() +
 	facet_wrap(~cardiac_adverse_event) +
-	labs(y = "Inhibitor Promiscuity", title = "Inhibitor Promiscuity Does Not Fully Explain Cardiac Toxicity") +
+	labs(y = "Inhibitor Promiscuity", title = "Inhibitor promiscuity does not fully explain cardiotoxicity") +
 		theme(
 		legend.text = element_text(size = 9),
 		legend.background = element_rect(fill = "transparent",colour = NA),
@@ -120,7 +119,7 @@ top_10_kinases_per_disease$kinase = factor(top_10_kinases_per_disease$kinase, le
 top_10_kinases_per_disease %>% 
 	ggplot(aes(x = kinase, y = cardiac_adverse_event, size = target_score, colour = kinase)) +
 	geom_point(alpha = 0.7) +
-	labs(x = "Kinase", y = " ", title = "Kinase Inhibition Frequency by Cardiac Toxicity", size = "Number of Toxicity-Causing Drugs\nThat Inhibit the Given Kinase") +
+	labs(x = "Kinase", y = " ", title = "Kinase inhibition frequency by cardiotoxicity", size = "Number of Toxicity-Causing Drugs\nThat Inhibit the Given Kinase") +
 		theme(
 		legend.position = "bottom",
 		legend.text = element_text(size = 9),
