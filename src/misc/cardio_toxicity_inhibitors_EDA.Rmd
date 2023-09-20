@@ -4,6 +4,11 @@ library(patchwork)
 library(here)
 library(vroom)
 library(ggdendro)
+library(vroom)
+library(umap)
+library(conflicted)
+conflict_prefer("everything", "dplyr")
+conflict_prefer("filter", "dplyr")
 ```
 
 ```{r}
@@ -96,39 +101,30 @@ for(disease in primary_diseases) {
 	
 	this_kinase_scores = this_top_10_drugs_with_target %>% 
 		select(cardiac_adverse_event, kinase, binary_hit) %>% 
-		group_by(cardiac_adverse_event, kinase) %>%
-		summarise(target_score = sum(binary_hit)) %>% 
-		arrange(desc(target_score)) %>% 
-		mutate(kinase_sub_rank = 1:n()) %>% 
-		filter(kinase_sub_rank <= 10)
-	
-	top_10_drugs_per_disease = bind_rows(top_10_drugs_per_disease, this_top_10_drugs)
-	top_10_kinases_per_disease = bind_rows(top_10_kinases_per_disease, this_kinase_scores)
-	
-}
+		group_by(cardiac_adverse_e``{r}
+#read in data 
 
-kinase_order = top_10_kinases_per_disease %>%
-	select(cardiac_adverse_event, kinase) %>% 
-	unique() %>% 
-	count(kinase) %>% 
-	arrange(n) %>% 
-	mutate(kinase = fct_inorder(kinase))
+#full_dataset =  read_rds(here('results/PRISM_LINCS_klaeger_models_auc/PRISM_LINCS_klaeger_data_for_ml_auc.rds.gz'))
 
-top_10_kinases_per_disease$kinase = factor(top_10_kinases_per_disease$kinase, levels = kinase_order$kinase)
+LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_wide_matched_only.csv'))
+LINCS_klaeger_data_long = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long_matched_only.csv'))
+```
 
-top_10_kinases_per_disease %>% 
-	ggplot(aes(x = kinase, y = cardiac_adverse_event, size = target_score, colour = kinase)) +
-	geom_point(alpha = 0.7) +
-	labs(x = "Kinase", y = " ", title = "Kinase inhibition frequency by cardiotoxicity", size = "Number of Toxicity-Causing Drugs\nThat Inhibit the Given Kinase") +
-		theme(
-		legend.position = "bottom",
-		legend.text = element_text(size = 9),
-		legend.background = element_rect(fill = "transparent",colour = NA),
-		axis.title.y = element_blank(), 
-		axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1),
-		panel.background = element_rect(fill = "transparent",colour = NA),
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_blank(),
+
+```{r}
+#data pre-processing
+kinomescan_klaeger = LINCS_klaeger_data %>% 
+	select(-starts_with("exp")) %>% 
+	select(drug, origin, starts_with("act_")) %>% 
+	mutate(id = row_number())
+
+kinomescan_klaeger_meta = kinomescan_klaeger %>% 
+	select(id, drug, origin)
+
+zv_kinases = kinomescan_klaeger %>% 
+	select(starts_with("act_")) %>% 
+	pivot_longer(everything(), names_to = "kinase", values_to = "relative_intensity") %>% 
+	group_by(kinase) %>% nk(),
     plot.background = element_rect(fill = "transparent",colour = NA)
       ) +
 	guides(size = guide_legend(title.position = "bottom",
@@ -262,4 +258,99 @@ target_heatmap_plot = cardio_toxicity_data_full_long %>%
   	axis.text.y = element_blank())
 
 ggsave(here('figures/cardio_toxicity/target_target_heatmap.png'), width = 17.7, height = 20.29, units = "cm")
+```
+
+```{r}
+#Run UMAP 
+cardio_toxicity_data_for_clustering = cardio_toxicity_data_full %>% 
+	select(-starts_with("exp")) %>% 
+	select(drug, id, QT_interval_prolongation, LV_dysfuntion, HF, Arrhythmia, Ischemia_or_MI, Hypertension, Others, origin, starts_with("act_")) %>% 
+	mutate(id = row_number())
+
+cardio_toxicity_data_for_clustering_meta = cardio_toxicity_data_for_clustering %>% 
+	select(drug, id, QT_interval_prolongation, LV_dysfuntion, HF, Arrhythmia, Ischemia_or_MI, Hypertension, Others, origin)
+
+zv_kinases = cardio_toxicity_data_for_clustering %>% 
+	select(starts_with("act_")) %>% 
+	pivot_longer(everything(), names_to = "kinase", values_to = "relative_intensity") %>% 
+	group_by(kinase) %>% 
+	summarise(var = var(relative_intensity)) %>% 
+	filter(var == 0)
+```
+
+```{r}
+set.seed(2222)
+umap_fit <- cardio_toxicity_data_for_clustering %>%
+  select(id, starts_with("act_")) %>%
+  column_to_rownames("id") %>% 
+	select(-any_of(zv_kinases$kinase)) %>% 
+	scale() %>% 
+	as.data.frame() %>% 
+	drop_na() %>% 
+	as.matrix() %>% 
+	umap()
+
+umap_df <- umap_fit$layout %>%
+  as.data.frame()%>%
+  rename(UMAP1="V1",
+         UMAP2="V2") %>%
+  mutate(id=row_number())%>%
+  inner_join(cardio_toxicity_data_for_clustering_meta, by="id")
+
+umap_df %>%
+	# mutate(origin = if_else(
+	# 	origin == "overlap",
+	# 	"KINOMEscan",
+	# 	origin)) %>%
+  ggplot(aes(x = UMAP1, 
+             y = UMAP2, 
+             colour = origin)) +
+	geom_point(size = 10) +
+	scale_colour_brewer(type = "qual") +
+	#facet_wrap(vars(origin), scales = "free") +
+  labs(x = "UMAP1",
+       y = "UMAP2",
+  		 colour = "Heart Failure Incidence",
+      title = "UMAP based on kinome profile") +
+			theme(
+		legend.position = "left",
+		legend.text = element_text(size = 9),
+		legend.background = element_rect(fill = "transparent",colour = NA),
+		panel.background = element_rect(fill = "transparent",colour = NA),
+    panel.grid.minor = element_blank(), 
+    panel.grid.major = element_blank(),
+    plot.background = element_rect(fill = "transparent",colour = NA)
+      )
+
+	#ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only.png"), width = 20.125, height = 5.258, units = "cm")
+	#ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_matched_kinases_only_for_poster.png"), width = 6.6, height = 5, units = "in")
+```
+
+```{r}
+#adding in outcomes
+mean_aucs = full_dataset %>% 
+	group_by(drug) %>% 
+	summarise(mean_auc = mean(auc))
+
+umap_with_outcome = umap_df %>% 
+	left_join(mean_aucs) %>% 
+	filter(!is.na(mean_auc))
+
+umap_with_outcome %>%
+	# mutate(origin = if_else(
+	# 	origin == "overlap",
+	# 	"KINOMEscan",
+	# 	origin)) %>% 
+  ggplot(aes(x = UMAP1, 
+             y = UMAP2, 
+             colour = mean_auc, 
+  					 shape = origin)) +
+	geom_point() +
+	scale_colour_viridis_c() +
+	#facet_wrap(vars(origin)) +
+  labs(x = "UMAP1",
+       y = "UMAP2",
+  		 colour = "Mean Area\nUnder Dose-Response\nCurve",
+      title = "Kinobeads + KINOMEscan UMAP by outcome")
+	ggsave(here("figures/clustering/klaeger_kinomescan_UMAP_by_outcome_matched_kinases_only.png"), width = 25, height = 15, units = "cm")
 ```

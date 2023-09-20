@@ -99,6 +99,7 @@ shap_expression = shap_values_processed %>%
 	
 shap_inhibition %>%
 	mutate(class = if_else(gene == "MEK2", "Light", class))  %>% 
+	mutate(class = if_else(gene == "PIK4CB", "Light", class))  %>%
   slice(1:25) %>%
 	arrange(mean_importance_value) %>% 
 	mutate(gene = fct_inorder(gene)) %>% 

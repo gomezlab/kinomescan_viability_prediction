@@ -51,6 +51,8 @@ replication_summaries = PRISM_replication %>%
 						num_samples = n(),
 						mean_via = mean(viability),
 						CV = sd/mean_via)
+
+write_csv(validation_summaries, here('results/validation_results/combined_validation_screen_results.csv'))
 ```
 
 ```{r}
@@ -253,6 +255,7 @@ validation_assessment %>%
 		plot.background = element_rect(fill = "transparent",colour = NA)
 	)
 ggsave(here('figures/PRISM_LINCS_klaeger/validation/preliminary_validation_assessment.png'), height = 10, width = 9.5, units = "cm")
+
 ```
 
 ```{r}
