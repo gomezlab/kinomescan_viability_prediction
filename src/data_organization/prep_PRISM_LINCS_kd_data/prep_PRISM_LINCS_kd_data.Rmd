@@ -15,7 +15,20 @@ library(patchwork)
 #READING IN DATA
 PRISM_parms = read_csv(here('data/secondary/secondary-screen-dose-response-curve-parameters.csv'))
 
-LINCS_KINOMEscan_Kd = read.csv.all(here('data/LINCS/Data Files/Kd/*'))
+path <- '/home/cujoisa/Documents/GitHub/kinomescan_viability_prediction/data/LINCS/Data_Files/Kd'
+
+# List all CSV files in the directory
+csv_files <- list.files(path = path, pattern = "\\.csv$", full.names = TRUE)
+
+# Check if any files were found
+if (length(csv_files) == 0) {
+  message("No CSV files found in the specified directory.")
+} else {
+  # Read all CSV files into a single dataframe
+  LINCS_KINOMEscan_Kd <- map_df(csv_files, read_csv)
+}
+
+write_csv(LINCS_KINOMEscan_Kd, here('results/LINCS_KINOMEscan_Kd.csv'))
 
 LINCS_PRISM_matches = read_csv(here('src/data_organization/find_LINCS_PRISM_matches/LINCS_PRISM_match_list.csv')) %>% select(name, broad_id)
 ```

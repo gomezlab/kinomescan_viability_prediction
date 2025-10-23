@@ -7,16 +7,21 @@ library(ggdendro)
 library(vroom)
 library(umap)
 library(conflicted)
+library(fst)
+library(clusterProfiler)
+
 conflict_prefer("everything", "dplyr")
 conflict_prefer("filter", "dplyr")
 ```
 
 ```{r}
 # Load the data
+
 cardio_toxicity_data = read_csv(here('data/cardio_toxicity_data.csv')) %>% 
 	rename(drug = Drug)
 LINCS_klaeger_data = read_csv(here('results/all_klaeger_LINCS_data_for_ml_long_matched_only.csv'))
 cardio_toxicity_data_full = read_rds(here('results/cardio_toxicity_models/cardio_toxicity_data_for_ml.rds.gz'))
+
 ```
 
 ```{r}
@@ -33,6 +38,34 @@ cardio_toxicity_data_full_long = cardio_toxicity_data_full %>%
 	pivot_longer(starts_with("act_"), names_to = "kinase", values_to = "relative_intensity") %>% 
 	separate(kinase, into = c('prefix', 'kinase'), sep = "_") %>% 
 	select(-prefix)
+```
+
+## Kinases for CORAL visulaization
+```{r}
+cardiac_kinases = cardio_toxicity_data_full_long %>% 
+	filter(QT_interval_prolongation == 2 | LV_dysfuntion == 2 | HF == 2 | Arrhythmia == 2 | Ischemia_or_MI == 2 | Hypertension == 2 | Others == 2) %>%
+	filter(relative_intensity < 0.5)  %>% 
+	select(kinase)  %>% 
+	unique()
+
+cardiac_kinases_entrez = bitr(cardiac_kinases$kinase, fromType = "SYMBOL", toType = "ENTREZID", OrgDb = org.Hs.eg.db::org.Hs.eg.db)
+
+library(clipr)
+
+cardiac_kinases_entrez %>%
+	ungroup()  %>% 
+	select(ENTREZID)  %>% 
+	mutate(group = "Hit_Causes_Cardiac_Event_>10%") %>%
+	select(ENTREZID, group)  %>% 
+	as_tibble()  %>%
+	write_clip()
+```
+
+```{r}
+
+```
+
+```{r}
 ```
 
 ```{r}
